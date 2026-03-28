@@ -25,60 +25,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-
-const MOCK_PROPOSALS: Proposal[] = [
-  {
-    id: 'p1',
-    title: 'Maize Expansion Funding',
-    targetType: 'CLUSTER',
-    targetId: 'c1',
-    targetName: 'Kaduna North Maize Cluster',
-    description: 'Funding for expanding maize production by 200 hectares with improved irrigation.',
-    budget: 50000,
-    timeline: '12 Months',
-    status: 'PENDING',
-    createdAt: '2024-03-20',
-    documents: [{ name: 'feasibility_study.pdf', size: '2.4MB', type: 'PDF' }],
-    terms: { interestRate: 8, repaymentPeriod: '18 Months' },
-    history: [{ date: '2024-03-20', action: 'Proposal Created', user: 'Alex Johnson' }]
-  },
-  {
-    id: 'p2',
-    title: 'Organic Fertilizer Pilot',
-    targetType: 'FARMER',
-    targetId: 'f1',
-    targetName: 'Sarah Miller',
-    description: 'Pilot program for transitioning to organic fertilizers on a 5-hectare plot.',
-    budget: 5000,
-    timeline: '6 Months',
-    status: 'NEGOTIATING',
-    createdAt: '2024-03-15',
-    documents: [{ name: 'soil_test_results.pdf', size: '1.1MB', type: 'PDF' }],
-    terms: { interestRate: 5, repaymentPeriod: '12 Months' },
-    history: [
-      { date: '2024-03-15', action: 'Proposal Created', user: 'Alex Johnson' },
-      { date: '2024-03-18', action: 'Counter-offer sent', user: 'Sarah Miller', details: 'Requested lower interest rate' }
-    ]
-  },
-  {
-    id: 'p3',
-    title: 'Solar Irrigation System',
-    targetType: 'CLUSTER',
-    targetId: 'c2',
-    targetName: 'Zaria Organic Growers',
-    description: 'Installation of solar-powered irrigation systems for year-round farming.',
-    budget: 25000,
-    timeline: '8 Months',
-    status: 'APPROVED',
-    createdAt: '2024-03-10',
-    documents: [{ name: 'technical_specs.pdf', size: '3.5MB', type: 'PDF' }],
-    terms: { interestRate: 7, repaymentPeriod: '24 Months' },
-    history: [
-      { date: '2024-03-10', action: 'Proposal Created', user: 'Alex Johnson' },
-      { date: '2024-03-14', action: 'Proposal Approved', user: 'Admin' }
-    ]
-  }
-];
+import { useStore } from '@/src/store/useStore';
 
 export function ProposalList({ 
   onSelectProposal, 
@@ -87,6 +34,7 @@ export function ProposalList({
   onSelectProposal: (proposal: Proposal) => void,
   onCreateProposal: () => void
 }) {
+  const { proposals, user } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -103,7 +51,7 @@ export function ProposalList({
     }
   };
 
-  const filteredProposals = MOCK_PROPOSALS.filter(p => {
+  const filteredProposals = proposals.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           p.targetName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
@@ -117,10 +65,12 @@ export function ProposalList({
           <h1 className="text-3xl font-bold tracking-tight">Investment Proposals</h1>
           <p className="text-muted-foreground">Track and manage your funding offers to farmers and clusters.</p>
         </div>
-        <Button onClick={onCreateProposal} className="gap-2">
-          <Plus className="w-4 h-4" />
-          <span>New Proposal</span>
-        </Button>
+        {user.role === 'INVESTOR' && (
+          <Button onClick={onCreateProposal} className="gap-2">
+            <Plus className="w-4 h-4" />
+            <span>New Proposal</span>
+          </Button>
+        )}
       </div>
 
       <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">

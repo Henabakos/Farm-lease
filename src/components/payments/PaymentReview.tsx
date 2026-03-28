@@ -25,6 +25,8 @@ import {
   Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useStore } from '@/src/store/useStore';
+import { toast } from 'sonner';
 
 export function PaymentReview({ 
   payment, 
@@ -37,6 +39,7 @@ export function PaymentReview({
   onVerify: (id: string) => void,
   onReject: (id: string, reason: string) => void
 }) {
+  const { verifyPayment, updatePayment } = useStore();
   const [rejectReason, setRejectReason] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
@@ -45,8 +48,10 @@ export function PaymentReview({
   const handleVerify = () => {
     setIsVerifying(true);
     setTimeout(() => {
+      verifyPayment(payment.id);
       onVerify(payment.id);
       setIsVerifying(false);
+      toast.success('Payment verified successfully');
     }, 1500);
   };
 
@@ -54,8 +59,10 @@ export function PaymentReview({
     if (!rejectReason.trim()) return;
     setIsRejecting(true);
     setTimeout(() => {
+      updatePayment(payment.id, { status: 'REJECTED', notes: rejectReason });
       onReject(payment.id, rejectReason);
       setIsRejecting(false);
+      toast.success('Payment rejected');
     }, 1500);
   };
 

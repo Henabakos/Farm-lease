@@ -24,26 +24,22 @@ import {
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-
-const MOCK_MEMBERS: User[] = [
-  { id: 'm1', name: 'John Doe', email: 'john@example.com', role: 'FARMER', joinedDate: '2023-06-12', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John' },
-  { id: 'm2', name: 'Jane Smith', email: 'jane@example.com', role: 'FARMER', joinedDate: '2023-07-05', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane' },
-  { id: 'm3', name: 'Michael Brown', email: 'michael@example.com', role: 'FARMER', joinedDate: '2023-08-15', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Michael' },
-  { id: 'm4', name: 'Sarah Wilson', email: 'sarah@example.com', role: 'FARMER', joinedDate: '2023-09-20', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' },
-];
-
-const MOCK_PLOTS: Plot[] = [
-  { id: 'p1', clusterId: 'c1', size: 5.5, location: 'Sector A-1', status: 'OCCUPIED' },
-  { id: 'p2', clusterId: 'c1', size: 4.2, location: 'Sector A-2', status: 'AVAILABLE' },
-  { id: 'p3', clusterId: 'c1', size: 6.8, location: 'Sector B-1', status: 'OCCUPIED' },
-  { id: 'p4', clusterId: 'c1', size: 3.5, location: 'Sector B-2', status: 'MAINTENANCE' },
-  { id: 'p5', clusterId: 'c1', size: 7.2, location: 'Sector C-1', status: 'AVAILABLE' },
-];
+import { useStore } from '@/src/store/useStore';
+import { toast } from 'sonner';
 
 export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: () => void }) {
-  const [members, setMembers] = useState<User[]>(MOCK_MEMBERS);
-  const [plots, setPlots] = useState<Plot[]>(MOCK_PLOTS);
+  const { user, verifyCluster } = useStore();
+  const [members, setMembers] = useState<User[]>([]); // In real app, fetch from store/api
+  const [plots, setPlots] = useState<Plot[]>([]); // In real app, fetch from store/api
   const [searchMember, setSearchMember] = useState('');
+
+  const canManage = user.role === 'ADMIN' || user.role === 'CLUSTER_REP';
+  const canVerify = user.role === 'ADMIN';
+
+  const handleVerify = () => {
+    verifyCluster(cluster.id);
+    toast.success('Cluster verified successfully');
+  };
 
   const filteredMembers = members.filter(m => 
     m.name.toLowerCase().includes(searchMember.toLowerCase()) || 
@@ -190,10 +186,12 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                     <CardTitle>Member Directory</CardTitle>
                     <CardDescription>Manage farmers associated with this cluster.</CardDescription>
                   </div>
-                  <Button onClick={addMember} className="gap-2">
-                    <UserPlus className="w-4 h-4" />
-                    <span>Add Farmer</span>
-                  </Button>
+                  {canManage && (
+                    <Button onClick={addMember} className="gap-2">
+                      <UserPlus className="w-4 h-4" />
+                      <span>Add Farmer</span>
+                    </Button>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="relative">
@@ -249,10 +247,12 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                         <CardTitle>Land Plots</CardTitle>
                         <CardDescription>Inventory of available and occupied land.</CardDescription>
                       </div>
-                      <Button size="sm" className="gap-2">
-                        <Plus className="w-4 h-4" />
-                        <span>Add Plot</span>
-                      </Button>
+                      {canManage && (
+                        <Button size="sm" className="gap-2">
+                          <Plus className="w-4 h-4" />
+                          <span>Add Plot</span>
+                        </Button>
+                      )}
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {plots.map((plot) => (
@@ -352,25 +352,36 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start gap-3 h-11">
-                <FileText className="w-4 h-4" />
-                <span>Generate Report</span>
-              </Button>
-              <Button variant="outline" className="w-full justify-start gap-3 h-11">
-                <Users className="w-4 h-4" />
-                <span>Bulk Invite Farmers</span>
-              </Button>
-              <Button variant="outline" className="w-full justify-start gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10">
-                <XCircle className="w-4 h-4" />
-                <span>Suspend Cluster</span>
-              </Button>
-            </CardContent>
-          </Card>
+          {canManage && (
+            <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button variant="outline" className="w-full justify-start gap-3 h-11">
+                  <FileText className="w-4 h-4" />
+                  <span>Generate Report</span>
+                </Button>
+                <Button variant="outline" className="w-full justify-start gap-3 h-11">
+                  <Users className="w-4 h-4" />
+                  <span>Bulk Invite Farmers</span>
+                </Button>
+                {canVerify && !cluster.isVerified && (
+                  <Button 
+                    className="w-full justify-start gap-3 h-11 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={handleVerify}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Verify Cluster</span>
+                  </Button>
+                )}
+                <Button variant="outline" className="w-full justify-start gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10">
+                  <XCircle className="w-4 h-4" />
+                  <span>Suspend Cluster</span>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

@@ -25,8 +25,11 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useStore } from '@/src/store/useStore';
+import { toast } from 'sonner';
 
-export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void, onSubmit: (proposal: Partial<Proposal>) => void }) {
+export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void, onSubmit?: (proposal: Partial<Proposal>) => void }) {
+  const { addProposal, user } = useStore();
   const [targetType, setTargetType] = useState<'FARMER' | 'CLUSTER'>('FARMER');
   const [formData, setFormData] = useState({
     title: '',
@@ -45,12 +48,12 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void, onSub
   };
 
   const handleUpload = () => {
-    // Mock upload
     const mockDocs = [
       { name: 'business_plan.pdf', size: '1.2MB' },
       { name: 'land_title.pdf', size: '0.8MB' }
     ];
     setDocuments([...documents, ...mockDocs]);
+    toast.success('Documents uploaded successfully');
   };
 
   const removeDoc = (index: number) => {
@@ -59,10 +62,23 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void, onSub
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      ...formData,
+    
+    const targetName = targetType === 'FARMER' 
+      ? (formData.targetId === 'f1' ? 'Sarah Miller' : 'John Doe')
+      : (formData.targetId === 'c1' ? 'Kaduna North Maize Cluster' : 'Zaria Organic Growers');
+
+    const newProposal: Proposal = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: formData.title,
       targetType,
+      targetId: formData.targetId,
+      targetName,
+      description: formData.description,
       budget: Number(formData.budget),
+      amount: Number(formData.budget),
+      location: 'Kaduna, Nigeria',
+      roi: 15,
+      timeline: formData.timeline,
       status: 'PENDING',
       createdAt: new Date().toISOString(),
       documents: documents.map(d => ({ ...d, type: 'PDF' })),
@@ -71,8 +87,13 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void, onSub
         repaymentPeriod: formData.repaymentPeriod,
         collateral: formData.collateral
       },
-      history: [{ date: new Date().toISOString(), action: 'Proposal Created', user: 'Alex Johnson' }]
-    });
+      history: [{ date: new Date().toISOString(), action: 'Proposal Created', user: user.name }]
+    };
+
+    addProposal(newProposal);
+    toast.success('Proposal submitted successfully');
+    if (onSubmit) onSubmit(newProposal);
+    onBack();
   };
 
   return (

@@ -21,60 +21,15 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-
-const MOCK_CLUSTERS: Cluster[] = [
-  {
-    id: 'c1',
-    name: 'Kaduna North Maize Cluster',
-    location: 'Kaduna North',
-    region: 'North West',
-    memberCount: 120,
-    isVerified: true,
-    size: 450,
-    establishedDate: '2023-05-10',
-    description: 'Specializing in high-yield hybrid maize production with integrated irrigation systems.'
-  },
-  {
-    id: 'c2',
-    name: 'Zaria Organic Growers',
-    location: 'Zaria',
-    region: 'North West',
-    memberCount: 45,
-    isVerified: true,
-    size: 120,
-    establishedDate: '2023-08-22',
-    description: 'A community-led initiative focused on organic farming and sustainable soil management.'
-  },
-  {
-    id: 'c3',
-    name: 'Jos Plateau Potato Group',
-    location: 'Jos South',
-    region: 'North Central',
-    memberCount: 85,
-    isVerified: false,
-    size: 300,
-    establishedDate: '2024-01-15',
-    description: 'Leveraging the unique climate of the Jos Plateau for premium potato cultivation.'
-  },
-  {
-    id: 'c4',
-    name: 'Kano Rice Hub',
-    location: 'Kano Central',
-    region: 'North West',
-    memberCount: 250,
-    isVerified: true,
-    size: 800,
-    establishedDate: '2022-11-05',
-    description: 'One of the largest rice production clusters in the region with modern processing facilities.'
-  }
-];
+import { useStore } from '@/src/store/useStore';
 
 export function ClusterList({ onSelectCluster }: { onSelectCluster: (cluster: Cluster) => void }) {
+  const { clusters, user } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [regionFilter, setRegionFilter] = useState('all');
   const [verifiedFilter, setVerifiedFilter] = useState('all');
 
-  const filteredClusters = MOCK_CLUSTERS.filter(cluster => {
+  const filteredClusters = clusters.filter(cluster => {
     const matchesSearch = cluster.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           cluster.location.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRegion = regionFilter === 'all' || cluster.region === regionFilter;
@@ -85,6 +40,8 @@ export function ClusterList({ onSelectCluster }: { onSelectCluster: (cluster: Cl
     return matchesSearch && matchesRegion && matchesVerified;
   });
 
+  const canCreateCluster = user.role === 'ADMIN' || user.role === 'CLUSTER_REP';
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -92,10 +49,12 @@ export function ClusterList({ onSelectCluster }: { onSelectCluster: (cluster: Cl
           <h1 className="text-3xl font-bold tracking-tight">Farming Clusters</h1>
           <p className="text-muted-foreground">Manage and monitor agricultural production groups.</p>
         </div>
-        <Button className="gap-2">
-          <Plus className="w-4 h-4" />
-          <span>Create New Cluster</span>
-        </Button>
+        {canCreateCluster && (
+          <Button className="gap-2">
+            <Plus className="w-4 h-4" />
+            <span>Create New Cluster</span>
+          </Button>
+        )}
       </div>
 
       <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">

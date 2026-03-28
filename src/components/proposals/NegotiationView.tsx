@@ -25,11 +25,11 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const MOCK_MESSAGES: Message[] = [
-  { id: 'm1', senderId: 'u1', senderName: 'Alex Johnson', content: 'Hi Sarah, I\'ve sent over the initial proposal for the organic fertilizer pilot. Let me know what you think.', timestamp: '2024-03-15T10:00:00Z' },
-  { id: 'm2', senderId: 'u2', senderName: 'Sarah Miller', content: 'Thanks Alex! The proposal looks great, but I\'m concerned about the interest rate. 8% is a bit high for a pilot program.', timestamp: '2024-03-16T14:30:00Z' },
-  { id: 'm3', senderId: 'system', senderName: 'System', content: 'Sarah Miller has requested a revision to the interest rate.', timestamp: '2024-03-16T14:31:00Z', isSystem: true },
-  { id: 'm4', senderId: 'u1', senderName: 'Alex Johnson', content: 'I understand. What rate were you thinking of?', timestamp: '2024-03-17T09:15:00Z' },
-  { id: 'm5', senderId: 'u2', senderName: 'Sarah Miller', content: 'Could we do 5%? Given the sustainability focus, I think it\'s more aligned with the long-term goals.', timestamp: '2024-03-17T11:45:00Z' },
+  { id: 'm1', conversationId: 'conv-negotiation', senderId: 'u1', senderName: 'Alex Johnson', content: 'Hi Sarah, I\'ve sent over the initial proposal for the organic fertilizer pilot. Let me know what you think.', timestamp: '2024-03-15T10:00:00Z' },
+  { id: 'm2', conversationId: 'conv-negotiation', senderId: 'u2', senderName: 'Sarah Miller', content: 'Thanks Alex! The proposal looks great, but I\'m concerned about the interest rate. 8% is a bit high for a pilot program.', timestamp: '2024-03-16T14:30:00Z' },
+  { id: 'm3', conversationId: 'conv-negotiation', senderId: 'system', senderName: 'System', content: 'Sarah Miller has requested a revision to the interest rate.', timestamp: '2024-03-16T14:31:00Z', isSystem: true },
+  { id: 'm4', conversationId: 'conv-negotiation', senderId: 'u1', senderName: 'Alex Johnson', content: 'I understand. What rate were you thinking of?', timestamp: '2024-03-17T09:15:00Z' },
+  { id: 'm5', conversationId: 'conv-negotiation', senderId: 'u2', senderName: 'Sarah Miller', content: 'Could we do 5%? Given the sustainability focus, I think it\'s more aligned with the long-term goals.', timestamp: '2024-03-17T11:45:00Z' },
 ];
 
 export function NegotiationView({ 
@@ -59,6 +59,7 @@ export function NegotiationView({
 
     const msg: Message = {
       id: `m${Date.now()}`,
+      conversationId: 'conv-negotiation',
       senderId: 'u1',
       senderName: 'Alex Johnson',
       content: newMessage,
@@ -88,6 +89,7 @@ export function NegotiationView({
     // Add system message
     const systemMsg: Message = {
       id: `s${Date.now()}`,
+      conversationId: 'conv-negotiation',
       senderId: 'system',
       senderName: 'System',
       content: 'Alex Johnson has updated the proposal terms.',

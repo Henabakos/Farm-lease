@@ -37,8 +37,11 @@ import { cn } from '@/lib/utils';
 
 import { NotificationDropdown } from '@/src/components/layout/NotificationDropdown';
 
-export function Topbar({ onNavigate }: { onNavigate: (view: 'DASHBOARD' | 'PROFILE' | 'CLUSTERS' | 'PROPOSALS' | 'AGREEMENTS' | 'PAYMENTS' | 'MESSAGES' | 'MEETINGS' | 'ANALYTICS' | 'ADMIN_DASHBOARD' | 'AUDIT_LOGS') => void }) {
+import { useStore, ViewType } from '@/src/store/useStore';
+
+export function Topbar({ onNavigate }: { onNavigate?: (view: ViewType) => void }) {
   const { user, setRole, logout } = useRole();
+  const { setCurrentView, resetNavigation } = useStore();
 
   const roleIcons: Record<UserRole, React.ElementType> = {
     INVESTOR: TrendingUp,
@@ -49,32 +52,41 @@ export function Topbar({ onNavigate }: { onNavigate: (view: 'DASHBOARD' | 'PROFI
 
   const RoleIcon = roleIcons[user.role];
 
+  const handleNavClick = (view: ViewType) => {
+    resetNavigation();
+    setCurrentView(view);
+    if (onNavigate) onNavigate(view);
+  };
+
   return (
-    <header className="h-16 border-b bg-card px-6 flex items-center justify-between sticky top-0 z-20">
-      <div className="flex-1 max-w-md relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+    <header className="h-16 border-b border-border/50 bg-card/50 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-20">
+      <div className="flex-1 max-w-md relative group">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
         <Input 
           placeholder="Search investments, farms, or reports..." 
-          className="pl-10 bg-muted/50 border-none focus-visible:ring-primary/20"
+          className="pl-10 bg-muted/30 border-none focus-visible:ring-primary/20 transition-all duration-300 focus-visible:bg-muted/50"
         />
       </div>
 
       <div className="flex items-center gap-4">
         <NotificationDropdown />
 
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className="h-6 bg-border/50" />
 
         <DropdownMenu>
-          <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost" }), "gap-3 px-2 hover:bg-muted/50 h-auto py-1.5")}>
-            <Avatar className="w-8 h-8 border">
-              <AvatarImage src={user.avatar} />
-              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-            </Avatar>
+          <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost" }), "gap-3 px-2 hover:bg-muted/50 h-auto py-1.5 transition-all duration-200 rounded-xl")}>
+            <div className="relative">
+              <Avatar className="w-8 h-8 border border-border/50 shadow-sm">
+                <AvatarImage src={user.avatar} />
+                <AvatarFallback className="bg-primary/10 text-primary font-bold">{user.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-background rounded-full" />
+            </div>
             <div className="text-left hidden sm:block">
-              <p className="text-sm font-medium leading-none">{user.name}</p>
+              <p className="text-sm font-semibold leading-none tracking-tight">{user.name}</p>
               <div className="flex items-center gap-1 mt-1">
-                <RoleIcon className="w-3 h-3 text-primary" />
-                <span className="text-xs text-muted-foreground capitalize">
+                <RoleIcon className="w-3 h-3 text-primary/70" />
+                <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
                   {user.role.toLowerCase().replace('_', ' ')}
                 </span>
               </div>
@@ -85,7 +97,7 @@ export function Topbar({ onNavigate }: { onNavigate: (view: 'DASHBOARD' | 'PROFI
             <DropdownMenuGroup>
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onNavigate('PROFILE')}>
+              <DropdownMenuItem onClick={() => handleNavClick('PROFILE')}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
@@ -105,19 +117,19 @@ export function Topbar({ onNavigate }: { onNavigate: (view: 'DASHBOARD' | 'PROFI
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
                   <DropdownMenuSubContent>
-                    <DropdownMenuItem onClick={() => { setRole('INVESTOR'); onNavigate('DASHBOARD'); }}>
+                    <DropdownMenuItem onClick={() => { setRole('INVESTOR'); handleNavClick('DASHBOARD'); }}>
                       <TrendingUp className="mr-2 h-4 w-4" />
                       <span>Investor</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setRole('FARMER'); onNavigate('DASHBOARD'); }}>
+                    <DropdownMenuItem onClick={() => { setRole('FARMER'); handleNavClick('DASHBOARD'); }}>
                       <Sprout className="mr-2 h-4 w-4" />
                       <span>Farmer</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setRole('CLUSTER_REP'); onNavigate('DASHBOARD'); }}>
+                    <DropdownMenuItem onClick={() => { setRole('CLUSTER_REP'); handleNavClick('DASHBOARD'); }}>
                       <Map className="mr-2 h-4 w-4" />
                       <span>Cluster Rep</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setRole('ADMIN'); onNavigate('DASHBOARD'); }}>
+                    <DropdownMenuItem onClick={() => { setRole('ADMIN'); handleNavClick('DASHBOARD'); }}>
                       <Shield className="mr-2 h-4 w-4" />
                       <span>Admin</span>
                     </DropdownMenuItem>

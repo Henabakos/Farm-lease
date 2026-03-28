@@ -26,36 +26,10 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-
-const MOCK_AGREEMENTS: Agreement[] = [
-  {
-    id: 'a1',
-    proposalId: 'p3',
-    title: 'Solar Irrigation System Agreement',
-    investorName: 'Alex Johnson',
-    targetName: 'Zaria Organic Growers',
-    amount: 25000,
-    status: 'SIGNED',
-    createdAt: '2024-03-14',
-    signedAt: '2024-03-15T10:30:00Z',
-    terms: { interestRate: 7, repaymentPeriod: '24 Months' },
-    clauses: []
-  },
-  {
-    id: 'a2',
-    proposalId: 'p2',
-    title: 'Organic Fertilizer Pilot Agreement',
-    investorName: 'Alex Johnson',
-    targetName: 'Sarah Miller',
-    amount: 5000,
-    status: 'PENDING',
-    createdAt: '2024-03-22',
-    terms: { interestRate: 5, repaymentPeriod: '12 Months' },
-    clauses: []
-  }
-];
+import { useStore } from '@/src/store/useStore';
 
 export function AgreementList({ onSelectAgreement }: { onSelectAgreement: (agreement: Agreement) => void }) {
+  const { agreements } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -70,9 +44,9 @@ export function AgreementList({ onSelectAgreement }: { onSelectAgreement: (agree
     }
   };
 
-  const filteredAgreements = MOCK_AGREEMENTS.filter(a => {
+  const filteredAgreements = agreements.filter(a => {
     const matchesSearch = a.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          a.targetName.toLowerCase().includes(searchQuery.toLowerCase());
+                          (a.targetName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
     const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
     return matchesSearch && matchesStatus;
   });

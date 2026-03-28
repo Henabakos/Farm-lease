@@ -25,6 +25,8 @@ import {
   DollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useStore } from '@/src/store/useStore';
+import { toast } from 'sonner';
 
 const DEFAULT_CLAUSES: Clause[] = [
   { id: 'c1', title: '1. Purpose of Investment', content: 'The Investor agrees to provide the specified amount to the Target for the sole purpose of agricultural expansion and operational improvements as detailed in the approved proposal.', isEditable: false },
@@ -41,8 +43,9 @@ export function AgreementDetail({
 }: { 
   agreement: Agreement, 
   onBack: () => void,
-  onSign: (id: string) => void
+  onSign?: (id: string) => void
 }) {
+  const { user, signAgreement } = useStore();
   const [clauses, setClauses] = useState<Clause[]>(agreement.clauses.length > 0 ? agreement.clauses : DEFAULT_CLAUSES);
   const [isSigning, setIsSigning] = useState(false);
   const [signedName, setSignedName] = useState('');
@@ -57,8 +60,10 @@ export function AgreementDetail({
     if (!signedName.trim()) return;
     setIsSigning(true);
     setTimeout(() => {
-      onSign(agreement.id);
+      signAgreement(agreement.id);
       setIsSigning(false);
+      toast.success('Agreement signed successfully');
+      if (onSign) onSign(agreement.id);
     }, 1500);
   };
 
@@ -72,6 +77,11 @@ export function AgreementDetail({
         return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 gap-1"><XCircle className="w-3 h-3" /> Rejected</Badge>;
     }
   };
+
+  const canSign = agreement.status === 'PENDING' && 
+                  ((user.role === 'INVESTOR') || 
+                   (user.role === 'FARMER' && agreement.farmerId === user.id) || 
+                   (user.role === 'CLUSTER_REP' && agreement.clusterId === user.id));
 
   return (
     <div className="space-y-8">
@@ -256,7 +266,7 @@ export function AgreementDetail({
             </CardContent>
           </Card>
 
-          {agreement.status === 'PENDING' && (
+          {canSign && (
             <Card className="border-none shadow-sm bg-primary/5 border border-primary/20 overflow-hidden">
               <CardHeader className="bg-primary/10">
                 <div className="flex items-center gap-2 text-primary">
@@ -270,7 +280,7 @@ export function AgreementDetail({
                   <Label htmlFor="sign-name">Type your full name to sign</Label>
                   <Input 
                     id="sign-name" 
-                    placeholder={agreement.targetName} 
+                    placeholder={user.name} 
                     className="bg-background/50 border-primary/20 focus:border-primary"
                     value={signedName}
                     onChange={(e) => setSignedName(e.target.value)}

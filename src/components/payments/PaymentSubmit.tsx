@@ -20,6 +20,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useStore } from '@/src/store/useStore';
+import { toast } from 'sonner';
 
 export function PaymentSubmit({ 
   payment, 
@@ -30,6 +32,7 @@ export function PaymentSubmit({
   onBack: () => void,
   onSubmit: (id: string, receiptUrl: string, notes: string) => void
 }) {
+  const { updatePayment } = useStore();
   const [receipt, setReceipt] = useState<{ name: string; size: string } | null>(null);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,6 +40,7 @@ export function PaymentSubmit({
   const handleUpload = () => {
     // Mock upload
     setReceipt({ name: 'payment_receipt_march.pdf', size: '1.2MB' });
+    toast.success('Receipt uploaded successfully');
   };
 
   const handleRemove = () => {
@@ -49,8 +53,14 @@ export function PaymentSubmit({
     
     setIsSubmitting(true);
     setTimeout(() => {
+      updatePayment(payment.id, { 
+        status: 'SUBMITTED', 
+        receiptUrl: receipt.name,
+        submittedAt: new Date().toISOString()
+      });
       onSubmit(payment.id, receipt.name, notes);
       setIsSubmitting(false);
+      toast.success('Payment submitted for review');
     }, 1500);
   };
 

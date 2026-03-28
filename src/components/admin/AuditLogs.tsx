@@ -19,17 +19,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AuditLog, UserRole } from '../../types';
-
-const mockAuditLogs: AuditLog[] = [
-  { id: 'l1', userId: 'u1', userName: 'Alex Johnson', userRole: 'INVESTOR', action: 'PROPOSAL_CREATED', targetId: 'p1', targetType: 'PROPOSAL', timestamp: '2024-03-26T10:15:00Z', details: 'Created investment proposal for Green Valley Cooperative', ipAddress: '192.168.1.45' },
-  { id: 'l2', userId: 'u4', userName: 'Admin User', userRole: 'ADMIN', action: 'USER_VERIFIED', targetId: 'u2', targetType: 'USER', timestamp: '2024-03-26T09:30:00Z', details: 'Verified farmer account for Sarah Miller', ipAddress: '10.0.0.12' },
-  { id: 'l3', userId: 'u2', userName: 'Sarah Miller', userRole: 'FARMER', action: 'PAYMENT_SUBMITTED', targetId: 'pay1', targetType: 'PAYMENT', timestamp: '2024-03-26T08:45:00Z', details: 'Submitted receipt for $5,000 repayment', ipAddress: '172.16.0.8' },
-  { id: 'l4', userId: 'u3', userName: 'John Doe', userRole: 'CLUSTER_REP', action: 'CLUSTER_UPDATED', targetId: 'cl1', targetType: 'CLUSTER', timestamp: '2024-03-25T16:20:00Z', details: 'Updated member count for Sunshine Farmers', ipAddress: '192.168.1.102' },
-  { id: 'l5', userId: 'u4', userName: 'Admin User', userRole: 'ADMIN', action: 'SECURITY_SETTINGS_CHANGED', targetId: 'sys', targetType: 'SYSTEM', timestamp: '2024-03-25T14:10:00Z', details: 'Updated global password policy', ipAddress: '10.0.0.12' },
-  { id: 'l6', userId: 'u1', userName: 'Alex Johnson', userRole: 'INVESTOR', action: 'AGREEMENT_SIGNED', targetId: 'a1', targetType: 'AGREEMENT', timestamp: '2024-03-25T11:05:00Z', details: 'Signed investment agreement with Zaria Organic Growers', ipAddress: '192.168.1.45' },
-];
+import { useStore } from '@/src/store/useStore';
 
 export const AuditLogs: React.FC = () => {
+  const { auditLogs } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'ALL'>('ALL');
   const [dateRange, setDateRange] = useState('LAST_24H');
@@ -42,7 +35,7 @@ export const AuditLogs: React.FC = () => {
     return <Activity className="w-4 h-4 text-gray-500" />;
   };
 
-  const filteredLogs = mockAuditLogs.filter(log => {
+  const filteredLogs = auditLogs.filter(log => {
     const matchesSearch = log.userName.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          log.details?.toLowerCase().includes(searchTerm.toLowerCase());

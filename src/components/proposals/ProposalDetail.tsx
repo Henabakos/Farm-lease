@@ -20,9 +20,12 @@ import {
   TrendingUp,
   Users,
   Sprout,
-  ExternalLink
+  ExternalLink,
+  PenTool
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useStore } from '@/src/store/useStore';
+import { toast } from 'sonner';
 
 export function ProposalDetail({ 
   proposal, 
@@ -33,6 +36,7 @@ export function ProposalDetail({
   onBack: () => void,
   onNegotiate: () => void
 }) {
+  const { user, updateProposalStatus, createAgreement } = useStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'history'>('overview');
 
   const getStatusBadge = (status: ProposalStatus) => {
@@ -47,6 +51,31 @@ export function ProposalDetail({
         return <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 gap-1"><MessageSquare className="w-3 h-3" /> Negotiating</Badge>;
     }
   };
+
+  const handleApprove = () => {
+    updateProposalStatus(proposal.id, 'APPROVED');
+    createAgreement(proposal);
+    toast.success('Proposal approved and agreement generated');
+  };
+
+  const handleReject = () => {
+    updateProposalStatus(proposal.id, 'REJECTED');
+    toast.error('Proposal rejected');
+  };
+
+  const handleSignAgreement = () => {
+    createAgreement(proposal);
+    toast.success('Agreement generated and sent for signing');
+  };
+
+  const canApprove = (user.role === 'FARMER' && proposal.targetType === 'FARMER') || 
+                    (user.role === 'CLUSTER_REP' && proposal.targetType === 'CLUSTER') ||
+                    (user.role === 'ADMIN');
+
+  const canSign = proposal.status === 'APPROVED' && 
+                  ((user.role === 'INVESTOR') || 
+                   (user.role === 'FARMER' && proposal.targetType === 'FARMER') || 
+                   (user.role === 'CLUSTER_REP' && proposal.targetType === 'CLUSTER'));
 
   return (
     <div className="space-y-8">
@@ -69,19 +98,27 @@ export function ProposalDetail({
         <div className="flex items-center gap-3">
           <Button variant="outline" className="gap-2" onClick={onNegotiate}>
             <MessageSquare className="w-4 h-4" />
-            <span>Negotiate Terms</span>
+            <span>Negotiate</span>
           </Button>
-          {proposal.status === 'PENDING' && (
+          
+          {proposal.status === 'PENDING' && canApprove && (
             <>
-              <Button variant="outline" className="text-destructive hover:bg-destructive/10 gap-2">
+              <Button variant="outline" className="text-destructive hover:bg-destructive/10 gap-2" onClick={handleReject}>
                 <XCircle className="w-4 h-4" />
                 <span>Reject</span>
               </Button>
-              <Button className="gap-2">
+              <Button className="gap-2" onClick={handleApprove}>
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Approve</span>
               </Button>
             </>
+          )}
+
+          {canSign && (
+            <Button className="gap-2 bg-primary hover:bg-primary/90" onClick={handleSignAgreement}>
+              <PenTool className="w-4 h-4" />
+              <span>Sign Agreement</span>
+            </Button>
           )}
         </div>
       </div>

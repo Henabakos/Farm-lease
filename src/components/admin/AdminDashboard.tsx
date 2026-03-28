@@ -19,34 +19,41 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { User, Cluster, Payment, UserRole } from '../../types';
-
-const mockUsers: User[] = [
-  { id: 'u1', name: 'Alex Johnson', email: 'alex@example.com', role: 'INVESTOR', joinedDate: '2024-01-15', location: 'New York, USA' },
-  { id: 'u2', name: 'Sarah Miller', email: 'sarah@example.com', role: 'FARMER', joinedDate: '2024-02-10', location: 'Zaria, Nigeria' },
-  { id: 'u3', name: 'John Doe', email: 'john@example.com', role: 'CLUSTER_REP', joinedDate: '2024-03-05', location: 'Nairobi, Kenya' },
-  { id: 'u4', name: 'Admin User', email: 'admin@agriinvest.com', role: 'ADMIN', joinedDate: '2023-12-01', location: 'Remote' },
-];
-
-const mockPendingClusters: Cluster[] = [
-  { id: 'cl1', name: 'Green Valley Cooperative', location: 'Kaduna', region: 'North', memberCount: 45, isVerified: false, size: 120, establishedDate: '2023-11-20' },
-  { id: 'cl2', name: 'Sunshine Farmers', location: 'Ibadan', region: 'South', memberCount: 32, isVerified: false, size: 85, establishedDate: '2024-01-12' },
-];
-
-const mockPendingPayments: Payment[] = [
-  { id: 'p1', agreementId: 'a1', agreementTitle: 'Maize Production 2024', amount: 5000, type: 'REPAYMENT', status: 'SUBMITTED', date: '2024-03-20', senderName: 'Sarah Miller', receiverName: 'Alex Johnson' },
-  { id: 'p2', agreementId: 'a2', agreementTitle: 'Soybean Expansion', amount: 12000, type: 'DISBURSEMENT', status: 'SUBMITTED', date: '2024-03-22', senderName: 'Alex Johnson', receiverName: 'John Doe' },
-];
+import { useStore } from '@/src/store/useStore';
+import { toast } from 'sonner';
 
 export const AdminDashboard: React.FC = () => {
+  const { clusters, payments, verifyCluster, verifyPayment } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'USERS' | 'CLUSTERS' | 'PAYMENTS'>('USERS');
 
+  // Mock users for now as they aren't in the store yet
+  const mockUsers: User[] = [
+    { id: 'u1', name: 'Alex Johnson', email: 'alex@example.com', role: 'INVESTOR', joinedDate: '2024-01-15', location: 'New York, USA' },
+    { id: 'u2', name: 'Sarah Miller', email: 'sarah@example.com', role: 'FARMER', joinedDate: '2024-02-10', location: 'Zaria, Nigeria' },
+    { id: 'u3', name: 'John Doe', email: 'john@example.com', role: 'CLUSTER_REP', joinedDate: '2024-03-05', location: 'Nairobi, Kenya' },
+    { id: 'u4', name: 'Admin User', email: 'admin@agriinvest.com', role: 'ADMIN', joinedDate: '2023-12-01', location: 'Remote' },
+  ];
+
+  const pendingClusters = clusters.filter(c => !c.isVerified);
+  const pendingPayments = payments.filter(p => p.status === 'SUBMITTED');
+
   const stats = [
     { title: 'Total Users', value: '1,284', change: '+12%', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { title: 'Active Clusters', value: '156', change: '+8%', icon: MapPin, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { title: 'Total Volume', value: '$2.4M', change: '+15%', icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { title: 'Active Clusters', value: clusters.length.toString(), change: '+8%', icon: MapPin, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { title: 'Total Volume', value: `$${(payments.filter(p => p.status === 'VERIFIED').reduce((sum, p) => sum + p.amount, 0) / 1000).toFixed(1)}k`, change: '+15%', icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-50' },
     { title: 'System Health', value: '99.9%', change: 'Stable', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50' },
   ];
+
+  const handleVerifyCluster = (id: string) => {
+    verifyCluster(id);
+    toast.success('Cluster verified');
+  };
+
+  const handleVerifyPayment = (id: string) => {
+    verifyPayment(id);
+    toast.success('Payment verified');
+  };
 
   return (
     <div className="space-y-8">
@@ -172,13 +179,13 @@ export const AdminDashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Cluster Verification</CardTitle>
                 <Badge variant="secondary" className="bg-amber-50 text-amber-600 border-none">
-                  {mockPendingClusters.length} Pending
+                  {pendingClusters.length} Pending
                 </Badge>
               </div>
               <CardDescription>New cooperatives awaiting verification.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockPendingClusters.map((cluster) => (
+              {pendingClusters.map((cluster) => (
                 <div key={cluster.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
@@ -189,7 +196,12 @@ export const AdminDashboard: React.FC = () => {
                       </p>
                     </div>
                     <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50">
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-8 w-8 text-emerald-600 hover:bg-emerald-50"
+                        onClick={() => handleVerifyCluster(cluster.id)}
+                      >
                         <CheckCircle2 className="w-4 h-4" />
                       </Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-rose-600 hover:bg-rose-50">
@@ -216,13 +228,13 @@ export const AdminDashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Payment Verification</CardTitle>
                 <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-none">
-                  {mockPendingPayments.length} Pending
+                  {pendingPayments.length} Pending
                 </Badge>
               </div>
               <CardDescription>Recent transactions requiring review.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockPendingPayments.map((payment) => (
+              {pendingPayments.map((payment) => (
                 <div key={payment.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
@@ -234,8 +246,13 @@ export const AdminDashboard: React.FC = () => {
                       </div>
                       <p className="text-xs text-gray-500 mt-1">{payment.agreementTitle}</p>
                     </div>
-                    <Button size="sm" variant="outline" className="text-xs h-8">
-                      Review
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-xs h-8"
+                      onClick={() => handleVerifyPayment(payment.id)}
+                    >
+                      Verify
                     </Button>
                   </div>
                   <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-200">

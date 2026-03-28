@@ -15,6 +15,7 @@ import { AgreementDetail } from '@/src/components/agreements/AgreementDetail';
 import { PaymentList } from '@/src/components/payments/PaymentList';
 import { PaymentSubmit } from '@/src/components/payments/PaymentSubmit';
 import { PaymentReview } from '@/src/components/payments/PaymentReview';
+import { PaymentDetail } from '@/src/components/payments/PaymentDetail';
 import { ConversationList } from '@/src/components/messaging/ConversationList';
 import { ChatWindow } from '@/src/components/messaging/ChatWindow';
 import { MeetingScheduler } from '@/src/components/meetings/MeetingScheduler';
@@ -187,7 +188,9 @@ function AppContent() {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [proposalView, setProposalView] = useState<'LIST' | 'CREATE' | 'DETAIL' | 'NEGOTIATE'>('LIST');
-  const [paymentView, setPaymentView] = useState<'LIST' | 'SUBMIT' | 'REVIEW'>('LIST');
+  const [paymentView, setPaymentView] = useState<'LIST' | 'SUBMIT' | 'REVIEW' | 'DETAIL'>('LIST');
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptPayment, setReceiptPayment] = useState<Payment | null>(null);
 
   // Mock Conversations and Messages
   const [conversations, setConversations] = useState<Conversation[]>([
@@ -307,13 +310,28 @@ function AppContent() {
                 }}
               />
             ) : null;
+          case 'DETAIL':
+            return selectedPayment ? (
+              <PaymentDetail 
+                payment={selectedPayment} 
+                onBack={() => setPaymentView('LIST')} 
+                onViewReceipt={(p) => {
+                  setReceiptPayment(p);
+                  setShowReceiptModal(true);
+                }}
+              />
+            ) : null;
           case 'LIST':
           default:
             return (
               <PaymentList 
-                onSelectPayment={(p) => { setSelectedPayment(p); setPaymentView('LIST'); }} 
+                onSelectPayment={(p) => { setSelectedPayment(p); setPaymentView('DETAIL'); }} 
                 onSubmitPayment={(p) => { setSelectedPayment(p); setPaymentView('SUBMIT'); }}
                 onReviewPayment={(p) => { setSelectedPayment(p); setPaymentView('REVIEW'); }}
+                onViewReceipt={(p) => {
+                  setReceiptPayment(p);
+                  setShowReceiptModal(true);
+                }}
               />
             );
         }
@@ -374,11 +392,25 @@ function AppContent() {
     <DashboardLayout onNavigate={(view: any) => { setCurrentView(view); setSelectedCluster(null); setSelectedProposal(null); setSelectedAgreement(null); setSelectedPayment(null); setSelectedConversationId(null); setProposalView('LIST'); setPaymentView('LIST'); }}>
       {renderView()}
       <AIChatbot />
+      <ReceiptModal 
+        payment={receiptPayment} 
+        open={showReceiptModal} 
+        onOpenChange={setShowReceiptModal} 
+      />
     </DashboardLayout>
   );
 }
 
 import { Toaster } from 'sonner';
+
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { FileText, Download, ExternalLink } from 'lucide-react';
 
 export default function App() {
   return (
@@ -386,6 +418,66 @@ export default function App() {
       <AppContent />
       <Toaster position="top-right" />
     </RoleProvider>
+  );
+}
+
+function ReceiptModal({ 
+  payment, 
+  open, 
+  onOpenChange 
+}: { 
+  payment: Payment | null, 
+  open: boolean, 
+  onOpenChange: (open: boolean) => void 
+}) {
+  if (!payment) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 overflow-hidden border-none bg-card/95 backdrop-blur-md">
+        <DialogHeader className="p-6 border-b bg-muted/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-2xl font-bold">Payment Receipt</DialogTitle>
+              <DialogDescription>
+                Receipt for {payment.agreementTitle} (${payment.amount.toLocaleString()})
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="gap-2">
+                <Download className="w-4 h-4" />
+                <span>Download</span>
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2">
+                <ExternalLink className="w-4 h-4" />
+                <span>Open</span>
+              </Button>
+            </div>
+          </div>
+        </DialogHeader>
+        <div className="flex-1 bg-muted/30 flex flex-col items-center justify-center p-12 space-y-6 overflow-y-auto">
+          <div className="w-32 h-32 bg-primary/10 rounded-3xl flex items-center justify-center shadow-inner">
+            <FileText className="w-16 h-16 text-primary" />
+          </div>
+          <div className="text-center space-y-4 max-w-md">
+            <h3 className="text-xl font-bold">{payment.receiptUrl}</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              This is a simulated preview of the payment receipt. In a live environment, this would display the actual PDF or image document uploaded by the sender.
+            </p>
+            <div className="grid grid-cols-2 gap-4 mt-8">
+              <div className="p-4 rounded-2xl bg-background/50 border border-border/50 text-left">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Transaction ID</p>
+                <p className="text-xs font-mono mt-1">{payment.id.toUpperCase()}</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-background/50 border border-border/50 text-left">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Verified Date</p>
+                <p className="text-xs mt-1">{payment.verifiedAt ? new Date(payment.verifiedAt).toLocaleDateString() : 'Pending'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

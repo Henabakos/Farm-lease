@@ -31,6 +31,9 @@ export interface Proposal {
   targetName: string;
   description: string;
   budget: number;
+  amount: number; // Added to match component usage
+  location: string; // Added to match component usage
+  roi: number; // Added to match component usage
   timeline: string;
   status: ProposalStatus;
   createdAt: string;
@@ -50,11 +53,13 @@ export interface Proposal {
 
 export interface Message {
   id: string;
+  conversationId: string;
   senderId: string;
   senderName: string;
   content: string;
   timestamp: string;
-  isSystem?: boolean;
+  isSystem?: boolean; // Combined from both definitions
+  attachments?: { name: string; type: string; size: string }[];
 }
 
 export type AgreementStatus = 'PENDING' | 'SIGNED' | 'REJECTED';
@@ -69,6 +74,8 @@ export interface Clause {
 export interface Agreement {
   id: string;
   proposalId: string;
+  farmerId?: string; // Added to match component usage
+  clusterId?: string; // Added to match component usage
   title: string;
   investorName: string;
   targetName: string;
@@ -100,15 +107,6 @@ export interface Payment {
   notes?: string;
   senderName: string;
   receiverName: string;
-}
-
-export interface Message {
-  id: string;
-  senderId: string;
-  senderName: string;
-  content: string;
-  timestamp: string;
-  attachments?: { name: string; type: string; size: string }[];
 }
 
 export interface Conversation {

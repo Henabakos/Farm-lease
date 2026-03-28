@@ -74,11 +74,13 @@ const MOCK_PAYMENTS: Payment[] = [
 export function PaymentList({ 
   onSelectPayment, 
   onSubmitPayment,
-  onReviewPayment
+  onReviewPayment,
+  onViewReceipt
 }: { 
   onSelectPayment: (payment: Payment) => void,
   onSubmitPayment: (payment: Payment) => void,
-  onReviewPayment: (payment: Payment) => void
+  onReviewPayment: (payment: Payment) => void,
+  onViewReceipt?: (payment: Payment) => void
 }) {
   const { user } = useRole();
   const [searchQuery, setSearchQuery] = useState('');
@@ -110,7 +112,7 @@ export function PaymentList({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Payment Tracker</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Payment Tracker</h1>
           <p className="text-muted-foreground">Monitor disbursements and repayments across your active agreements.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -264,7 +266,11 @@ export function PaymentList({
                     </Button>
                   )}
                   {payment.receiptUrl && (
-                    <Button variant="ghost" className="w-full gap-2 text-xs h-8">
+                    <Button 
+                      variant="ghost" 
+                      className="w-full gap-2 text-xs h-8"
+                      onClick={() => onViewReceipt?.(payment)}
+                    >
                       <FileText className="w-3 h-3" />
                       <span>View Receipt</span>
                     </Button>
