@@ -4,7 +4,7 @@ import { Topbar } from './Topbar';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRole } from '@/src/contexts/RoleContext';
 
-export function DashboardLayout({ children, onNavigate }: { children: React.ReactNode, onNavigate: (view: 'DASHBOARD' | 'PROFILE' | 'CLUSTERS' | 'PROPOSALS' | 'AGREEMENTS' | 'PAYMENTS' | 'MESSAGES' | 'MEETINGS' | 'ANALYTICS' | 'ADMIN_DASHBOARD' | 'AUDIT_LOGS') => void }) {
+export function DashboardLayout({ children, onNavigate }: { children: React.ReactNode, onNavigate: (view: 'DASHBOARD' | 'PROFILE' | 'CLUSTERS' | 'PROPOSALS' | 'AGREEMENTS' | 'PAYMENTS' | 'MESSAGES' | 'MEETINGS' | 'ANALYTICS' | 'ADMIN_DASHBOARD' | 'AUDIT_LOGS' | 'SETTINGS') => void }) {
   const { user } = useRole();
 
   return (

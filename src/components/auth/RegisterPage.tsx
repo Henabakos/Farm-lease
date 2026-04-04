@@ -13,9 +13,11 @@ import {
   Shield, 
   CheckCircle2,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'motion/react';
 
 type Step = 'ROLE' | 'DETAILS' | 'SUCCESS';
 
@@ -49,20 +51,28 @@ export function RegisterPage({ onSwitch }: { onSwitch: () => void }) {
         title="Account Created!" 
         subtitle="Your AgriInvest account is ready to use"
       >
-        <div className="text-center space-y-6 py-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary">
-            <CheckCircle2 className="w-10 h-10" />
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center space-y-8 py-8"
+        >
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-[2rem] bg-primary/10 text-primary shadow-inner">
+            <CheckCircle2 className="w-12 h-12" />
           </div>
-          <div className="space-y-2">
-            <h3 className="text-xl font-semibold">Welcome to the Platform</h3>
-            <p className="text-muted-foreground">
-              You've successfully registered as an <span className="font-bold text-foreground">{role?.toLowerCase().replace('_', ' ')}</span>.
+          <div className="space-y-3">
+            <h3 className="text-3xl font-black tracking-tight">Welcome to the Platform</h3>
+            <p className="text-muted-foreground text-lg font-medium">
+              You've successfully registered as an <span className="font-black text-primary uppercase tracking-wider">{role?.toLowerCase().replace('_', ' ')}</span>.
             </p>
           </div>
-          <Button className="w-full h-11" onClick={() => login(role!)}>
-            Go to Dashboard
+          <Button 
+            className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-xl shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98] gap-3" 
+            onClick={() => login(role!)}
+          >
+            <span>Go to Dashboard</span>
+            <ArrowRight className="w-6 h-6" />
           </Button>
-        </div>
+        </motion.div>
       </AuthLayout>
     );
   }
@@ -72,98 +82,135 @@ export function RegisterPage({ onSwitch }: { onSwitch: () => void }) {
       title={step === 'ROLE' ? "Choose Your Role" : "Complete Registration"} 
       subtitle={step === 'ROLE' ? "Select the account type that best fits your needs" : "Tell us more about yourself"}
     >
-      {step === 'ROLE' ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-3">
-            {roles.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => setRole(r.id)}
-                className={cn(
-                  "flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all duration-200 group",
-                  role === r.id 
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
-                    : "border-muted bg-muted/20 hover:border-primary/50 hover:bg-muted/40"
-                )}
-              >
-                <div className={cn(
-                  "w-12 h-12 rounded-lg flex items-center justify-center shrink-0 transition-colors",
-                  role === r.id ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground group-hover:text-primary"
-                )}>
-                  <r.icon className="w-6 h-6" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-foreground">{r.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{r.description}</p>
-                </div>
-                {role === r.id && <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />}
-              </button>
-            ))}
-          </div>
-
-          <Button 
-            className="w-full h-11 gap-2" 
-            disabled={!role}
-            onClick={() => setStep('DETAILS')}
+      <AnimatePresence mode="wait">
+        {step === 'ROLE' ? (
+          <motion.div 
+            key="role-step"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-8"
           >
-            <span>Continue</span>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-
-          <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Button variant="link" className="p-0 h-auto font-semibold text-primary" onClick={onSwitch}>
-              Sign in
-            </Button>
-          </p>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input id="firstName" placeholder="John" required className="bg-muted/30" />
+            <div className="grid grid-cols-1 gap-4">
+              {roles.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setRole(r.id)}
+                  className={cn(
+                    "flex items-center gap-5 p-5 rounded-[2rem] border-2 text-left transition-all duration-300 group relative overflow-hidden",
+                    role === r.id 
+                      ? "border-primary bg-primary/5 shadow-xl shadow-primary/10" 
+                      : "border-primary/5 bg-primary/5 hover:border-primary/30 hover:bg-primary/10"
+                  )}
+                >
+                  <div className={cn(
+                    "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500",
+                    role === r.id ? "bg-primary text-white scale-110 rotate-3" : "bg-white text-primary group-hover:scale-110"
+                  )}>
+                    <r.icon className="w-7 h-7" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-xl text-foreground tracking-tight">{r.title}</p>
+                    <p className="text-sm text-muted-foreground mt-1 font-medium line-clamp-1">{r.description}</p>
+                  </div>
+                  {role === r.id && (
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"
+                    >
+                      <CheckCircle2 className="w-5 h-5 text-white" />
+                    </motion.div>
+                  )}
+                </button>
+              ))}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input id="lastName" placeholder="Doe" required className="bg-muted/30" />
+
+            <div className="space-y-6">
+              <Button 
+                className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-xl shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98] gap-3" 
+                disabled={!role}
+                onClick={() => setStep('DETAILS')}
+              >
+                <span>Continue</span>
+                <ChevronRight className="w-6 h-6" />
+              </Button>
+
+              <p className="text-center text-base text-muted-foreground font-medium">
+                Already have an account?{' '}
+                <button 
+                  type="button"
+                  className="font-black text-primary hover:text-primary/80 transition-all ml-1" 
+                  onClick={onSwitch}
+                >
+                  Sign in
+                </button>
+              </p>
             </div>
-          </div>
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="details-step"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-8"
+          >
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName" className="text-sm font-black uppercase tracking-[0.1em] text-primary/60 ml-1">First Name</Label>
+                  <Input id="firstName" placeholder="John" required className="h-14 bg-primary/5 border-primary/10 rounded-2xl focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-lg font-medium pl-5" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName" className="text-sm font-black uppercase tracking-[0.1em] text-primary/60 ml-1">Last Name</Label>
+                  <Input id="lastName" placeholder="Doe" required className="h-14 bg-primary/5 border-primary/10 rounded-2xl focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-lg font-medium pl-5" />
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <Input id="email" type="email" placeholder="john@example.com" required className="bg-muted/30" />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-black uppercase tracking-[0.1em] text-primary/60 ml-1">Email Address</Label>
+                <Input id="email" type="email" placeholder="john@example.com" required className="h-14 bg-primary/5 border-primary/10 rounded-2xl focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-lg font-medium pl-5" />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" placeholder="••••••••" required className="bg-muted/30" />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-black uppercase tracking-[0.1em] text-primary/60 ml-1">Password</Label>
+                <Input id="password" type="password" placeholder="••••••••" required className="h-14 bg-primary/5 border-primary/10 rounded-2xl focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-lg font-medium pl-5" />
+              </div>
 
-          <div className="flex items-center gap-3 pt-2">
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="flex-1 h-11 gap-2"
-              onClick={() => setStep('ROLE')}
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Back</span>
-            </Button>
-            <Button type="submit" className="flex-[2] h-11" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                'Create Account'
-              )}
-            </Button>
-          </div>
-        </form>
-      )}
+              <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full sm:w-1/3 h-14 rounded-2xl border-primary/10 hover:bg-primary/5 font-black gap-3 text-base transition-all"
+                  onClick={() => setStep('ROLE')}
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                  <span>Back</span>
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="w-full sm:w-2/3 h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-xl shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98] gap-3" 
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Create Account</span>
+                      <ArrowRight className="w-6 h-6" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AuthLayout>
   );
 }

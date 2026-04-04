@@ -62,17 +62,17 @@ export function Sidebar({ className, onNavigate }: { className?: string, onNavig
 
   return (
     <aside className={cn(
-      "relative h-screen border-r bg-card/50 backdrop-blur-xl transition-all duration-500 ease-in-out flex flex-col z-30",
+      "relative h-screen border-r bg-primary transition-all duration-500 ease-in-out flex flex-col z-30",
       collapsed ? "w-20" : "w-64",
       className
     )}>
-      <div className="flex h-16 items-center px-6 border-b border-border/50 cursor-pointer group" onClick={() => handleNavClick('DASHBOARD')}>
+      <div className="flex h-16 items-center px-6 border-b border-white/10 cursor-pointer group" onClick={() => handleNavClick('DASHBOARD')}>
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform duration-300">
-            <Sprout className="w-5 h-5 text-primary-foreground" />
+          <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-lg shadow-black/20 group-hover:scale-110 transition-transform duration-300">
+            <Sprout className="w-5 h-5 text-primary" />
           </div>
           {!collapsed && (
-            <span className="font-bold text-xl tracking-tight text-foreground whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+            <span className="font-bold text-xl tracking-tight text-white whitespace-nowrap">
               AgriInvest
             </span>
           )}
@@ -87,9 +87,9 @@ export function Sidebar({ className, onNavigate }: { className?: string, onNavig
               variant="ghost"
               onClick={() => handleNavClick(item.view)}
               className={cn(
-                "w-full justify-start gap-3 h-11 px-3 transition-all duration-200 group relative",
+                "w-full justify-start gap-3 h-11 px-3 transition-all duration-200 group relative text-white/70 hover:text-white hover:bg-white/10",
                 collapsed && "justify-center px-0",
-                currentView === item.view ? "bg-primary/10 text-primary" : "hover:bg-primary/5 hover:text-primary"
+                currentView === item.view ? "bg-white/20 text-white" : ""
               )}
             >
               <item.icon className={cn(
@@ -100,31 +100,43 @@ export function Sidebar({ className, onNavigate }: { className?: string, onNavig
                 <span className="font-medium tracking-tight">{item.title}</span>
               )}
               {currentView === item.view && !collapsed && (
-                <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
+                <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
               )}
             </Button>
           ))}
         </nav>
       </ScrollArea>
 
-      <div className="p-4 border-t border-border/50 space-y-2 bg-muted/20">
+      <div className="p-4 border-t border-white/10 space-y-1 bg-black/10">
         <Button
           variant="ghost"
           onClick={() => handleNavClick('PROFILE')}
           className={cn(
-            "w-full justify-start gap-3 h-11 px-3 hover:bg-primary/5 hover:text-primary transition-all duration-200",
+            "w-full justify-start gap-3 h-10 px-3 text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200",
             collapsed && "justify-center px-0",
-            currentView === 'PROFILE' && "bg-primary/10 text-primary"
+            currentView === 'PROFILE' && "bg-white/20 text-white"
+          )}
+        >
+          <Users className="w-5 h-5 shrink-0" />
+          {!collapsed && <span className="font-medium">Profile</span>}
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => handleNavClick('SETTINGS')}
+          className={cn(
+            "w-full justify-start gap-3 h-10 px-3 text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200",
+            collapsed && "justify-center px-0",
+            currentView === 'SETTINGS' && "bg-white/20 text-white"
           )}
         >
           <Settings className="w-5 h-5 shrink-0" />
-          {!collapsed && <span className="font-medium">Profile</span>}
+          {!collapsed && <span className="font-medium">Settings</span>}
         </Button>
         <Button
           variant="ghost"
           onClick={logout}
           className={cn(
-            "w-full justify-start gap-3 h-11 px-3 text-destructive hover:text-destructive hover:bg-destructive/10 transition-all duration-200",
+            "w-full justify-start gap-3 h-10 px-3 text-white/70 hover:text-destructive hover:bg-destructive/20 transition-all duration-200",
             collapsed && "justify-center px-0"
           )}
         >

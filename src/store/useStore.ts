@@ -3,7 +3,7 @@ import {
   User, UserRole, Proposal, Cluster, Agreement, Payment, Message, AuditLog, Conversation, Notification, PaymentStatus, ProposalStatus
 } from '@/src/types';
 
-export type ViewType = 'DASHBOARD' | 'PROFILE' | 'CLUSTERS' | 'PROPOSALS' | 'AGREEMENTS' | 'PAYMENTS' | 'MESSAGES' | 'MEETINGS' | 'ANALYTICS' | 'ADMIN_DASHBOARD' | 'AUDIT_LOGS' | 'RESOURCES';
+export type ViewType = 'DASHBOARD' | 'PROFILE' | 'CLUSTERS' | 'PROPOSALS' | 'AGREEMENTS' | 'PAYMENTS' | 'MESSAGES' | 'MEETINGS' | 'ANALYTICS' | 'ADMIN_DASHBOARD' | 'AUDIT_LOGS' | 'RESOURCES' | 'SETTINGS';
 export type ProposalViewType = 'LIST' | 'CREATE' | 'DETAIL' | 'NEGOTIATE';
 export type PaymentViewType = 'LIST' | 'SUBMIT' | 'REVIEW';
 

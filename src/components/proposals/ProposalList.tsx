@@ -27,6 +27,8 @@ import {
 import { cn } from '@/lib/utils';
 import { useStore } from '@/src/store/useStore';
 
+import { motion } from 'motion/react';
+
 export function ProposalList({ 
   onSelectProposal, 
   onCreateProposal 
@@ -41,13 +43,13 @@ export function ProposalList({
   const getStatusBadge = (status: ProposalStatus) => {
     switch (status) {
       case 'PENDING':
-        return <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1"><Clock className="w-3 h-3" /> Pending</Badge>;
+        return <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 px-2 py-0.5 rounded-lg font-bold text-[10px] uppercase tracking-wider"><Clock className="w-3 h-3" /> Pending</Badge>;
       case 'APPROVED':
-        return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1"><CheckCircle2 className="w-3 h-3" /> Approved</Badge>;
+        return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 gap-1 px-2 py-0.5 rounded-lg font-bold text-[10px] uppercase tracking-wider"><CheckCircle2 className="w-3 h-3" /> Approved</Badge>;
       case 'REJECTED':
-        return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 gap-1"><XCircle className="w-3 h-3" /> Rejected</Badge>;
+        return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 gap-1 px-2 py-0.5 rounded-lg font-bold text-[10px] uppercase tracking-wider"><XCircle className="w-3 h-3" /> Rejected</Badge>;
       case 'NEGOTIATING':
-        return <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 gap-1"><MessageSquare className="w-3 h-3" /> Negotiating</Badge>;
+        return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 gap-1 px-2 py-0.5 rounded-lg font-bold text-[10px] uppercase tracking-wider"><MessageSquare className="w-3 h-3" /> Negotiating</Badge>;
     }
   };
 
@@ -58,105 +60,131 @@ export function ProposalList({
     return matchesSearch && matchesStatus;
   });
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05
+      }
+    }
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <motion.div 
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="space-y-8"
+    >
+      <motion.div variants={item} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Investment Proposals</h1>
-          <p className="text-muted-foreground">Track and manage your funding offers to farmers and clusters.</p>
+          <h1 className="text-4xl font-bold tracking-tight">Investment Proposals</h1>
+          <p className="text-muted-foreground text-lg mt-1">Track and manage your funding offers to farmers and clusters.</p>
         </div>
         {user.role === 'INVESTOR' && (
-          <Button onClick={onCreateProposal} className="gap-2">
+          <Button onClick={onCreateProposal} className="gap-2 h-11 px-5 rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-95">
             <Plus className="w-4 h-4" />
             <span>New Proposal</span>
           </Button>
         )}
-      </div>
+      </motion.div>
 
-      <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search proposals or targets..." 
-                className="pl-10 bg-background/50"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="bg-background/50">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="NEGOTIATING">Negotiating</SelectItem>
-                <SelectItem value="APPROVED">Approved</SelectItem>
-                <SelectItem value="REJECTED">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 gap-4">
-        {filteredProposals.map((proposal) => (
-          <Card key={proposal.id} className="group hover:shadow-md transition-all border-none bg-card/50 backdrop-blur-sm overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex flex-col md:flex-row">
-                <div className="flex-1 p-6 space-y-4">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-xl font-bold group-hover:text-primary transition-colors">{proposal.title}</h3>
-                        {getStatusBadge(proposal.status)}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        {proposal.targetType === 'CLUSTER' ? <Users className="w-4 h-4" /> : <Sprout className="w-4 h-4" />}
-                        <span>Target: <span className="font-medium text-foreground">{proposal.targetName}</span></span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-primary">${proposal.budget.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Budget</p>
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {proposal.description}
-                  </p>
-
-                  <div className="flex flex-wrap items-center gap-4 text-sm">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Clock className="w-4 h-4" />
-                      <span>Timeline: {proposal.timeline}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <FileText className="w-4 h-4" />
-                      <span>{proposal.documents.length} Documents</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
-                      <span>Created: {new Date(proposal.createdAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-muted/30 md:w-48 flex flex-col justify-center p-6 border-t md:border-t-0 md:border-l border-border/50">
-                  <Button 
-                    className="w-full gap-2" 
-                    onClick={() => onSelectProposal(proposal)}
-                  >
-                    <span>View Details</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </div>
+      <motion.div variants={item}>
+        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-md rounded-2xl">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2 relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input 
+                  placeholder="Search proposals or targets..." 
+                  className="pl-10 bg-background/50 border-none focus-visible:ring-primary/20 h-11 rounded-xl"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
-            </CardContent>
-          </Card>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="bg-background/50 border-none h-11 rounded-xl focus:ring-primary/20">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-border/50">
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="NEGOTIATING">Negotiating</SelectItem>
+                  <SelectItem value="APPROVED">Approved</SelectItem>
+                  <SelectItem value="REJECTED">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <motion.div variants={container} className="grid grid-cols-1 gap-4">
+        {filteredProposals.map((proposal) => (
+          <motion.div key={proposal.id} variants={item}>
+            <Card className="group hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 border-none bg-card/50 backdrop-blur-md overflow-hidden rounded-3xl">
+              <CardContent className="p-0">
+                <div className="flex flex-col md:flex-row">
+                  <div className="flex-1 p-6 space-y-6">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-2xl font-bold tracking-tight group-hover:text-primary transition-colors">{proposal.title}</h3>
+                          {getStatusBadge(proposal.status)}
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 bg-muted/30 px-3 py-1 rounded-full border border-border/50">
+                            {proposal.targetType === 'CLUSTER' ? <Users className="w-4 h-4 text-primary/60" /> : <Sprout className="w-4 h-4 text-primary/60" />}
+                            <span>Target: <span className="font-bold text-foreground">{proposal.targetName}</span></span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-3xl font-black text-primary tracking-tighter">${proposal.budget.toLocaleString()}</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Budget</p>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 max-w-2xl">
+                      {proposal.description}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-6 text-sm pt-4 border-t border-border/50">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Clock className="w-4 h-4 text-primary/60" />
+                        <span className="font-medium">Timeline: <span className="text-foreground">{proposal.timeline}</span></span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <FileText className="w-4 h-4 text-primary/60" />
+                        <span className="font-medium">{proposal.documents.length} Documents</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Calendar className="w-4 h-4 text-primary/60" />
+                        <span className="font-medium">Created: <span className="text-foreground">{new Date(proposal.createdAt).toLocaleDateString()}</span></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-primary/5 md:w-48 flex flex-col justify-center p-6 border-t md:border-t-0 md:border-l border-border/50">
+                    <Button 
+                      className="w-full h-11 rounded-xl gap-2 font-bold shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all active:scale-95" 
+                      onClick={() => onSelectProposal(proposal)}
+                    >
+                      <span>View Details</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {filteredProposals.length === 0 && (
         <div className="text-center py-12">
@@ -167,7 +195,7 @@ export function ProposalList({
           <p className="text-muted-foreground">Try adjusting your filters or create a new proposal.</p>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
