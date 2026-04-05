@@ -158,7 +158,20 @@ export const useStore = create<AppState>((set) => ({
   // Auth
   user: MOCK_USERS.INVESTOR,
   isLoggedIn: true,
-  setUser: (user) => set({ user }),
+  setUser: (user) => set((state) => ({ 
+    user,
+    auditLogs: [{
+      id: Math.random().toString(36).substr(2, 9),
+      userId: state.user.id,
+      userName: state.user.name,
+      userRole: state.user.role,
+      action: 'Updated Profile',
+      targetId: user.id,
+      targetType: 'USER',
+      timestamp: new Date().toISOString(),
+      details: 'User profile information updated.'
+    }, ...state.auditLogs]
+  })),
   setRole: (role) => set({ user: MOCK_USERS[role] }),
   login: (role) => set({ user: MOCK_USERS[role], isLoggedIn: true }),
   logout: () => set({ isLoggedIn: false }),
@@ -229,39 +242,176 @@ export const useStore = create<AppState>((set) => ({
       details: `Proposal "${proposal.title}" created.`
     }, ...state.auditLogs]
   })),
-  updateProposal: (id, updates) => set((state) => ({
-    proposals: state.proposals.map(p => p.id === id ? { ...p, ...updates } : p)
-  })),
-  deleteProposal: (id) => set((state) => ({
-    proposals: state.proposals.filter(p => p.id !== id)
-  })),
+  updateProposal: (id, updates) => set((state) => {
+    const proposal = state.proposals.find(p => p.id === id);
+    return {
+      proposals: state.proposals.map(p => p.id === id ? { ...p, ...updates } : p),
+      auditLogs: [{
+        id: Math.random().toString(36).substr(2, 9),
+        userId: state.user.id,
+        userName: state.user.name,
+        userRole: state.user.role,
+        action: 'Updated Proposal',
+        targetId: id,
+        targetType: 'PROPOSAL',
+        timestamp: new Date().toISOString(),
+        details: `Proposal "${proposal?.title || id}" updated.`
+      }, ...state.auditLogs]
+    };
+  }),
+  deleteProposal: (id) => set((state) => {
+    const proposal = state.proposals.find(p => p.id === id);
+    return {
+      proposals: state.proposals.filter(p => p.id !== id),
+      auditLogs: [{
+        id: Math.random().toString(36).substr(2, 9),
+        userId: state.user.id,
+        userName: state.user.name,
+        userRole: state.user.role,
+        action: 'Deleted Proposal',
+        targetId: id,
+        targetType: 'PROPOSAL',
+        timestamp: new Date().toISOString(),
+        details: `Proposal "${proposal?.title || id}" deleted.`
+      }, ...state.auditLogs]
+    };
+  }),
 
-  addCluster: (cluster) => set((state) => ({ clusters: [cluster, ...state.clusters] })),
-  updateCluster: (id, updates) => set((state) => ({
-    clusters: state.clusters.map(c => c.id === id ? { ...c, ...updates } : c)
+  addCluster: (cluster) => set((state) => ({ 
+    clusters: [cluster, ...state.clusters],
+    auditLogs: [{
+      id: Math.random().toString(36).substr(2, 9),
+      userId: state.user.id,
+      userName: state.user.name,
+      userRole: state.user.role,
+      action: 'Created Cluster',
+      targetId: cluster.id,
+      targetType: 'CLUSTER',
+      timestamp: new Date().toISOString(),
+      details: `Cluster "${cluster.name}" created.`
+    }, ...state.auditLogs]
   })),
-  verifyCluster: (id) => set((state) => ({
-    clusters: state.clusters.map(c => c.id === id ? { ...c, isVerified: true } : c)
-  })),
+  updateCluster: (id, updates) => set((state) => {
+    const cluster = state.clusters.find(c => c.id === id);
+    return {
+      clusters: state.clusters.map(c => c.id === id ? { ...c, ...updates } : c),
+      auditLogs: [{
+        id: Math.random().toString(36).substr(2, 9),
+        userId: state.user.id,
+        userName: state.user.name,
+        userRole: state.user.role,
+        action: 'Updated Cluster',
+        targetId: id,
+        targetType: 'CLUSTER',
+        timestamp: new Date().toISOString(),
+        details: `Cluster "${cluster?.name || id}" updated.`
+      }, ...state.auditLogs]
+    };
+  }),
+  verifyCluster: (id) => set((state) => {
+    const cluster = state.clusters.find(c => c.id === id);
+    return {
+      clusters: state.clusters.map(c => c.id === id ? { ...c, isVerified: true } : c),
+      auditLogs: [{
+        id: Math.random().toString(36).substr(2, 9),
+        userId: state.user.id,
+        userName: state.user.name,
+        userRole: state.user.role,
+        action: 'Verified Cluster',
+        targetId: id,
+        targetType: 'CLUSTER',
+        timestamp: new Date().toISOString(),
+        details: `Cluster "${cluster?.name || id}" verified.`
+      }, ...state.auditLogs]
+    };
+  }),
 
-  addAgreement: (agreement) => set((state) => ({ agreements: [agreement, ...state.agreements] })),
+  addAgreement: (agreement) => set((state) => ({ 
+    agreements: [agreement, ...state.agreements],
+    auditLogs: [{
+      id: Math.random().toString(36).substr(2, 9),
+      userId: state.user.id,
+      userName: state.user.name,
+      userRole: state.user.role,
+      action: 'Created Agreement',
+      targetId: agreement.id,
+      targetType: 'AGREEMENT',
+      timestamp: new Date().toISOString(),
+      details: `Agreement "${agreement.title}" created.`
+    }, ...state.auditLogs]
+  })),
   updateAgreement: (id, updates) => set((state) => ({
     agreements: state.agreements.map(a => a.id === id ? { ...a, ...updates } : a)
   })),
-  signAgreement: (id) => set((state) => ({
-    agreements: state.agreements.map(a => a.id === id ? { ...a, status: 'SIGNED', signedAt: new Date().toISOString() } : a)
-  })),
+  signAgreement: (id) => set((state) => {
+    const agreement = state.agreements.find(a => a.id === id);
+    return {
+      agreements: state.agreements.map(a => a.id === id ? { ...a, status: 'SIGNED', signedAt: new Date().toISOString() } : a),
+      auditLogs: [{
+        id: Math.random().toString(36).substr(2, 9),
+        userId: state.user.id,
+        userName: state.user.name,
+        userRole: state.user.role,
+        action: 'Signed Agreement',
+        targetId: id,
+        targetType: 'AGREEMENT',
+        timestamp: new Date().toISOString(),
+        details: `Agreement "${agreement?.title || id}" signed.`
+      }, ...state.auditLogs]
+    };
+  }),
 
-  addPayment: (payment) => set((state) => ({ payments: [payment, ...state.payments] })),
+  addPayment: (payment) => set((state) => ({ 
+    payments: [payment, ...state.payments],
+    auditLogs: [{
+      id: Math.random().toString(36).substr(2, 9),
+      userId: state.user.id,
+      userName: state.user.name,
+      userRole: state.user.role,
+      action: 'Submitted Payment',
+      targetId: payment.id,
+      targetType: 'PAYMENT',
+      timestamp: new Date().toISOString(),
+      details: `Payment of $${payment.amount} submitted.`
+    }, ...state.auditLogs]
+  })),
   updatePayment: (id, updates) => set((state) => ({
     payments: state.payments.map(p => p.id === id ? { ...p, ...updates } : p)
   })),
-  updatePaymentStatus: (id, status) => set((state) => ({
-    payments: state.payments.map(p => p.id === id ? { ...p, status } : p)
-  })),
-  verifyPayment: (id) => set((state) => ({
-    payments: state.payments.map(p => p.id === id ? { ...p, status: 'VERIFIED', verifiedAt: new Date().toISOString() } : p)
-  })),
+  updatePaymentStatus: (id, status) => set((state) => {
+    const payment = state.payments.find(p => p.id === id);
+    return {
+      payments: state.payments.map(p => p.id === id ? { ...p, status } : p),
+      auditLogs: [{
+        id: Math.random().toString(36).substr(2, 9),
+        userId: state.user.id,
+        userName: state.user.name,
+        userRole: state.user.role,
+        action: 'Updated Payment Status',
+        targetId: id,
+        targetType: 'PAYMENT',
+        timestamp: new Date().toISOString(),
+        details: `Payment status updated to ${status}.`
+      }, ...state.auditLogs]
+    };
+  }),
+  verifyPayment: (id) => set((state) => {
+    const payment = state.payments.find(p => p.id === id);
+    return {
+      payments: state.payments.map(p => p.id === id ? { ...p, status: 'VERIFIED', verifiedAt: new Date().toISOString() } : p),
+      auditLogs: [{
+        id: Math.random().toString(36).substr(2, 9),
+        userId: state.user.id,
+        userName: state.user.name,
+        userRole: state.user.role,
+        action: 'Verified Payment',
+        targetId: id,
+        targetType: 'PAYMENT',
+        timestamp: new Date().toISOString(),
+        details: `Payment verified.`
+      }, ...state.auditLogs]
+    };
+  }),
 
   addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
   addNotification: (notification) => set((state) => ({ notifications: [notification, ...state.notifications] })),

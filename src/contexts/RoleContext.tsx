@@ -5,6 +5,7 @@ import { useStore } from '@/src/store/useStore';
 interface RoleContextType {
   user: User;
   isLoggedIn: boolean;
+  setUser: (user: User) => void;
   setRole: (role: UserRole) => void;
   login: (role: UserRole) => void;
   logout: () => void;
@@ -13,10 +14,10 @@ interface RoleContextType {
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
 export function RoleProvider({ children }: { children: ReactNode }) {
-  const { user, isLoggedIn, setRole, login, logout } = useStore();
+  const { user, isLoggedIn, setUser, setRole, login, logout } = useStore();
 
   return (
-    <RoleContext.Provider value={{ user, isLoggedIn, setRole, login, logout }}>
+    <RoleContext.Provider value={{ user, isLoggedIn, setUser, setRole, login, logout }}>
       {children}
     </RoleContext.Provider>
   );

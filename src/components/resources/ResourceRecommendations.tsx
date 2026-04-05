@@ -151,17 +151,17 @@ export const ResourceRecommendations: React.FC = () => {
   };
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-4xl font-bold tracking-tight text-foreground bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Resource Hub
           </h1>
-          <p className="text-muted-foreground mt-2 text-lg">
+          <p className="text-slate-500 mt-1 text-sm">
             Discover vetted services to optimize your agricultural investments.
           </p>
         </motion.div>
@@ -171,13 +171,13 @@ export const ResourceRecommendations: React.FC = () => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Button variant="outline" className="gap-2 h-11 px-5 rounded-xl border-border/50 hover:bg-muted/50 transition-all duration-300">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <span className="font-semibold">Vetting Process</span>
+          <Button variant="outline" className="gap-2 h-9 px-4 rounded-md border-slate-200 bg-white text-xs font-bold uppercase tracking-wider">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Vetting Process</span>
           </Button>
-          <Button className="gap-2 h-11 px-5 rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all duration-300 active:scale-95">
-            <span className="font-semibold">Become a Provider</span>
-            <ArrowRight className="w-4 h-4" />
+          <Button className="gap-2 h-9 px-4 rounded-md text-xs font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95">
+            <span>Become a Provider</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </Button>
         </motion.div>
       </div>
@@ -191,12 +191,12 @@ export const ResourceRecommendations: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <div className="flex items-center gap-3 text-primary">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 fill-current" />
+            <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 fill-current" />
             </div>
-            <h2 className="text-2xl font-bold tracking-tight">Recommended for You</h2>
+            <h2 className="text-xl font-bold tracking-tight">Recommended for You</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {recommendedResources.map((resource, idx) => (
               <motion.div
                 key={`rec-${resource.id}`}
@@ -204,33 +204,33 @@ export const ResourceRecommendations: React.FC = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4, delay: 0.3 + (idx * 0.1) }}
               >
-                <Card className="border-none bg-primary/5 backdrop-blur-md shadow-none overflow-hidden group premium-shadow hover:bg-primary/10 transition-all duration-300">
+                <Card className="border border-slate-200 bg-white shadow-sm overflow-hidden group hover:shadow-md transition-all duration-300 rounded-lg">
                   <div className="flex flex-col sm:flex-row">
-                    <div className="w-full sm:w-48 h-48 shrink-0 overflow-hidden">
+                    <div className="w-full sm:w-40 h-40 shrink-0 overflow-hidden border-r border-slate-100">
                       <img 
                         src={resource.imageUrl} 
                         alt={resource.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         referrerPolicy="no-referrer"
                       />
                     </div>
-                    <div className="p-6 flex flex-col justify-between flex-1">
+                    <div className="p-5 flex flex-col justify-between flex-1">
                       <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <Badge className="bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest px-2.5 py-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge className="bg-primary text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md">
                             Best Match
                           </Badge>
-                          <div className="flex items-center gap-1.5 text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                            <Star className="w-3.5 h-3.5 fill-current" />
-                            <span className="text-xs font-black">{resource.rating}</span>
+                          <div className="flex items-center gap-1 text-amber-500 bg-amber-50 px-2 py-0.5 rounded-md">
+                            <Star className="w-3 h-3 fill-current" />
+                            <span className="text-[10px] font-bold">{resource.rating}</span>
                           </div>
                         </div>
-                        <h3 className="font-bold text-xl text-foreground leading-tight group-hover:text-primary transition-colors">{resource.title}</h3>
-                        <p className="text-sm font-medium text-muted-foreground mt-2">{resource.provider}</p>
+                        <h3 className="font-bold text-base text-slate-900 leading-tight group-hover:text-primary transition-colors">{resource.title}</h3>
+                        <p className="text-xs font-medium text-slate-500 mt-1">{resource.provider}</p>
                       </div>
-                      <div className="flex items-center justify-between mt-6">
-                        <span className="text-sm font-black text-primary uppercase tracking-wider">{resource.priceRange}</span>
-                        <Button size="sm" className="h-9 px-4 text-xs font-black rounded-lg shadow-md hover:scale-105 transition-transform" onClick={() => handleContact(resource.provider)}>
+                      <div className="flex items-center justify-between mt-4">
+                        <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{resource.priceRange}</span>
+                        <Button size="sm" className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider rounded-md" onClick={() => handleContact(resource.provider)}>
                           Contact Now
                         </Button>
                       </div>
@@ -245,55 +245,55 @@ export const ResourceRecommendations: React.FC = () => {
 
       {/* Filters Bar */}
       <motion.div 
-        className="space-y-8"
+        className="space-y-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-foreground tracking-tight">All Resources</h2>
-          <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground bg-muted/30 px-3 py-1.5 rounded-full">
-            <MapPin className="w-4 h-4 text-primary/70" />
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight">All Resources</h2>
+          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-md uppercase tracking-wider">
+            <MapPin className="w-3 h-3 text-primary/70" />
             <span>Showing results for {user.location || 'Global'}</span>
           </div>
         </div>
         
-        <Card className="border-none shadow-sm overflow-hidden bg-card/40 backdrop-blur-md premium-shadow">
-          <CardContent className="p-5">
-            <div className="flex flex-col lg:flex-row items-center gap-6">
+        <Card className="border border-slate-200 shadow-sm bg-slate-50 rounded-lg">
+          <CardContent className="p-3">
+            <div className="flex flex-col lg:flex-row items-center gap-3">
               <div className="relative flex-1 w-full group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-primary transition-colors" />
                 <input 
                   type="text" 
                   placeholder="Search services or providers..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-muted/20 border border-border/50 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all duration-300"
+                  className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-md text-sm font-medium focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all duration-200 h-10"
                 />
               </div>
-              <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
-                <div className="flex items-center gap-3 bg-muted/20 border border-border/50 rounded-xl px-4 py-2 group focus-within:border-primary transition-colors">
-                  <Filter className="w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-md px-3 py-2 group focus-within:border-primary transition-colors h-10">
+                  <Filter className="w-3.5 h-3.5 text-slate-400 group-focus-within:text-primary transition-colors" />
                   <select 
                     value={selectedCrop}
                     onChange={(e) => setSelectedCrop(e.target.value as any)}
-                    className="bg-transparent text-sm font-bold outline-none py-1 min-w-[120px]"
+                    className="bg-transparent text-xs font-bold outline-none py-1 min-w-[100px] uppercase tracking-wider"
                   >
                     {cropOptions.map(opt => (
-                      <option key={opt.value} value={opt.value} className="bg-card">{opt.label}</option>
+                      <option key={opt.value} value={opt.value} className="bg-white">{opt.label}</option>
                     ))}
                   </select>
                 </div>
-                <div className="flex gap-1 bg-muted/20 p-1.5 rounded-xl border border-border/50">
+                <div className="flex gap-1 bg-white p-1 rounded-md border border-slate-200 h-10">
                   {(['ALL', 'INSURANCE', 'LABOR', 'SUPPORT'] as const).map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
                       className={cn(
-                        "px-4 py-1.5 text-xs font-black rounded-lg transition-all duration-300 uppercase tracking-widest",
+                        "px-3 py-1 text-[10px] font-bold rounded-md transition-all duration-200 uppercase tracking-wider",
                         selectedCategory === cat 
-                          ? 'bg-primary text-primary-foreground shadow-md scale-105' 
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                          ? 'bg-primary text-white shadow-sm' 
+                          : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                       )}
                     >
                       {cat}
@@ -306,7 +306,7 @@ export const ResourceRecommendations: React.FC = () => {
         </Card>
 
         {/* Resources Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredResources.map((resource, idx) => {
             const Icon = categoryIcons[resource.category];
             return (
@@ -316,60 +316,60 @@ export const ResourceRecommendations: React.FC = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 + (idx * 0.05) }}
               >
-                <Card className="group border-none shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden flex flex-col bg-card/40 backdrop-blur-md premium-shadow h-full hover:-translate-y-2">
-                  <div className="relative h-56 overflow-hidden">
+                <Card className="group border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col bg-white h-full rounded-lg">
+                  <div className="relative h-48 overflow-hidden border-b border-slate-100">
                     <img 
                       src={resource.imageUrl} 
                       alt={resource.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       referrerPolicy="no-referrer"
                     />
-                    <div className="absolute top-4 left-4">
-                      <Badge className="bg-card/90 backdrop-blur-md text-foreground border-border/50 flex items-center gap-2 py-1.5 px-3 shadow-lg">
-                        <Icon className="w-4 h-4 text-primary" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{resource.category}</span>
+                    <div className="absolute top-3 left-3">
+                      <Badge className="bg-white/90 backdrop-blur-sm text-slate-900 border-slate-200 flex items-center gap-1.5 py-1 px-2.5 shadow-sm rounded-md">
+                        <Icon className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-[9px] font-bold uppercase tracking-wider">{resource.category}</span>
                       </Badge>
                     </div>
                   </div>
-                  <CardHeader className="pb-3 px-6 pt-6">
+                  <CardHeader className="p-5 pb-2">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors truncate">
+                        <CardTitle className="text-base font-bold text-slate-900 group-hover:text-primary transition-colors truncate leading-tight">
                           {resource.title}
                         </CardTitle>
-                        <p className="text-sm font-bold text-muted-foreground mt-1">{resource.provider}</p>
+                        <p className="text-xs font-bold text-slate-500 mt-1">{resource.provider}</p>
                       </div>
-                      <div className="flex items-center gap-1.5 bg-amber-500/10 text-amber-600 px-2.5 py-1 rounded-full shrink-0">
-                        <Star className="w-3.5 h-3.5 fill-current" />
-                        <span className="text-xs font-black">{resource.rating}</span>
+                      <div className="flex items-center gap-1 text-amber-500 bg-amber-50 px-2 py-0.5 rounded-md shrink-0">
+                        <Star className="w-3 h-3 fill-current" />
+                        <span className="text-[10px] font-bold">{resource.rating}</span>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="flex-1 space-y-6 px-6">
-                    <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed font-medium">
+                  <CardContent className="flex-1 space-y-4 p-5 pt-2">
+                    <p className="text-xs text-slate-500 line-clamp-3 leading-relaxed font-medium">
                       {resource.description}
                     </p>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {resource.cropTypes.map(crop => (
-                        <Badge key={crop} variant="secondary" className="text-[10px] font-bold bg-muted/40 text-muted-foreground border-none px-2 py-0.5 uppercase tracking-wider">
+                        <Badge key={crop} variant="secondary" className="text-[9px] font-bold bg-slate-50 text-slate-500 border-slate-200 px-2 py-0.5 uppercase tracking-wider rounded-md">
                           {crop}
                         </Badge>
                       ))}
                     </div>
                     {resource.priceRange && (
-                      <div className="pt-4 border-t border-border/30">
-                        <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Estimated Cost</p>
-                        <p className="text-base font-black text-foreground mt-1">{resource.priceRange}</p>
+                      <div className="pt-3 border-t border-slate-50">
+                        <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Estimated Cost</p>
+                        <p className="text-sm font-bold text-slate-900 mt-0.5">{resource.priceRange}</p>
                       </div>
                     )}
                   </CardContent>
-                  <CardFooter className="p-6 pt-4 border-t border-border/30 bg-muted/10 gap-4">
-                    <Button variant="outline" className="flex-1 gap-2 text-xs font-bold h-10 rounded-xl border-border/50 hover:bg-muted/50" onClick={() => resource.websiteUrl && window.open(resource.websiteUrl, '_blank')}>
-                      <ExternalLink className="w-3.5 h-3.5" />
+                  <CardFooter className="p-5 pt-3 border-t border-slate-50 bg-slate-50/50 gap-3">
+                    <Button variant="outline" className="flex-1 gap-2 text-[10px] font-bold uppercase tracking-wider h-9 rounded-md border-slate-200 bg-white hover:bg-slate-50" onClick={() => resource.websiteUrl && window.open(resource.websiteUrl, '_blank')}>
+                      <ExternalLink className="w-3 h-3" />
                       Details
                     </Button>
-                    <Button className="flex-1 gap-2 text-xs font-bold h-10 rounded-xl shadow-md hover:scale-105 transition-transform" onClick={() => handleContact(resource.provider)}>
-                      <Mail className="w-3.5 h-3.5" />
+                    <Button className="flex-1 gap-2 text-[10px] font-bold uppercase tracking-wider h-9 rounded-md shadow-sm transition-all active:scale-95" onClick={() => handleContact(resource.provider)}>
+                      <Mail className="w-3 h-3" />
                       Contact
                     </Button>
                   </CardFooter>
@@ -383,16 +383,16 @@ export const ResourceRecommendations: React.FC = () => {
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center py-24 text-center space-y-6 bg-card/40 backdrop-blur-md rounded-[2rem] border-2 border-dashed border-border/50 premium-shadow"
+            className="flex flex-col items-center justify-center py-16 text-center space-y-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200"
           >
-            <div className="w-20 h-20 rounded-full bg-muted/30 flex items-center justify-center">
-              <Search className="w-10 h-10 text-muted-foreground" />
+            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
+              <Search className="w-6 h-6 text-slate-300" />
             </div>
-            <div className="space-y-2">
-              <h3 className="text-2xl font-bold text-foreground tracking-tight">No resources found</h3>
-              <p className="text-base text-muted-foreground max-w-xs mx-auto">Try adjusting your filters or search term to find what you're looking for.</p>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-slate-900 tracking-tight">No resources found</h3>
+              <p className="text-sm text-slate-500 max-w-xs mx-auto">Try adjusting your filters or search term to find what you're looking for.</p>
             </div>
-            <Button variant="outline" className="rounded-xl border-border/50 hover:bg-muted/50" onClick={() => { setSelectedCrop('ALL'); setSelectedCategory('ALL'); setSearchTerm(''); }}>
+            <Button variant="outline" className="rounded-md border-slate-200 bg-white text-xs font-bold uppercase tracking-wider h-9 px-4" onClick={() => { setSelectedCrop('ALL'); setSelectedCategory('ALL'); setSearchTerm(''); }}>
               Clear all filters
             </Button>
           </motion.div>

@@ -81,66 +81,66 @@ export function NotificationDropdown() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative h-10 w-10 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all">
-          <Bell className="w-5 h-5" />
+        <Button variant="ghost" size="icon" className="relative h-9 w-9 text-slate-400 hover:text-primary hover:bg-slate-50 transition-all border border-transparent hover:border-slate-200 rounded-md">
+          <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
-            <span className="absolute top-2 right-2 w-4 h-4 bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-background animate-in zoom-in">
+            <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-primary text-white text-[9px] font-bold flex items-center justify-center rounded-full border-2 border-white animate-in zoom-in">
               {unreadCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0 border-none shadow-2xl bg-card/95 backdrop-blur-md overflow-hidden" align="end">
-        <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/20">
+      <PopoverContent className="w-80 p-0 border border-slate-200 shadow-lg bg-white overflow-hidden rounded-md" align="end">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-sm">Notifications</h3>
-            {unreadCount > 0 && <Badge className="h-4 px-1.5 text-[10px] bg-primary">{unreadCount} New</Badge>}
+            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-500">Notifications</h3>
+            {unreadCount > 0 && <Badge className="h-4 px-1.5 text-[9px] bg-primary border-none font-bold">{unreadCount} New</Badge>}
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={markAllAsRead} title="Mark all as read">
-              <Check className="w-3.5 h-3.5" />
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-white border border-transparent hover:border-slate-200" onClick={markAllAsRead} title="Mark all as read">
+              <Check className="w-3.5 h-3.5 text-slate-400" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" title="Notification settings">
-              <Settings className="w-3.5 h-3.5" />
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-white border border-transparent hover:border-slate-200" title="Notification settings">
+              <Settings className="w-3.5 h-3.5 text-slate-400" />
             </Button>
           </div>
         </div>
 
-        <div className="max-h-[400px] overflow-y-auto divide-y divide-border/50">
+        <div className="max-h-[400px] overflow-y-auto divide-y divide-slate-100">
           {notifications.length > 0 ? (
             notifications.map((notification) => (
               <div 
                 key={notification.id} 
                 className={cn(
-                  "p-4 transition-all hover:bg-muted/30 group relative",
+                  "p-4 transition-all hover:bg-slate-50 group relative",
                   !notification.read && "bg-primary/5"
                 )}
               >
                 <div className="flex gap-3">
-                  <div className="mt-1 shrink-0">
+                  <div className="mt-0.5 shrink-0">
                     {getIcon(notification.type)}
                   </div>
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex justify-between items-start">
-                      <h4 className={cn("text-sm leading-none", !notification.read ? "font-bold" : "font-medium")}>
+                      <h4 className={cn("text-xs leading-none tracking-tight", !notification.read ? "font-bold text-slate-900" : "font-semibold text-slate-600")}>
                         {notification.title}
                       </h4>
-                      <span className="text-[10px] text-muted-foreground whitespace-nowrap flex items-center gap-1">
+                      <span className="text-[9px] text-slate-400 whitespace-nowrap flex items-center gap-1 font-medium">
                         <Clock className="w-2.5 h-2.5" />
                         {new Date(notification.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                    <p className="text-[11px] text-slate-500 leading-relaxed line-clamp-2 font-normal">
                       {notification.message}
                     </p>
                     <div className="flex items-center gap-3 pt-1">
                       {notification.link && (
-                        <Button variant="link" className="h-auto p-0 text-[10px] text-primary font-bold gap-1">
+                        <Button variant="link" className="h-auto p-0 text-[10px] text-primary font-bold gap-1 hover:no-underline">
                           View Details <ExternalLink className="w-2.5 h-2.5" />
                         </Button>
                       )}
                       {!notification.read && (
-                        <Button variant="ghost" className="h-auto p-0 text-[10px] text-muted-foreground hover:text-primary" onClick={() => markAsRead(notification.id)}>
+                        <Button variant="ghost" className="h-auto p-0 text-[10px] text-slate-400 hover:text-primary font-bold" onClick={() => markAsRead(notification.id)}>
                           Mark as read
                         </Button>
                       )}
@@ -150,7 +150,7 @@ export function NotificationDropdown() {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                  className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-destructive rounded-md hover:bg-white border border-transparent hover:border-slate-200"
                   onClick={() => deleteNotification(notification.id)}
                 >
                   <X className="w-3 h-3" />
@@ -159,19 +159,19 @@ export function NotificationDropdown() {
             ))
           ) : (
             <div className="flex flex-col items-center justify-center p-12 text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                <Bell className="w-6 h-6 text-muted-foreground" />
+              <div className="w-10 h-10 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center">
+                <Bell className="w-5 h-5 text-slate-300" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-bold">All caught up!</p>
-                <p className="text-xs text-muted-foreground">No new notifications for you.</p>
+                <p className="text-xs font-bold text-slate-900">All caught up!</p>
+                <p className="text-[11px] text-slate-400 font-normal">No new notifications for you.</p>
               </div>
             </div>
           )}
         </div>
 
-        <div className="p-2 border-t border-border/50 bg-muted/20">
-          <Button variant="ghost" className="w-full h-8 text-xs text-muted-foreground hover:text-primary">
+        <div className="p-2 border-t border-slate-100 bg-slate-50/50">
+          <Button variant="ghost" className="w-full h-8 text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-primary hover:bg-white rounded-md border border-transparent hover:border-slate-200">
             View All Notifications
           </Button>
         </div>

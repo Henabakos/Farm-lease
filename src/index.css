@@ -39,13 +39,13 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 8px;
+    --radius-2xl: 8px;
+    --radius-3xl: 8px;
+    --radius-4xl: 8px;
 }
 
 :root {
@@ -64,10 +64,10 @@
     --accent: oklch(0.92 0.05 222);
     --accent-foreground: oklch(0.25 0.1 222);
     --destructive: oklch(0.55 0.2 25);
-    --border: oklch(0.9 0.02 222);
-    --input: oklch(0.9 0.02 222);
+    --border: oklch(0.92 0.01 222);
+    --input: oklch(0.92 0.01 222);
     --ring: oklch(0.28 0.06 222);
-    --radius: 0.75rem;
+    --radius: 0.5rem;
     --sidebar: oklch(0.98 0.01 222);
     --sidebar-foreground: oklch(0.15 0.02 222);
     --sidebar-primary: oklch(0.28 0.06 222);
@@ -112,28 +112,31 @@
     @apply border-border outline-ring/50;
     }
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary text-sm;
     }
   html {
     @apply font-sans scroll-smooth;
     }
+  h1 { @apply text-2xl font-bold tracking-tight; }
+  h2 { @apply text-xl font-semibold tracking-tight; }
+  h3 { @apply text-lg font-semibold tracking-tight; }
 }
 
 @layer components {
   .glass {
-    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-sm dark:bg-black/40 dark:border-white/10;
+    @apply bg-white/80 backdrop-blur-sm border border-slate-200 shadow-sm dark:bg-slate-900/80 dark:border-slate-800;
   }
   
   .glass-card {
-    @apply bg-white/60 backdrop-blur-xl border border-white/20 shadow-xl dark:bg-black/30 dark:border-white/5;
+    @apply bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800;
   }
 
   .premium-shadow {
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05), 0 4px 10px -5px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   }
 
   .hover-lift {
-    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
+    @apply transition-all duration-200 hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700;
   }
 
   .text-gradient {

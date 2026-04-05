@@ -65,91 +65,95 @@ export function PaymentSubmit({
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack}>
-          <ArrowLeft className="w-5 h-5" />
+    <div className="w-full space-y-6">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9 rounded-md hover:bg-slate-100 transition-all active:scale-95">
+          <ArrowLeft className="w-4 h-4 text-slate-600" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Submit Payment Receipt</h1>
-          <p className="text-muted-foreground">Upload your proof of payment for verification.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 leading-tight">Submit Payment Receipt</h1>
+          <p className="text-slate-500 mt-1 text-[10px] font-bold uppercase tracking-wider">Upload your proof of payment for verification.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
-          <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle>Payment Details</CardTitle>
-              <CardDescription>Review the payment information before submitting.</CardDescription>
+          <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+            <CardHeader className="p-5 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-base font-bold tracking-tight">Payment Details</CardTitle>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">Review the payment information before submitting.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="p-6 space-y-6">
               <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Amount</p>
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary" />
-                    <span className="font-bold text-lg">${payment.amount.toLocaleString()}</span>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider ml-1">Amount</p>
+                  <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-md border border-slate-100 shadow-sm">
+                    <DollarSign className="w-3.5 h-3.5 text-primary" />
+                    <span className="font-bold text-sm text-slate-900">${payment.amount.toLocaleString()}</span>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Due Date</p>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-primary" />
-                    <span className="font-semibold">{new Date(payment.date).toLocaleDateString()}</span>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider ml-1">Due Date</p>
+                  <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-md border border-slate-100 shadow-sm">
+                    <Calendar className="w-3.5 h-3.5 text-primary" />
+                    <span className="font-bold text-sm text-slate-900">{new Date(payment.date).toLocaleDateString()}</span>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Agreement</p>
-                  <p className="text-sm font-medium">{payment.agreementTitle}</p>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider ml-1">Agreement</p>
+                  <div className="bg-slate-50 p-2.5 rounded-md border border-slate-100 shadow-sm">
+                    <p className="text-xs font-bold text-slate-700">{payment.agreementTitle}</p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Type</p>
-                  <p className="text-sm font-medium">{payment.type === 'DISBURSEMENT' ? 'Investment Disbursement' : 'Loan Repayment'}</p>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider ml-1">Type</p>
+                  <div className="bg-slate-50 p-2.5 rounded-md border border-slate-100 shadow-sm">
+                    <p className="text-xs font-bold text-slate-700">{payment.type === 'DISBURSEMENT' ? 'Investment Disbursement' : 'Loan Repayment'}</p>
+                  </div>
                 </div>
               </div>
 
-              <Separator />
+              <div className="h-px bg-slate-100 w-full" />
 
-              <div className="space-y-4">
-                <Label>Upload Receipt (PDF, JPG, or PNG)</Label>
+              <div className="space-y-3">
+                <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">Upload Receipt (PDF, JPG, or PNG)</Label>
                 {!receipt ? (
                   <div 
-                    className="border-2 border-dashed border-muted-foreground/20 rounded-xl p-12 text-center space-y-4 hover:border-primary/50 transition-colors cursor-pointer"
+                    className="border border-dashed border-slate-200 rounded-lg p-10 text-center space-y-3 hover:border-primary/50 hover:bg-slate-50 transition-all cursor-pointer group"
                     onClick={handleUpload}
                   >
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                      <Upload className="w-8 h-8 text-primary" />
+                    <div className="w-12 h-12 bg-primary/10 rounded-md flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                      <Upload className="w-6 h-6 text-primary" />
                     </div>
                     <div className="space-y-1">
-                      <p className="font-medium">Click to upload or drag and drop</p>
-                      <p className="text-xs text-muted-foreground">Maximum file size: 5MB</p>
+                      <p className="text-xs font-bold text-slate-700 tracking-tight">Click to upload or drag and drop</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Maximum file size: 5MB</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
+                  <div className="flex items-center justify-between p-4 rounded-md bg-slate-50 border border-slate-100 group shadow-sm">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <File className="w-6 h-6 text-primary" />
+                      <div className="w-10 h-10 bg-white border border-slate-100 rounded-md flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <File className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold">{receipt.name}</p>
-                        <p className="text-xs text-muted-foreground">{receipt.size}</p>
+                        <p className="text-xs font-bold text-slate-900">{receipt.name}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{receipt.size}</p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="text-destructive h-10 w-10" onClick={handleRemove}>
-                      <Trash2 className="w-5 h-5" />
+                    <Button variant="ghost" size="icon" className="text-rose-500 h-9 w-9 rounded-md hover:bg-rose-50 transition-all active:scale-95" onClick={handleRemove}>
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                <Label htmlFor="notes" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">Additional Notes (Optional)</Label>
                 <Textarea 
                   id="notes" 
                   placeholder="Any extra details about this payment..." 
-                  className="min-h-[100px] bg-background/50"
+                  className="min-h-[100px] bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium p-3 resize-none"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
@@ -159,63 +163,63 @@ export function PaymentSubmit({
         </div>
 
         <div className="space-y-6">
-          <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle>Submission Summary</CardTitle>
+          <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+            <CardHeader className="p-5 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-base font-bold tracking-tight">Submission Summary</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="p-6 space-y-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Payment ID</span>
-                  <span className="font-mono text-xs">{payment.id.toUpperCase()}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Payment ID</span>
+                  <span className="font-mono text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">{payment.id.toUpperCase()}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Status</span>
-                  <Badge variant="outline" className="bg-muted text-muted-foreground border-none">Pending Submission</Badge>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status</span>
+                  <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md">Pending Submission</Badge>
                 </div>
               </div>
 
-              <Separator />
+              <div className="h-px bg-slate-100 w-full" />
 
-              <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 space-y-3">
+              <div className="p-4 rounded-lg bg-primary/5 border border-primary/10 space-y-3 shadow-sm">
                 <div className="flex items-center gap-2 text-primary">
                   <ShieldCheck className="w-4 h-4" />
-                  <span className="text-xs font-bold">Verification Process</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Verification Process</span>
                 </div>
-                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
                   Once submitted, our team will verify the receipt against the bank records. This typically takes 24-48 hours.
                 </p>
               </div>
 
               <div className="space-y-3">
                 <Button 
-                  className="w-full h-12 gap-2 text-lg" 
+                  className="w-full h-10 gap-2 text-[11px] font-bold uppercase tracking-wider rounded-md bg-primary hover:bg-primary/90 shadow-sm transition-all active:scale-95" 
                   disabled={!receipt || isSubmitting}
                   onClick={handleSubmit}
                 >
                   {isSubmitting ? (
                     <>
-                      <Clock className="w-5 h-5 animate-pulse" />
+                      <Clock className="w-4 h-4 animate-spin" />
                       Submitting...
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="w-5 h-5" />
+                      <CheckCircle2 className="w-4 h-4" />
                       Submit for Review
                     </>
                   )}
                 </Button>
-                <Button variant="outline" className="w-full h-12" onClick={onBack}>
+                <Button variant="outline" className="w-full h-10 text-[11px] font-bold uppercase tracking-wider rounded-md border-slate-200 bg-white shadow-sm transition-all active:scale-95" onClick={onBack}>
                   Cancel
                 </Button>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-sm bg-amber-500/5 border border-amber-500/10">
+          <Card className="border border-amber-200 shadow-sm bg-amber-50 rounded-lg overflow-hidden">
             <CardContent className="p-4 flex gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
-              <p className="text-[10px] text-amber-700 leading-relaxed">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-amber-700 font-medium leading-relaxed">
                 Ensure the receipt clearly shows the transaction ID, date, amount, and recipient details to avoid rejection.
               </p>
             </CardContent>

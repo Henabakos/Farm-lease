@@ -91,13 +91,13 @@ export function PaymentList({
   const getStatusBadge = (status: PaymentStatus) => {
     switch (status) {
       case 'PENDING':
-        return <Badge variant="outline" className="bg-muted text-muted-foreground border-none gap-1 px-2 py-0.5 rounded-lg font-bold text-[10px] uppercase tracking-wider"><Clock className="w-3 h-3" /> Pending</Badge>;
+        return <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-200 gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><Clock className="w-3 h-3" /> Pending</Badge>;
       case 'SUBMITTED':
-        return <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 gap-1 px-2 py-0.5 rounded-lg font-bold text-[10px] uppercase tracking-wider"><Upload className="w-3 h-3" /> Submitted</Badge>;
+        return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><Upload className="w-3 h-3" /> Submitted</Badge>;
       case 'VERIFIED':
-        return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 gap-1 px-2 py-0.5 rounded-lg font-bold text-[10px] uppercase tracking-wider"><CheckCircle2 className="w-3 h-3" /> Verified</Badge>;
+        return <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><CheckCircle2 className="w-3 h-3" /> Verified</Badge>;
       case 'REJECTED':
-        return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 gap-1 px-2 py-0.5 rounded-lg font-bold text-[10px] uppercase tracking-wider"><XCircle className="w-3 h-3" /> Rejected</Badge>;
+        return <Badge variant="outline" className="bg-destructive/5 text-destructive border-destructive/10 gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><XCircle className="w-3 h-3" /> Rejected</Badge>;
     }
   };
 
@@ -134,194 +134,207 @@ export function PaymentList({
     >
       <motion.div variants={item} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground">Payment Tracker</h1>
-          <p className="text-muted-foreground text-lg mt-1">Monitor disbursements and repayments across your active agreements.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 leading-tight">Payment Tracker</h1>
+          <p className="text-slate-500 mt-1 text-[10px] font-bold uppercase tracking-wider">Monitor disbursements and repayments across your active agreements.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2 h-11 px-5 rounded-xl border-border/50 bg-card/50 backdrop-blur-sm">
-            <FileText className="w-4 h-4" />
+          <Button variant="outline" className="gap-2 h-9 px-4 rounded-md border-slate-200 bg-white text-[10px] font-bold uppercase tracking-wider shadow-sm active:scale-95">
+            <FileText className="w-3.5 h-3.5" />
             <span>Download Statement</span>
           </Button>
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <motion.div variants={item}>
-          <Card className="border-none shadow-sm bg-primary/5 border border-primary/10 rounded-2xl">
-            <CardHeader className="pb-2">
-              <CardDescription className="text-primary/70 font-bold uppercase tracking-widest text-[10px]">Total Disbursed</CardDescription>
-              <CardTitle className="text-3xl font-black text-primary tracking-tighter">$17,500</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                  <ArrowUpRight className="w-3 h-3 text-primary" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-9 space-y-6">
+          <motion.div variants={item}>
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+              <CardContent className="p-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="md:col-span-2 relative group">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-primary transition-colors" />
+                    <Input 
+                      placeholder="Search by agreement or payment ID..." 
+                      className="pl-9 bg-white border-slate-200 focus-visible:ring-primary/20 h-9 rounded-md text-xs transition-all"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="bg-white border-slate-200 h-9 rounded-md focus:ring-primary/20 text-[11px] font-bold uppercase tracking-wider transition-all">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-md border-slate-200">
+                      <SelectItem value="all" className="text-xs font-medium">All Status</SelectItem>
+                      <SelectItem value="PENDING" className="text-xs font-medium">Pending</SelectItem>
+                      <SelectItem value="SUBMITTED" className="text-xs font-medium">Submitted</SelectItem>
+                      <SelectItem value="VERIFIED" className="text-xs font-medium">Verified</SelectItem>
+                      <SelectItem value="REJECTED" className="text-xs font-medium">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <span>+12% from last month</span>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-        <motion.div variants={item}>
-          <Card className="border-none shadow-sm bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
-            <CardHeader className="pb-2">
-              <CardDescription className="text-emerald-600/70 font-bold uppercase tracking-widest text-[10px]">Total Repaid</CardDescription>
-              <CardTitle className="text-3xl font-black text-emerald-600 tracking-tighter">$2,500</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                  <ArrowDownLeft className="w-3 h-3 text-emerald-600" />
-                </div>
-                <span>On track for Q1 goals</span>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-        <motion.div variants={item}>
-          <Card className="border-none shadow-sm bg-amber-500/5 border border-amber-500/10 rounded-2xl">
-            <CardHeader className="pb-2">
-              <CardDescription className="text-amber-600/70 font-bold uppercase tracking-widest text-[10px]">Pending Verification</CardDescription>
-              <CardTitle className="text-3xl font-black text-amber-600 tracking-tighter">2 Payments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                <div className="w-5 h-5 rounded-full bg-amber-500/10 flex items-center justify-center">
-                  <Clock className="w-3 h-3 text-amber-600" />
-                </div>
-                <span>Requires immediate review</span>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-      <motion.div variants={item}>
-        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-md rounded-2xl">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2 relative group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                <Input 
-                  placeholder="Search by agreement or payment ID..." 
-                  className="pl-10 bg-background/50 border-none focus-visible:ring-primary/20 h-11 rounded-xl"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="bg-background/50 border-none h-11 rounded-xl focus:ring-primary/20">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-border/50">
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="SUBMITTED">Submitted</SelectItem>
-                  <SelectItem value="VERIFIED">Verified</SelectItem>
-                  <SelectItem value="REJECTED">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      <motion.div variants={container} className="grid grid-cols-1 gap-4">
-        {filteredPayments.map((payment) => (
-          <motion.div key={payment.id} variants={item}>
-            <Card className="group hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 border-none bg-card/50 backdrop-blur-md overflow-hidden rounded-3xl">
-              <CardContent className="p-0">
-                <div className="flex flex-col md:flex-row">
-                  <div className="flex-1 p-6 space-y-6">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm",
-                            payment.type === 'DISBURSEMENT' ? "bg-primary/10 text-primary" : "bg-emerald-500/10 text-emerald-600"
-                          )}>
-                            {payment.type === 'DISBURSEMENT' ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownLeft className="w-5 h-5" />}
+          <motion.div variants={container} className="grid grid-cols-1 gap-4">
+            {filteredPayments.map((payment) => (
+              <motion.div key={payment.id} variants={item}>
+                <Card className="group hover:shadow-md transition-all duration-300 border border-slate-200 bg-white overflow-hidden rounded-lg">
+                  <CardContent className="p-0">
+                    <div className="flex flex-col md:flex-row">
+                      <div className="flex-1 p-5 space-y-5">
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "w-9 h-9 rounded-md flex items-center justify-center shadow-sm",
+                                payment.type === 'DISBURSEMENT' ? "bg-primary/10 text-primary" : "bg-emerald-50 text-emerald-600"
+                              )}>
+                                {payment.type === 'DISBURSEMENT' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownLeft className="w-4 h-4" />}
+                              </div>
+                              <h3 className="text-lg font-bold tracking-tight text-slate-900 group-hover:text-primary transition-colors">{payment.agreementTitle}</h3>
+                              {getStatusBadge(payment.status)}
+                            </div>
+                            <div className="flex items-center gap-4 text-[10px] text-slate-500">
+                              <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200 font-bold uppercase tracking-wider">
+                                <DollarSign className="w-3 h-3 text-slate-400" />
+                                {payment.type === 'DISBURSEMENT' ? 'Disbursement' : 'Repayment'}
+                              </span>
+                              <span className="flex items-center gap-1.5 font-medium">
+                                <Calendar className="w-3 h-3 text-slate-400" />
+                                {new Date(payment.date).toLocaleDateString()}
+                              </span>
+                            </div>
                           </div>
-                          <h3 className="text-2xl font-bold tracking-tight group-hover:text-primary transition-colors">{payment.agreementTitle}</h3>
-                          {getStatusBadge(payment.status)}
+                          <div className="text-right">
+                            <p className={cn(
+                              "text-2xl font-bold tracking-tight",
+                              payment.type === 'DISBURSEMENT' ? "text-primary" : "text-emerald-600"
+                            )}>
+                              ${payment.amount.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Amount</p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-2 bg-muted/30 px-3 py-1 rounded-full border border-border/50 font-medium">
-                            <DollarSign className="w-3.5 h-3.5 text-primary/60" />
-                            {payment.type === 'DISBURSEMENT' ? 'Investment Disbursement' : 'Loan Repayment'}
-                          </span>
-                          <span className="flex items-center gap-2 font-medium">
-                            <Calendar className="w-3.5 h-3.5 text-primary/60" />
-                            {new Date(payment.date).toLocaleDateString()}
-                          </span>
+
+                        <div className="flex items-center gap-8 text-[10px] text-slate-500 pt-4 border-t border-slate-100">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-bold uppercase tracking-wider text-[9px] text-slate-400">Sender</span>
+                            <span className="font-bold text-slate-700">{payment.senderName}</span>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-bold uppercase tracking-wider text-[9px] text-slate-400">Receiver</span>
+                            <span className="font-bold text-slate-700">{payment.receiverName}</span>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-bold uppercase tracking-wider text-[9px] text-slate-400">Transaction ID</span>
+                            <span className="font-mono text-slate-700">{payment.id.toUpperCase()}</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className={cn(
-                          "text-3xl font-black tracking-tighter",
-                          payment.type === 'DISBURSEMENT' ? "text-primary" : "text-emerald-600"
-                        )}>
-                          ${payment.amount.toLocaleString()}
-                        </p>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Amount</p>
+                      <div className="bg-slate-50 md:w-56 flex flex-col justify-center p-5 border-t md:border-t-0 md:border-l border-slate-100 gap-2">
+                        {isAdminOrRep && payment.status === 'SUBMITTED' ? (
+                          <Button 
+                            className="w-full h-9 rounded-md gap-2 bg-amber-600 hover:bg-amber-700 text-xs font-bold uppercase tracking-wider" 
+                            onClick={() => onReviewPayment(payment)}
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>Review Receipt</span>
+                          </Button>
+                        ) : payment.status === 'PENDING' ? (
+                          <Button 
+                            className="w-full h-9 rounded-md gap-2 text-xs font-bold uppercase tracking-wider" 
+                            onClick={() => onSubmitPayment(payment)}
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Submit Receipt</span>
+                          </Button>
+                        ) : (
+                          <Button variant="outline" className="w-full h-9 rounded-md gap-2 text-xs font-bold uppercase tracking-wider border-slate-200 bg-white hover:bg-slate-50" onClick={() => onSelectPayment(payment)}>
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>View Details</span>
+                          </Button>
+                        )}
+                        {payment.receiptUrl && (
+                          <Button 
+                            variant="ghost" 
+                            className="w-full gap-2 text-[9px] font-bold uppercase tracking-wider h-7 hover:bg-primary/5 hover:text-primary"
+                            onClick={() => onViewReceipt?.(payment)}
+                          >
+                            <FileText className="w-3 h-3" />
+                            <span>View Receipt</span>
+                          </Button>
+                        )}
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
 
-                    <div className="flex items-center gap-8 text-xs text-muted-foreground pt-4 border-t border-border/50">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-bold uppercase tracking-tighter text-[9px]">Sender</span>
-                        <span className="font-bold text-foreground text-sm">{payment.senderName}</span>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="font-bold uppercase tracking-tighter text-[9px]">Receiver</span>
-                        <span className="font-bold text-foreground text-sm">{payment.receiverName}</span>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="font-bold uppercase tracking-tighter text-[9px]">Transaction ID</span>
-                        <span className="font-mono text-foreground text-sm">{payment.id.toUpperCase()}</span>
-                      </div>
+        <div className="lg:col-span-3 space-y-6">
+          <motion.div variants={item}>
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+              <CardHeader className="p-5 pb-2">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-400">Payment Stats</CardTitle>
+              </CardHeader>
+              <CardContent className="p-5 pt-0 space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Disbursed</p>
+                    <p className="text-2xl font-bold text-slate-900 tracking-tight">$17,500</p>
+                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold uppercase tracking-wider">
+                      <ArrowUpRight className="w-3 h-3" />
+                      <span>+12% vs last month</span>
                     </div>
                   </div>
-                  <div className="bg-primary/5 md:w-64 flex flex-col justify-center p-6 border-t md:border-t-0 md:border-l border-border/50 gap-3">
-                    {isAdminOrRep && payment.status === 'SUBMITTED' ? (
-                      <Button 
-                        className="w-full h-11 rounded-xl gap-2 bg-amber-600 hover:bg-amber-700 font-bold shadow-lg shadow-amber-600/10" 
-                        onClick={() => onReviewPayment(payment)}
-                      >
-                        <ShieldCheck className="w-4 h-4" />
-                        <span>Review Receipt</span>
-                      </Button>
-                    ) : payment.status === 'PENDING' ? (
-                      <Button 
-                        className="w-full h-11 rounded-xl gap-2 font-bold shadow-lg shadow-primary/10" 
-                        onClick={() => onSubmitPayment(payment)}
-                      >
-                        <Upload className="w-4 h-4" />
-                        <span>Submit Receipt</span>
-                      </Button>
-                    ) : (
-                      <Button variant="outline" className="w-full h-11 rounded-xl gap-2 font-bold border-border/50 hover:bg-white transition-all" onClick={() => onSelectPayment(payment)}>
-                        <Eye className="w-4 h-4" />
-                        <span>View Details</span>
-                      </Button>
-                    )}
-                    {payment.receiptUrl && (
-                      <Button 
-                        variant="ghost" 
-                        className="w-full gap-2 text-[10px] font-bold uppercase tracking-widest h-8 hover:bg-primary/5 hover:text-primary"
-                        onClick={() => onViewReceipt?.(payment)}
-                      >
-                        <FileText className="w-3 h-3" />
-                        <span>View Receipt</span>
-                      </Button>
-                    )}
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Repaid</p>
+                    <p className="text-2xl font-bold text-slate-900 tracking-tight">$2,500</p>
+                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold uppercase tracking-wider">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>On track for Q1</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pending Review</p>
+                    <p className="text-2xl font-bold text-slate-900 tracking-tight">2</p>
+                    <div className="flex items-center gap-1.5 text-[10px] text-amber-600 font-bold uppercase tracking-wider">
+                      <Clock className="w-3 h-3" />
+                      <span>Action required</span>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
-        ))}
-      </motion.div>
+
+          <motion.div variants={item}>
+            <Card className="border border-primary/10 shadow-sm bg-primary/5 rounded-lg overflow-hidden">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center text-primary shadow-sm">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm tracking-tight text-slate-900">Security</h3>
+                    <p className="text-[9px] font-bold text-primary/60 uppercase tracking-wider">Verified Payments</p>
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-600 leading-relaxed font-medium mb-4">
+                  All transactions are verified through multi-party receipt validation to ensure transparency and trust.
+                </p>
+                <Button variant="outline" className="w-full h-8 rounded-md bg-white border-slate-200 text-slate-700 font-bold text-[9px] uppercase tracking-wider shadow-sm hover:bg-slate-50 transition-all">
+                  Security Protocol
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </div>
     </motion.div>
   );
 }

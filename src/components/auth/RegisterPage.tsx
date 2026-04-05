@@ -52,25 +52,25 @@ export function RegisterPage({ onSwitch }: { onSwitch: () => void }) {
         subtitle="Your AgriInvest account is ready to use"
       >
         <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center space-y-8 py-8"
+          className="text-center space-y-6 py-4"
         >
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-[2rem] bg-primary/10 text-primary shadow-inner">
-            <CheckCircle2 className="w-12 h-12" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
+            <CheckCircle2 className="w-8 h-8" />
           </div>
-          <div className="space-y-3">
-            <h3 className="text-3xl font-black tracking-tight">Welcome to the Platform</h3>
-            <p className="text-muted-foreground text-lg font-medium">
-              You've successfully registered as an <span className="font-black text-primary uppercase tracking-wider">{role?.toLowerCase().replace('_', ' ')}</span>.
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold tracking-tight text-slate-900">Welcome to the Platform</h3>
+            <p className="text-slate-500 text-sm font-medium">
+              You've successfully registered as an <span className="font-bold text-primary uppercase tracking-wider">{role?.toLowerCase().replace('_', ' ')}</span>.
             </p>
           </div>
           <Button 
-            className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-xl shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98] gap-3" 
+            className="w-full h-10 rounded-md bg-primary hover:bg-primary/90 text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all gap-2" 
             onClick={() => login(role!)}
           >
             <span>Go to Dashboard</span>
-            <ArrowRight className="w-6 h-6" />
+            <ArrowRight className="w-4 h-4" />
           </Button>
         </motion.div>
       </AuthLayout>
@@ -89,59 +89,59 @@ export function RegisterPage({ onSwitch }: { onSwitch: () => void }) {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="space-y-8"
+            className="space-y-6"
           >
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3">
               {roles.map((r) => (
                 <button
                   key={r.id}
                   type="button"
                   onClick={() => setRole(r.id)}
                   className={cn(
-                    "flex items-center gap-5 p-5 rounded-[2rem] border-2 text-left transition-all duration-300 group relative overflow-hidden",
+                    "flex items-center gap-4 p-4 rounded-lg border text-left transition-all duration-300 group relative overflow-hidden",
                     role === r.id 
-                      ? "border-primary bg-primary/5 shadow-xl shadow-primary/10" 
-                      : "border-primary/5 bg-primary/5 hover:border-primary/30 hover:bg-primary/10"
+                      ? "border-primary bg-primary/5 shadow-sm" 
+                      : "border-slate-100 bg-slate-50 hover:border-primary/30 hover:bg-primary/5"
                   )}
                 >
                   <div className={cn(
-                    "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500",
-                    role === r.id ? "bg-primary text-white scale-110 rotate-3" : "bg-white text-primary group-hover:scale-110"
+                    "w-10 h-10 rounded-md flex items-center justify-center shrink-0 transition-all duration-300",
+                    role === r.id ? "bg-primary text-white scale-105" : "bg-white text-primary border border-slate-100 group-hover:scale-105"
                   )}>
-                    <r.icon className="w-7 h-7" />
+                    <r.icon className="w-5 h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-black text-xl text-foreground tracking-tight">{r.title}</p>
-                    <p className="text-sm text-muted-foreground mt-1 font-medium line-clamp-1">{r.description}</p>
+                    <p className="font-bold text-sm text-slate-900 tracking-tight">{r.title}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5 font-medium line-clamp-1">{r.description}</p>
                   </div>
                   {role === r.id && (
                     <motion.div 
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"
+                      className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0"
                     >
-                      <CheckCircle2 className="w-5 h-5 text-white" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-white" />
                     </motion.div>
                   )}
                 </button>
               ))}
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               <Button 
-                className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-xl shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98] gap-3" 
+                className="w-full h-10 rounded-md bg-primary hover:bg-primary/90 text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all gap-2" 
                 disabled={!role}
                 onClick={() => setStep('DETAILS')}
               >
                 <span>Continue</span>
-                <ChevronRight className="w-6 h-6" />
+                <ChevronRight className="w-4 h-4" />
               </Button>
 
-              <p className="text-center text-base text-muted-foreground font-medium">
+              <p className="text-center text-xs text-slate-500 font-medium">
                 Already have an account?{' '}
                 <button 
                   type="button"
-                  className="font-black text-primary hover:text-primary/80 transition-all ml-1" 
+                  className="font-bold text-primary hover:text-primary/80 transition-all ml-1" 
                   onClick={onSwitch}
                 >
                   Sign in
@@ -155,54 +155,54 @@ export function RegisterPage({ onSwitch }: { onSwitch: () => void }) {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="space-y-8"
+            className="space-y-6"
           >
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-sm font-black uppercase tracking-[0.1em] text-primary/60 ml-1">First Name</Label>
-                  <Input id="firstName" placeholder="John" required className="h-14 bg-primary/5 border-primary/10 rounded-2xl focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-lg font-medium pl-5" />
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="firstName" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">First Name</Label>
+                  <Input id="firstName" placeholder="John" required className="h-10 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-sm font-medium pl-4" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName" className="text-sm font-black uppercase tracking-[0.1em] text-primary/60 ml-1">Last Name</Label>
-                  <Input id="lastName" placeholder="Doe" required className="h-14 bg-primary/5 border-primary/10 rounded-2xl focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-lg font-medium pl-5" />
+                <div className="space-y-1.5">
+                  <Label htmlFor="lastName" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">Last Name</Label>
+                  <Input id="lastName" placeholder="Doe" required className="h-10 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-sm font-medium pl-4" />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-black uppercase tracking-[0.1em] text-primary/60 ml-1">Email Address</Label>
-                <Input id="email" type="email" placeholder="john@example.com" required className="h-14 bg-primary/5 border-primary/10 rounded-2xl focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-lg font-medium pl-5" />
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">Email Address</Label>
+                <Input id="email" type="email" placeholder="john@example.com" required className="h-10 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-sm font-medium pl-4" />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-black uppercase tracking-[0.1em] text-primary/60 ml-1">Password</Label>
-                <Input id="password" type="password" placeholder="••••••••" required className="h-14 bg-primary/5 border-primary/10 rounded-2xl focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-lg font-medium pl-5" />
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">Password</Label>
+                <Input id="password" type="password" placeholder="••••••••" required className="h-10 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-sm font-medium pl-4" />
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
                 <Button 
                   type="button" 
                   variant="outline" 
-                  className="w-full sm:w-1/3 h-14 rounded-2xl border-primary/10 hover:bg-primary/5 font-black gap-3 text-base transition-all"
+                  className="w-full sm:w-1/3 h-10 rounded-md border-slate-200 hover:bg-slate-50 font-bold gap-2 text-xs uppercase tracking-wider transition-all"
                   onClick={() => setStep('ROLE')}
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  <ChevronLeft className="w-4 h-4" />
                   <span>Back</span>
                 </Button>
                 <Button 
                   type="submit" 
-                  className="w-full sm:w-2/3 h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-xl shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98] gap-3" 
+                  className="w-full sm:w-2/3 h-10 rounded-md bg-primary hover:bg-primary/90 text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all gap-2" 
                   disabled={loading}
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="h-6 w-6 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       <span>Creating...</span>
                     </>
                   ) : (
                     <>
                       <span>Create Account</span>
-                      <ArrowRight className="w-6 h-6" />
+                      <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </Button>

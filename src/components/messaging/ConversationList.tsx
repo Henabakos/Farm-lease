@@ -22,76 +22,77 @@ export function ConversationList({
   );
 
   return (
-    <div className="flex flex-col h-full border-r border-border/50 bg-card/30 backdrop-blur-sm">
-      <div className="p-4 space-y-4">
+    <div className="flex flex-col h-full border-r border-slate-200 bg-white">
+      <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold tracking-tight">Messages</h2>
-          <Badge variant="outline" className="bg-primary/10 text-primary border-none">
+          <h2 className="text-xl font-bold tracking-tight text-slate-900">Messages</h2>
+          <Badge className="bg-primary/10 text-primary border-none font-bold px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider">
             {conversations.reduce((acc, curr) => acc + curr.unreadCount, 0)} New
           </Badge>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-primary transition-colors" />
           <Input 
             placeholder="Search conversations..." 
-            className="pl-9 bg-background/50"
+            className="pl-9 bg-slate-50 border-slate-200 focus-visible:ring-primary/20 h-9 rounded-md text-xs transition-all"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto px-2 pb-6">
         {filtered.length > 0 ? (
-          filtered.map((conv) => {
-            const otherParticipant = conv.participants[0]; // Simplified for mock
-            const isActive = selectedId === conv.id;
+          <div className="space-y-1">
+            {filtered.map((conv) => {
+              const otherParticipant = conv.participants[0]; // Simplified for mock
+              const isActive = selectedId === conv.id;
 
-            return (
-              <div 
-                key={conv.id}
-                onClick={() => onSelect(conv.id)}
-                className={cn(
-                  "p-4 cursor-pointer transition-all border-l-4",
-                  isActive 
-                    ? "bg-primary/10 border-primary" 
-                    : "hover:bg-muted/50 border-transparent"
-                )}
-              >
-                <div className="flex gap-3">
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0 border border-border/50">
-                    <User className="w-6 h-6 text-muted-foreground" />
+              return (
+                <div 
+                  key={conv.id}
+                  onClick={() => onSelect(conv.id)}
+                  className={cn(
+                    "p-3 cursor-pointer transition-all rounded-md flex gap-3 group relative active:scale-[0.98]",
+                    isActive 
+                      ? "bg-slate-100 shadow-sm" 
+                      : "hover:bg-slate-50"
+                  )}
+                >
+                  {isActive && <div className="absolute left-0 top-2 bottom-2 w-1 bg-primary rounded-full" />}
+                  <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                    <User className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex justify-between items-start">
-                      <h3 className="font-bold truncate text-sm">{otherParticipant.name}</h3>
+                      <h3 className="font-bold truncate text-sm text-slate-900">{otherParticipant.name}</h3>
                       {conv.lastMessage && (
-                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
                           {new Date(conv.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       )}
                     </div>
                     <div className="flex justify-between items-center">
-                      <p className="text-xs text-muted-foreground truncate pr-4">
+                      <p className="text-[11px] font-medium text-slate-500 truncate pr-4 leading-tight">
                         {conv.lastMessage?.content || "No messages yet"}
                       </p>
                       {conv.unreadCount > 0 && (
-                        <Badge className="h-4 min-w-[16px] px-1 text-[10px] bg-primary">
+                        <Badge className="h-4 min-w-[16px] px-1 text-[9px] font-bold bg-primary text-white border-none rounded-sm">
                           {conv.unreadCount}
                         </Badge>
                       )}
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-              <MessageSquare className="w-6 h-6 text-muted-foreground" />
+            <div className="w-12 h-12 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center">
+              <MessageSquare className="w-6 h-6 text-slate-300" />
             </div>
-            <p className="text-sm text-muted-foreground">No conversations found.</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">No conversations found</p>
           </div>
         )}
       </div>

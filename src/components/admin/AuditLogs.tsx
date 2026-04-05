@@ -77,56 +77,52 @@ export const AuditLogs: React.FC = () => {
       animate="show"
       className="space-y-10"
     >
-      <motion.div variants={item} className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <motion.div variants={item} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tight text-foreground leading-tight">
-            System <span className="text-primary">Audit Logs</span>
-          </h1>
-          <p className="text-muted-foreground mt-2 text-lg font-medium">
-            Detailed timeline of all administrative and user activities.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 leading-tight">System Audit Logs</h1>
+          <p className="text-slate-500 mt-1 text-[10px] font-bold uppercase tracking-wider">Detailed timeline of all administrative and user activities.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="gap-2 h-12 px-6 rounded-2xl border-primary/10 bg-card/40 backdrop-blur-md hover:bg-primary/5 hover:text-primary transition-all">
-            <Download className="w-5 h-5" />
-            <span className="font-bold">Download CSV</span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="gap-2 h-9 px-4 rounded-md border-slate-200 bg-white text-[10px] font-bold uppercase tracking-wider shadow-sm active:scale-95 transition-all">
+            <Download className="w-3.5 h-3.5" />
+            <span>Download CSV</span>
           </Button>
-          <Button variant="outline" className="gap-2 h-12 px-6 rounded-2xl border-primary/10 bg-card/40 backdrop-blur-md hover:bg-primary/5 hover:text-primary transition-all">
-            <Calendar className="w-5 h-5" />
-            <span className="font-bold">Select Range</span>
+          <Button variant="outline" className="gap-2 h-9 px-4 rounded-md border-slate-200 bg-white text-[10px] font-bold uppercase tracking-wider shadow-sm active:scale-95 transition-all">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Select Range</span>
           </Button>
         </div>
       </motion.div>
 
       {/* Filters Card */}
       <motion.div variants={item}>
-        <Card className="border-none shadow-xl shadow-primary/5 bg-card/60 backdrop-blur-md rounded-[2.5rem] overflow-hidden border border-primary/5">
-          <CardContent className="p-5">
-            <div className="flex flex-col md:flex-row items-center gap-4">
+        <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+          <CardContent className="p-3">
+            <div className="flex flex-col md:flex-row items-center gap-3">
               <div className="relative flex-1 w-full group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-primary transition-colors" />
                 <Input 
                   placeholder="Search logs by user, action, or details..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 bg-background/40 border-primary/10 focus-visible:ring-primary/20 h-12 rounded-2xl text-base transition-all"
+                  className="w-full pl-9 bg-white border-slate-200 focus-visible:ring-primary/20 h-9 rounded-md text-xs transition-all"
                 />
               </div>
-              <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="flex items-center gap-2 w-full md:w-auto">
                 <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as any)}>
-                  <SelectTrigger className="bg-background/40 border-primary/10 h-12 rounded-2xl focus:ring-primary/20 text-base transition-all min-w-[160px]">
+                  <SelectTrigger className="bg-white border-slate-200 h-9 rounded-md focus:ring-primary/20 text-[11px] font-bold uppercase tracking-wider transition-all min-w-[140px]">
                     <SelectValue placeholder="All Roles" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-primary/10 backdrop-blur-xl">
-                    <SelectItem value="ALL">All Roles</SelectItem>
-                    <SelectItem value="ADMIN">Admin Only</SelectItem>
-                    <SelectItem value="INVESTOR">Investor Only</SelectItem>
-                    <SelectItem value="FARMER">Farmer Only</SelectItem>
-                    <SelectItem value="CLUSTER_REP">Cluster Rep Only</SelectItem>
+                  <SelectContent className="rounded-md border-slate-200">
+                    <SelectItem value="ALL" className="text-xs font-medium">All Roles</SelectItem>
+                    <SelectItem value="ADMIN" className="text-xs font-medium">Admin Only</SelectItem>
+                    <SelectItem value="INVESTOR" className="text-xs font-medium">Investor Only</SelectItem>
+                    <SelectItem value="FARMER" className="text-xs font-medium">Farmer Only</SelectItem>
+                    <SelectItem value="CLUSTER_REP" className="text-xs font-medium">Cluster Rep Only</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button variant="outline" size="icon" className="h-12 w-12 rounded-2xl border-primary/10 bg-background/40 hover:bg-primary/5 hover:text-primary">
-                  <Filter className="w-5 h-5" />
+                <Button variant="outline" size="icon" className="h-9 w-9 rounded-md border-slate-200 bg-white hover:bg-slate-50 active:scale-95 transition-all">
+                  <Filter className="w-3.5 h-3.5 text-slate-500" />
                 </Button>
               </div>
             </div>
@@ -135,42 +131,42 @@ export const AuditLogs: React.FC = () => {
       </motion.div>
 
       {/* Timeline View */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-        <motion.div variants={item} className="xl:col-span-3">
-          <Card className="border-none shadow-xl shadow-primary/5 bg-card/60 backdrop-blur-md rounded-[2.5rem] overflow-hidden border border-primary/5">
-            <CardHeader className="p-8 border-b border-primary/5">
-              <CardTitle className="text-2xl font-black tracking-tight flex items-center gap-3">
-                <History className="w-6 h-6 text-primary" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <motion.div variants={item} className="lg:col-span-9">
+          <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+            <CardHeader className="p-5 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-base font-bold tracking-tight flex items-center gap-2">
+                <History className="w-4 h-4 text-primary" />
                 Activity Timeline
               </CardTitle>
-              <CardDescription className="text-base font-medium">Real-time stream of system events and user interactions.</CardDescription>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">Real-time stream of system events and user interactions.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="divide-y divide-primary/5">
+              <div className="divide-y divide-slate-100">
                 {filteredLogs.map((log) => (
-                  <div key={log.id} className="p-8 hover:bg-primary/5 transition-all group">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                      <div className="flex items-start gap-5">
-                        <div className="w-12 h-12 rounded-2xl bg-background/60 shadow-inner flex items-center justify-center border border-primary/5 group-hover:scale-110 transition-transform">
+                  <div key={log.id} className="p-5 hover:bg-slate-50/80 transition-all group">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-9 h-9 rounded-md bg-white shadow-sm flex items-center justify-center border border-slate-100 group-hover:scale-105 transition-transform">
                           {getActionIcon(log.action)}
                         </div>
                         <div className="space-y-1">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <span className="font-black text-lg text-foreground">{log.userName}</span>
-                            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 font-black px-2.5 py-0.5 rounded-lg text-[10px] uppercase tracking-widest">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-sm text-slate-900">{log.userName}</span>
+                            <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-200 font-bold px-1.5 py-0 rounded-md text-[9px] uppercase tracking-wider">
                               {log.userRole}
                             </Badge>
                           </div>
-                          <p className="text-base font-bold text-foreground leading-tight">{log.action}</p>
-                          <p className="text-sm text-muted-foreground font-medium">{log.details}</p>
+                          <p className="text-xs font-bold text-slate-700 leading-tight">{log.action}</p>
+                          <p className="text-[11px] text-slate-500 font-medium">{log.details}</p>
                         </div>
                       </div>
-                      <div className="flex flex-col md:items-end gap-2 shrink-0">
-                        <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest bg-primary/5 px-3 py-1.5 rounded-xl">
-                          <Clock className="w-3.5 h-3.5" />
-                          {new Date(log.timestamp).toLocaleTimeString()}
+                      <div className="flex flex-col md:items-end gap-1 shrink-0">
+                        <div className="flex items-center gap-1.5 text-primary font-bold text-[10px] uppercase tracking-wider bg-primary/5 px-2 py-1 rounded-md">
+                          <Clock className="w-3 h-3" />
+                          {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
-                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter mr-2">
+                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mr-1">
                           {new Date(log.timestamp).toLocaleDateString()}
                         </p>
                       </div>
@@ -179,49 +175,49 @@ export const AuditLogs: React.FC = () => {
                 ))}
               </div>
               {filteredLogs.length === 0 && (
-                <div className="p-24 text-center">
-                  <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Terminal className="w-10 h-10 text-primary/40" />
+                <div className="p-16 text-center">
+                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                    <Terminal className="w-8 h-8 text-slate-300" />
                   </div>
-                  <h3 className="text-2xl font-bold">No logs found</h3>
-                  <p className="text-muted-foreground text-lg mt-2">Try adjusting your filters or search query.</p>
+                  <h3 className="text-base font-bold text-slate-900">No logs found</h3>
+                  <p className="text-xs text-slate-500 mt-1 font-medium">Try adjusting your filters or search query.</p>
                 </div>
               )}
             </CardContent>
           </Card>
         </motion.div>
 
-        <div className="space-y-8">
+        <div className="lg:col-span-3 space-y-6">
           {/* Quick Stats */}
           <motion.div variants={item}>
-            <Card className="border-none shadow-xl shadow-primary/5 bg-card/60 backdrop-blur-md rounded-[2.5rem] overflow-hidden border border-primary/5">
-              <CardHeader className="p-8">
-                <CardTitle className="text-xl font-black tracking-tight flex items-center gap-3">
-                  <Activity className="w-5 h-5 text-primary" />
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+              <CardHeader className="p-5 pb-2">
+                <CardTitle className="text-sm font-bold tracking-tight flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5 text-primary" />
                   Log Summary
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-8 pt-0 space-y-6">
-                <div className="space-y-4">
+              <CardContent className="p-5 pt-0 space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-muted-foreground">Total Events</span>
-                    <span className="font-black text-lg">{auditLogs.length}</span>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Events</span>
+                    <span className="font-bold text-sm text-slate-900">{auditLogs.length}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-muted-foreground">Security Alerts</span>
-                    <Badge className="bg-rose-500/10 text-rose-600 border-none font-black text-xs">0</Badge>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Security Alerts</span>
+                    <Badge variant="outline" className="bg-rose-50 text-rose-600 border-rose-100 font-bold text-[9px] uppercase tracking-wider px-1.5 py-0 rounded-md">0</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-muted-foreground">Admin Actions</span>
-                    <span className="font-black text-lg">{auditLogs.filter(l => l.userRole === 'ADMIN').length}</span>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Admin Actions</span>
+                    <span className="font-bold text-sm text-slate-900">{auditLogs.filter(l => l.userRole === 'ADMIN').length}</span>
                   </div>
                 </div>
-                <div className="pt-6 border-t border-primary/5">
-                  <p className="text-[10px] font-black text-primary/60 uppercase tracking-[0.2em] mb-4">Storage Status</p>
-                  <div className="w-full h-2 bg-primary/10 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary w-[15%]" />
+                <div className="pt-4 border-t border-slate-100">
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">Storage Status</p>
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-primary w-[15%] transition-all duration-1000" />
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-2 font-bold">15% of log capacity used</p>
+                  <p className="text-[9px] text-slate-500 mt-1.5 font-bold uppercase tracking-wider">15% of log capacity used</p>
                 </div>
               </CardContent>
             </Card>
@@ -229,28 +225,28 @@ export const AuditLogs: React.FC = () => {
 
           {/* System Info */}
           <motion.div variants={item}>
-            <Card className="border-none shadow-xl shadow-primary/5 bg-primary/5 backdrop-blur-md rounded-[2.5rem] overflow-hidden border border-primary/10">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary">
-                    <Terminal className="w-6 h-6" />
+            <Card className="border border-primary/10 shadow-sm bg-primary/5 rounded-lg overflow-hidden">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center text-primary shadow-sm">
+                    <Terminal className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-black text-lg tracking-tight">Log Settings</h3>
-                    <p className="text-xs font-bold text-primary/60 uppercase tracking-widest">Retention: 90 Days</p>
+                    <h3 className="font-bold text-sm tracking-tight text-slate-900">Log Settings</h3>
+                    <p className="text-[9px] font-bold text-primary/60 uppercase tracking-wider">Retention: 90 Days</p>
                   </div>
                 </div>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-muted-foreground">Auto-Archive</span>
-                    <Badge className="bg-emerald-500 text-white border-none font-black text-[9px] uppercase tracking-widest">ON</Badge>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Auto-Archive</span>
+                    <Badge className="bg-emerald-500 text-white border-none font-bold text-[8px] uppercase tracking-wider px-1.5 py-0 rounded-md">ON</Badge>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-muted-foreground">Real-time Sync</span>
-                    <Badge className="bg-emerald-500 text-white border-none font-black text-[9px] uppercase tracking-widest">ON</Badge>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Real-time Sync</span>
+                    <Badge className="bg-emerald-500 text-white border-none font-bold text-[8px] uppercase tracking-wider px-1.5 py-0 rounded-md">ON</Badge>
                   </div>
                 </div>
-                <Button className="w-full mt-8 h-12 rounded-2xl bg-primary hover:bg-primary/90 font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20">
+                <Button className="w-full mt-6 h-9 rounded-md bg-primary hover:bg-primary/90 font-bold text-[10px] uppercase tracking-wider shadow-sm active:scale-95 transition-all">
                   Manage Storage
                 </Button>
               </CardContent>

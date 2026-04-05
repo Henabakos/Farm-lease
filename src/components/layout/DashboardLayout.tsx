@@ -20,7 +20,7 @@ export function DashboardLayout({ children, onNavigate }: { children: React.Reac
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
         <Topbar onNavigate={onNavigate} />
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 scrollbar-hide">
+        <main className="flex-1 overflow-y-auto p-5 scrollbar-hide">
           <AnimatePresence mode="wait">
             <motion.div
               key={user.role}
@@ -28,7 +28,7 @@ export function DashboardLayout({ children, onNavigate }: { children: React.Reac
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="max-w-7xl mx-auto"
+              className="w-full"
             >
               {children}
             </motion.div>

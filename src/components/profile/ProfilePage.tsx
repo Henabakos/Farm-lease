@@ -62,90 +62,90 @@ export function ProfilePage() {
       <motion.div variants={item} className="flex flex-col md:flex-row md:items-end justify-between gap-8">
         <div className="flex flex-col md:flex-row items-center md:items-end gap-8">
           <div className="relative group">
-            <div className="absolute inset-0 bg-primary/20 rounded-[2.5rem] blur-2xl group-hover:bg-primary/30 transition-all duration-500" />
-            <Avatar className="w-40 h-40 border-4 border-white shadow-2xl relative z-10 rounded-[2.5rem]">
+            <div className="absolute inset-0 bg-primary/10 rounded-lg blur-2xl group-hover:bg-primary/20 transition-all duration-500" />
+            <Avatar className="w-32 h-32 border-4 border-white shadow-lg relative z-10 rounded-lg">
               <AvatarImage src={user.avatar} className="object-cover" />
-              <AvatarFallback className="text-5xl font-black bg-primary/10 text-primary">{user.name.charAt(0)}</AvatarFallback>
+              <AvatarFallback className="text-4xl font-bold bg-slate-50 text-primary">{user.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <motion.div 
               initial={{ scale: 0, rotate: -20 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ delay: 0.5, type: "spring" }}
-              className="absolute -bottom-3 -right-3 bg-primary text-white p-3 rounded-2xl shadow-2xl border-4 border-white z-20"
+              className="absolute -bottom-2 -right-2 bg-primary text-white p-2 rounded-md shadow-md border-2 border-white z-20"
             >
-              <RoleIcon className="w-6 h-6" />
+              <RoleIcon className="w-4 h-4" />
             </motion.div>
           </div>
-          <div className="text-center md:text-left space-y-3 relative z-10">
-            <div className="flex flex-col md:flex-row items-center gap-4">
-              <h1 className="text-4xl font-black tracking-tight text-foreground leading-tight">{user.name}</h1>
-              <Badge variant="secondary" className="bg-primary/10 text-primary border-none px-4 py-1.5 rounded-full font-black text-xs uppercase tracking-widest">
+          <div className="text-center md:text-left space-y-2 relative z-10">
+            <div className="flex flex-col md:flex-row items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 leading-tight">{user.name}</h1>
+              <Badge variant="secondary" className="bg-slate-100 text-primary border-none px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider">
                 {user.role.toLowerCase().replace('_', ' ')}
               </Badge>
             </div>
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-sm text-muted-foreground font-medium">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
               <div className="flex items-center gap-2 group cursor-pointer hover:text-primary transition-colors">
-                <div className="w-8 h-8 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                  <Mail className="w-4 h-4 text-primary" />
+                <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+                  <Mail className="w-3 h-3 text-primary/70" />
                 </div>
                 <span>{user.email}</span>
               </div>
               <div className="flex items-center gap-2 group cursor-pointer hover:text-primary transition-colors">
-                <div className="w-8 h-8 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                  <MapPin className="w-4 h-4 text-primary" />
+                <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+                  <MapPin className="w-3 h-3 text-primary/70" />
                 </div>
                 <span>{user.location}</span>
               </div>
               <div className="flex items-center gap-2 group cursor-pointer hover:text-primary transition-colors">
-                <div className="w-8 h-8 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                  <Calendar className="w-4 h-4 text-primary" />
+                <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+                  <Calendar className="w-3 h-3 text-primary/70" />
                 </div>
-                <span>Joined {new Date(user.joinedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                <span>Joined {new Date(user.joinedDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
               </div>
             </div>
           </div>
         </div>
         <Button 
           onClick={() => setIsEditModalOpen(true)} 
-          className="gap-3 h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-lg shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98] w-full md:w-auto"
+          className="gap-2 h-9 px-4 rounded-md bg-primary hover:bg-primary/90 text-white font-bold text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95 w-full md:w-auto"
         >
-          <Edit className="w-5 h-5" />
+          <Edit className="w-3.5 h-3.5" />
           <span>Edit Profile</span>
         </Button>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2 space-y-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
           <motion.div variants={item}>
-            <Card className="border-none shadow-xl shadow-primary/5 bg-card/60 backdrop-blur-md rounded-[2.5rem] border border-primary/5">
-              <CardHeader className="p-8 pb-4">
-                <CardTitle className="text-2xl font-black tracking-tight">About Me</CardTitle>
-                <CardDescription className="text-base font-medium">A brief overview of your professional background and goals.</CardDescription>
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+              <CardHeader className="p-5 pb-2">
+                <CardTitle className="text-base font-bold tracking-tight text-slate-900">About Me</CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-400">A brief overview of your professional background and goals.</CardDescription>
               </CardHeader>
-              <CardContent className="p-8 pt-4">
-                <p className="text-foreground leading-relaxed text-lg font-medium opacity-80">
+              <CardContent className="p-5 pt-4">
+                <p className="text-slate-600 leading-relaxed text-xs font-medium">
                   {user.bio || "No bio provided yet. Tell us about yourself!"}
                 </p>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mt-10">
-                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-black text-primary/60 uppercase tracking-[0.2em] ml-1">Contact Information</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-4 p-4 rounded-2xl bg-primary/5 border border-primary/5 hover:bg-primary/10 transition-all group">
-                        <Mail className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                        <span className="font-bold text-foreground">{user.email}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8">
+                  <div className="space-y-3">
+                    <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-wider ml-1">Contact Information</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3 p-2.5 rounded-md bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all group">
+                        <Mail className="w-3.5 h-3.5 text-primary/70 group-hover:scale-110 transition-transform" />
+                        <span className="font-bold text-[10px] text-slate-700 uppercase tracking-wider">{user.email}</span>
                       </div>
-                      <div className="flex items-center gap-4 p-4 rounded-2xl bg-primary/5 border border-primary/5 hover:bg-primary/10 transition-all group">
-                        <Phone className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                        <span className="font-bold text-foreground">{user.phone || "Not provided"}</span>
+                      <div className="flex items-center gap-3 p-2.5 rounded-md bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all group">
+                        <Phone className="w-3.5 h-3.5 text-primary/70 group-hover:scale-110 transition-transform" />
+                        <span className="font-bold text-[10px] text-slate-700 uppercase tracking-wider">{user.phone || "Not provided"}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-black text-primary/60 uppercase tracking-[0.2em] ml-1">Location</h4>
-                    <div className="flex items-center gap-4 p-4 rounded-2xl bg-primary/5 border border-primary/5 hover:bg-primary/10 transition-all group">
-                      <MapPin className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                      <span className="font-bold text-foreground">{user.location || "Not provided"}</span>
+                  <div className="space-y-3">
+                    <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-wider ml-1">Location</h4>
+                    <div className="flex items-center gap-3 p-2.5 rounded-md bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all group">
+                      <MapPin className="w-3.5 h-3.5 text-primary/70 group-hover:scale-110 transition-transform" />
+                      <span className="font-bold text-[10px] text-slate-700 uppercase tracking-wider">{user.location || "Not provided"}</span>
                     </div>
                   </div>
                 </div>
@@ -155,33 +155,33 @@ export function ProfilePage() {
 
           {user.role === 'FARMER' && user.clusters && (
             <motion.div variants={item}>
-              <Card className="border-none shadow-xl shadow-primary/5 bg-card/60 backdrop-blur-md rounded-[2.5rem] border border-primary/5">
-                <CardHeader className="p-8 pb-4">
-                  <CardTitle className="text-2xl font-black tracking-tight">Cluster Memberships</CardTitle>
-                  <CardDescription className="text-base font-medium">Farming groups you are currently associated with.</CardDescription>
+              <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+                <CardHeader className="p-5 pb-2">
+                  <CardTitle className="text-base font-bold tracking-tight text-slate-900">Cluster Memberships</CardTitle>
+                  <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Farming groups you are currently associated with.</CardDescription>
                 </CardHeader>
-                <CardContent className="p-8 pt-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <CardContent className="p-5 pt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {user.clusters.map((cluster) => (
-                      <div key={cluster.id} className="p-6 rounded-[2rem] border border-primary/5 bg-primary/5 hover:bg-primary/10 transition-all duration-500 group relative overflow-hidden">
+                      <div key={cluster.id} className="p-4 rounded-md border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-all duration-300 group relative overflow-hidden">
                         <div className="flex items-start justify-between relative z-10">
-                          <div className="space-y-2">
-                            <h4 className="text-xl font-black text-foreground group-hover:text-primary transition-colors leading-tight">{cluster.name}</h4>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
-                              <MapPin className="w-4 h-4 text-primary/60" />
+                          <div className="space-y-1">
+                            <h4 className="text-sm font-bold text-slate-900 group-hover:text-primary transition-colors leading-tight">{cluster.name}</h4>
+                            <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                              <MapPin className="w-3 h-3 text-primary/60" />
                               <span>{cluster.location}</span>
                             </div>
                           </div>
-                          <Badge variant="outline" className="text-[10px] font-black uppercase tracking-[0.1em] bg-primary/10 text-primary border-primary/20 px-3 py-1 rounded-full">Active</Badge>
+                          <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600 border-emerald-100 px-2 py-0.5 rounded-md">Active</Badge>
                         </div>
-                        <div className="mt-6 flex items-center justify-between relative z-10">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
-                            <Users className="w-4 h-4 text-primary/60" />
+                        <div className="mt-4 flex items-center justify-between relative z-10">
+                          <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                            <Users className="w-3 h-3 text-primary/60" />
                             <span>{cluster.memberCount} members</span>
                           </div>
-                          <Button variant="ghost" size="sm" className="h-10 rounded-xl px-4 text-sm font-black gap-2 hover:bg-primary/10 hover:text-primary transition-all">
+                          <Button variant="ghost" size="sm" className="h-8 rounded-md px-3 text-[10px] font-bold uppercase tracking-wider gap-2 hover:bg-white hover:text-primary border border-transparent hover:border-slate-200 transition-all">
                             <span>View</span>
-                            <ArrowUpRight className="w-4 h-4" />
+                            <ArrowUpRight className="w-3 h-3" />
                           </Button>
                         </div>
                       </div>
@@ -193,30 +193,30 @@ export function ProfilePage() {
           )}
 
           <motion.div variants={item}>
-            <Card className="border-none shadow-xl shadow-primary/5 bg-card/60 backdrop-blur-md rounded-[2.5rem] border border-primary/5">
-              <CardHeader className="p-8 pb-4">
-                <CardTitle className="text-2xl font-black tracking-tight">Account Permissions</CardTitle>
-                <CardDescription className="text-base font-medium">Security and access levels assigned to your account.</CardDescription>
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+              <CardHeader className="p-5 pb-2">
+                <CardTitle className="text-base font-bold tracking-tight text-slate-900">Account Permissions</CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Security and access levels assigned to your account.</CardDescription>
               </CardHeader>
-              <CardContent className="p-8 pt-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <CardContent className="p-5 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
                     { title: 'Identity Verified', desc: 'Your identity has been confirmed via KYC.', status: true },
                     { title: 'Investment Access', desc: 'Authorized to participate in funding rounds.', status: user.role !== 'FARMER' },
                     { title: 'Farm Management', desc: 'Can manage and update farm production data.', status: user.role === 'FARMER' || user.role === 'CLUSTER_REP' || user.role === 'ADMIN' },
                     { title: 'Admin Console', desc: 'Access to system-wide settings and logs.', status: user.role === 'ADMIN' },
                   ].map((perm) => (
-                    <div key={perm.title} className="flex items-center justify-between p-5 rounded-2xl bg-primary/5 border border-primary/5 hover:bg-primary/10 transition-all group">
-                      <div className="space-y-1">
-                        <p className="text-base font-black text-foreground tracking-tight group-hover:text-primary transition-colors">{perm.title}</p>
-                        <p className="text-xs text-muted-foreground font-medium">{perm.desc}</p>
+                    <div key={perm.title} className="flex items-center justify-between p-4 rounded-md bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all group">
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-bold text-slate-900 tracking-tight group-hover:text-primary transition-colors">{perm.title}</p>
+                        <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{perm.desc}</p>
                       </div>
                       {perm.status ? (
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                          <CheckCircle2 className="w-6 h-6 text-primary" />
+                        <div className="w-8 h-8 rounded-md bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                         </div>
                       ) : (
-                        <div className="w-10 h-10 rounded-xl border-2 border-primary/10" />
+                        <div className="w-8 h-8 rounded-md border border-slate-200 bg-white" />
                       )}
                     </div>
                   ))}
@@ -226,48 +226,48 @@ export function ProfilePage() {
           </motion.div>
         </div>
 
-        <div className="space-y-10">
+        <div className="space-y-8">
           <motion.div variants={item}>
-            <Card className="border-none shadow-xl shadow-primary/5 bg-card/60 backdrop-blur-md rounded-[2.5rem] border border-primary/5 overflow-hidden">
-              <div className="h-32 bg-primary/10 relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+              <div className="h-24 bg-slate-50 relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
               </div>
-              <CardContent className="p-8 -mt-16 relative z-10">
-                <div className="space-y-8">
-                  <div className="flex flex-col items-center text-center space-y-4">
-                    <Avatar className="w-32 h-32 border-8 border-white shadow-2xl rounded-[2rem]">
+              <CardContent className="p-6 -mt-12 relative z-10">
+                <div className="space-y-6">
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    <Avatar className="w-24 h-24 border-4 border-white shadow-md rounded-lg">
                       <AvatarImage src={user.avatar} className="object-cover" />
-                      <AvatarFallback className="text-4xl font-black bg-primary/10 text-primary">{user.name.charAt(0)}</AvatarFallback>
+                      <AvatarFallback className="text-3xl font-bold bg-slate-50 text-primary">{user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <div className="space-y-1">
-                      <h3 className="font-black text-2xl tracking-tight">{user.name}</h3>
-                      <p className="text-[10px] font-black text-primary/60 uppercase tracking-[0.3em]">{user.role.replace('_', ' ')}</p>
+                    <div className="space-y-0.5">
+                      <h3 className="font-bold text-lg tracking-tight text-slate-900">{user.name}</h3>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{user.role.replace('_', ' ')}</p>
                     </div>
                   </div>
                   
-                  <Separator className="bg-primary/10" />
+                  <Separator className="bg-slate-100" />
                   
-                  <div className="space-y-5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-black text-muted-foreground uppercase tracking-wider">Profile Strength</span>
-                      <span className="font-black text-primary text-lg">85%</span>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                      <span className="text-slate-400">Profile Strength</span>
+                      <span className="text-primary">85%</span>
                     </div>
-                    <div className="h-3 w-full bg-primary/5 rounded-full overflow-hidden border border-primary/5">
+                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: '85%' }}
                         transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
-                        className="h-full bg-primary rounded-full shadow-lg shadow-primary/20" 
+                        className="h-full bg-primary rounded-full" 
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground text-center font-medium opacity-70">
+                    <p className="text-[10px] text-slate-500 text-center font-bold uppercase tracking-wider leading-relaxed">
                       Complete your profile to unlock more features and increase visibility.
                     </p>
                   </div>
 
                   <Button 
                     variant="outline" 
-                    className="w-full h-14 rounded-2xl border-primary/10 hover:bg-primary/5 font-black text-base transition-all" 
+                    className="w-full h-9 rounded-md border-slate-200 bg-white hover:bg-slate-50 font-bold text-[10px] uppercase tracking-wider transition-all shadow-sm active:scale-95" 
                     onClick={() => setIsEditModalOpen(true)}
                   >
                     Complete Profile
@@ -278,28 +278,28 @@ export function ProfilePage() {
           </motion.div>
 
           <motion.div variants={item}>
-            <Card className="border-none shadow-xl shadow-primary/5 bg-card/60 backdrop-blur-md rounded-[2.5rem] border border-primary/5">
-              <CardHeader className="p-8 pb-4">
-                <CardTitle className="text-2xl font-black tracking-tight">Quick Actions</CardTitle>
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+              <CardHeader className="p-5 pb-2">
+                <CardTitle className="text-base font-bold tracking-tight text-slate-900">Quick Actions</CardTitle>
               </CardHeader>
-              <CardContent className="p-8 pt-4 space-y-3">
-                <Button variant="ghost" className="w-full justify-start gap-4 h-14 rounded-2xl px-5 hover:bg-primary/5 hover:text-primary transition-all group">
-                  <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                    <Shield className="w-5 h-5 text-primary" />
+              <CardContent className="p-5 pt-4 space-y-2">
+                <Button variant="ghost" className="w-full justify-start gap-3 h-10 rounded-md px-3 hover:bg-slate-50 hover:text-primary transition-all group border border-transparent hover:border-slate-200">
+                  <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+                    <Shield className="w-3.5 h-3.5 text-primary/70" />
                   </div>
-                  <span className="font-black text-base tracking-tight">Security Settings</span>
+                  <span className="font-bold text-[11px] uppercase tracking-wider text-slate-700">Security Settings</span>
                 </Button>
-                <Button variant="ghost" className="w-full justify-start gap-4 h-14 rounded-2xl px-5 hover:bg-primary/5 hover:text-primary transition-all group">
-                  <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                    <Mail className="w-5 h-5 text-primary" />
+                <Button variant="ghost" className="w-full justify-start gap-3 h-10 rounded-md px-3 hover:bg-slate-50 hover:text-primary transition-all group border border-transparent hover:border-slate-200">
+                  <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+                    <Mail className="w-3.5 h-3.5 text-primary/70" />
                   </div>
-                  <span className="font-black text-base tracking-tight">Notification Prefs</span>
+                  <span className="font-bold text-[11px] uppercase tracking-wider text-slate-700">Notification Prefs</span>
                 </Button>
-                <Button variant="ghost" className="w-full justify-start gap-4 h-14 rounded-2xl px-5 text-destructive hover:text-destructive hover:bg-destructive/10 transition-all group">
-                  <div className="w-10 h-10 rounded-xl bg-destructive/5 flex items-center justify-center group-hover:bg-destructive/10 transition-colors">
-                    <ExternalLink className="w-5 h-5 text-destructive" />
+                <Button variant="ghost" className="w-full justify-start gap-3 h-10 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/5 transition-all group border border-transparent hover:border-destructive/10">
+                  <div className="w-7 h-7 rounded-md bg-destructive/5 border border-destructive/10 flex items-center justify-center group-hover:bg-destructive/10 transition-colors">
+                    <ExternalLink className="w-3.5 h-3.5 text-destructive" />
                   </div>
-                  <span className="font-black text-base tracking-tight">Deactivate Account</span>
+                  <span className="font-bold text-[11px] uppercase tracking-wider">Deactivate Account</span>
                 </Button>
               </CardContent>
             </Card>

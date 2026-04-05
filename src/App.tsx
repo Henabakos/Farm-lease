@@ -288,44 +288,44 @@ function ReceiptModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 overflow-hidden border-none bg-card/95 backdrop-blur-md">
-        <DialogHeader className="p-6 border-b bg-muted/20">
+      <DialogContent className="sm:max-w-[600px] rounded-lg border-slate-200 shadow-lg p-0 overflow-hidden">
+        <DialogHeader className="p-6 bg-slate-50 border-b border-slate-100">
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle className="text-2xl font-bold">Payment Receipt</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-xl font-bold tracking-tight text-slate-900">Payment Receipt</DialogTitle>
+              <DialogDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">
                 Receipt for {payment.agreementTitle} (${payment.amount.toLocaleString()})
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Download className="w-4 h-4" />
+              <Button variant="outline" size="sm" className="h-8 px-3 rounded-md gap-2 text-[10px] font-bold uppercase tracking-wider border-slate-200 bg-white shadow-sm transition-all active:scale-95">
+                <Download className="w-3 h-3" />
                 <span>Download</span>
               </Button>
-              <Button variant="outline" size="sm" className="gap-2">
-                <ExternalLink className="w-4 h-4" />
+              <Button variant="outline" size="sm" className="h-8 px-3 rounded-md gap-2 text-[10px] font-bold uppercase tracking-wider border-slate-200 bg-white shadow-sm transition-all active:scale-95">
+                <ExternalLink className="w-3 h-3" />
                 <span>Open</span>
               </Button>
             </div>
           </div>
         </DialogHeader>
-        <div className="flex-1 bg-muted/30 flex flex-col items-center justify-center p-12 space-y-6 overflow-y-auto">
-          <div className="w-32 h-32 bg-primary/10 rounded-3xl flex items-center justify-center shadow-inner">
-            <FileText className="w-16 h-16 text-primary" />
+        <div className="p-8 flex flex-col items-center justify-center text-center space-y-6 bg-white">
+          <div className="w-24 h-24 bg-primary/10 rounded-2xl flex items-center justify-center shadow-inner">
+            <FileText className="w-12 h-12 text-primary" />
           </div>
-          <div className="text-center space-y-4 max-w-md">
-            <h3 className="text-xl font-bold">{payment.receiptUrl}</h3>
-            <p className="text-muted-foreground leading-relaxed">
+          <div className="space-y-3 max-w-md">
+            <h3 className="text-base font-bold text-slate-900">{payment.receiptUrl}</h3>
+            <p className="text-xs text-slate-500 leading-relaxed font-medium">
               This is a simulated preview of the payment receipt. In a live environment, this would display the actual PDF or image document uploaded by the sender.
             </p>
             <div className="grid grid-cols-2 gap-4 mt-8">
-              <div className="p-4 rounded-2xl bg-background/50 border border-border/50 text-left">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Transaction ID</p>
-                <p className="text-xs font-mono mt-1">{payment.id.toUpperCase()}</p>
+              <div className="p-4 rounded-md bg-slate-50 border border-slate-100 text-left">
+                <p className="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Transaction ID</p>
+                <p className="text-[11px] font-mono font-bold text-slate-700 mt-1">{payment.id.toUpperCase()}</p>
               </div>
-              <div className="p-4 rounded-2xl bg-background/50 border border-border/50 text-left">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Verified Date</p>
-                <p className="text-xs mt-1">{payment.verifiedAt ? new Date(payment.verifiedAt).toLocaleDateString() : 'Pending'}</p>
+              <div className="p-4 rounded-md bg-slate-50 border border-slate-100 text-left">
+                <p className="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Verified Date</p>
+                <p className="text-[11px] font-bold text-slate-700 mt-1">{payment.verifiedAt ? new Date(payment.verifiedAt).toLocaleDateString() : 'Pending'}</p>
               </div>
             </div>
           </div>
