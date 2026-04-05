@@ -9,7 +9,7 @@ import { Loader2, AlertCircle, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { motion } from 'motion/react';
 
-export function LoginPage({ onSwitch }: { onSwitch: () => void }) {
+export function LoginPage({ onSwitch, onBack }: { onSwitch: () => void, onBack: () => void }) {
   const { login } = useRole();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +31,7 @@ export function LoginPage({ onSwitch }: { onSwitch: () => void }) {
     <AuthLayout 
       title="Welcome back" 
       subtitle="Enter your credentials to access your investment dashboard."
+      onBack={onBack}
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}

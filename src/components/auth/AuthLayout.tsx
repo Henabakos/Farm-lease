@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sprout, TrendingUp, BarChart3, PieChart as PieChartIcon, ShieldCheck, Globe, Zap } from 'lucide-react';
+import { Sprout, TrendingUp, BarChart3, PieChart as PieChartIcon, ShieldCheck, Globe, Zap, ArrowLeft } from 'lucide-react';
 import { 
   LineChart, 
   Line, 
@@ -13,6 +13,7 @@ import {
   Cell
 } from 'recharts';
 import { motion } from 'motion/react';
+import { Button } from '@/components/ui/button';
 
 const lineData = [
   { name: 'MON', value: 400 },
@@ -29,7 +30,7 @@ const pieData = [
 
 const COLORS = ['#0d9488', 'rgba(13, 148, 136, 0.1)'];
 
-export function AuthLayout({ children, title, subtitle }: { children: React.ReactNode, title: string, subtitle: string }) {
+export function AuthLayout({ children, title, subtitle, onBack }: { children: React.ReactNode, title: string, subtitle: string, onBack?: () => void }) {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background font-sans">
       {/* Left Side: Form */}
@@ -46,11 +47,24 @@ export function AuthLayout({ children, title, subtitle }: { children: React.Reac
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="max-w-md w-full mx-auto space-y-12 relative z-10"
         >
-          <div className="flex items-center gap-3 group cursor-pointer">
-            <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center shadow-md shadow-primary/20 group-hover:scale-105 transition-all duration-300">
-              <Sprout className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 group cursor-pointer">
+              <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center shadow-md shadow-primary/20 group-hover:scale-105 transition-all duration-300">
+                <Sprout className="w-6 h-6 text-white" />
+              </div>
+              <span className="font-bold text-2xl tracking-tight text-primary">AgriInvest</span>
             </div>
-            <span className="font-bold text-2xl tracking-tight text-primary">AgriInvest</span>
+            {onBack && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onBack}
+                className="h-9 px-3 rounded-md gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-primary hover:bg-primary/5 transition-all"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back</span>
+              </Button>
+            )}
           </div>
 
           <div className="space-y-2">

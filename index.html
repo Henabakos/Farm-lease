@@ -1,13 +1,872 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriInvest | Modern Agricultural Investment Platform</title>
+    <meta name="description" content="Empowering the future of agriculture through smart, data-driven investment solutions.">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#3B82F6',
+                            dark: '#2563EB',
+                        },
+                        dark: {
+                            bg: '#0A0F1D',
+                            card: '#161B2D',
+                            border: '#1E293B',
+                        },
+                        light: {
+                            bg: '#F9FAFB',
+                            card: '#FFFFFF',
+                            border: '#E5E7EB',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'gradient': 'gradient 8s linear infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        gradient: {
+                            '0%, 100%': { 'background-size': '200% 200%', 'background-position': 'left center' },
+                            '50%': { 'background-size': '200% 200%', 'background-position': 'right center' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .glass {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .dark .glass {
+            background: rgba(10, 15, 29, 0.7);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .light .glass {
+            background: rgba(249, 250, 251, 0.7);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #3B82F6, #8B5CF6, #EC4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: gradient 5s linear infinite;
+        }
+
+        .cursor-glow {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0) 70%);
+            position: fixed;
+            pointer-events: none;
+            z-index: 0;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .dark .card-hover:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .mockup-container {
+            perspective: 1000px;
+        }
+
+        .mockup-content {
+            transform: rotateX(5deg) rotateY(-5deg);
+            transition: transform 0.5s ease;
+        }
+
+        .mockup-container:hover .mockup-content {
+            transform: rotateX(0deg) rotateY(0deg);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3B82F6;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2563EB;
+        }
+
+        .typewriter::after {
+            content: '|';
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .bg-grid {
+            background-image: radial-gradient(circle, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+    </style>
+</head>
+<body class="dark bg-dark-bg text-white overflow-x-hidden">
+    <div id="glow" class="cursor-glow"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 glass transition-all duration-300 py-4" id="navbar">
+        <div class="max-w-7xl mx-auto px-6 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+                    <i class="fas fa-chart-line text-white text-xl"></i>
+                </div>
+                <span class="text-2xl font-extrabold tracking-tighter dark:text-white text-gray-900">Agri<span class="text-primary">Invest</span></span>
+            </div>
+
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#product" class="text-sm font-medium hover:text-primary transition-colors dark:text-gray-300 text-gray-600">Product</a>
+                <a href="#features" class="text-sm font-medium hover:text-primary transition-colors dark:text-gray-300 text-gray-600">Features</a>
+                <a href="#pricing" class="text-sm font-medium hover:text-primary transition-colors dark:text-gray-300 text-gray-600">Pricing</a>
+                <a href="#resources" class="text-sm font-medium hover:text-primary transition-colors dark:text-gray-300 text-gray-600">Resources</a>
+                <a href="#contact" class="text-sm font-medium hover:text-primary transition-colors dark:text-gray-300 text-gray-600">Contact</a>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-moon dark:hidden text-gray-600"></i>
+                    <i class="fas fa-sun hidden dark:block text-yellow-400"></i>
+                </button>
+                <a href="#" class="hidden sm:block px-6 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-bold rounded-full transition-all shadow-lg shadow-primary/20 active:scale-95">
+                    Start Free Trial
+                </a>
+                <button class="md:hidden text-2xl" id="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden absolute top-full left-0 w-full bg-white dark:bg-dark-bg border-b dark:border-dark-border p-6 flex flex-col gap-4 shadow-xl">
+            <a href="#product" class="text-lg font-medium dark:text-white text-gray-900">Product</a>
+            <a href="#features" class="text-lg font-medium dark:text-white text-gray-900">Features</a>
+            <a href="#pricing" class="text-lg font-medium dark:text-white text-gray-900">Pricing</a>
+            <a href="#resources" class="text-lg font-medium dark:text-white text-gray-900">Resources</a>
+            <a href="#contact" class="text-lg font-medium dark:text-white text-gray-900">Contact</a>
+            <hr class="dark:border-gray-800">
+            <a href="#" class="w-full py-3 bg-primary text-white text-center font-bold rounded-xl">Start Free Trial</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-grid">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none">
+            <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full animate-pulse-slow"></div>
+            <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full animate-pulse-slow"></div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-6 relative z-10 text-center">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest mb-8 reveal">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                </span>
+                Trusted by 5,000+ Global Investors
+            </div>
+            
+            <h1 class="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight mb-8 leading-[1.1] reveal">
+                Maximize Your <span class="gradient-text">Agri-Yield</span> <br>With Smart Data
+            </h1>
+            
+            <p class="max-w-2xl mx-auto text-lg md:text-xl dark:text-gray-400 text-gray-600 mb-12 leading-relaxed reveal">
+                <span id="typewriter" class="typewriter"></span>
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20 reveal">
+                <a href="#" class="w-full sm:w-auto px-10 py-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-full transition-all shadow-xl shadow-primary/30 hover:-translate-y-1 active:scale-95">
+                    Launch Dashboard
+                </a>
+                <a href="#" class="w-full sm:w-auto px-10 py-4 bg-white/5 hover:bg-white/10 dark:text-white text-gray-900 border border-white/10 font-bold rounded-full transition-all backdrop-blur-sm hover:-translate-y-1 active:scale-95">
+                    <i class="fas fa-play mr-2 text-xs"></i> Watch Demo
+                </a>
+            </div>
+
+            <!-- Dashboard Mockup -->
+            <div class="relative max-w-5xl mx-auto reveal mockup-container">
+                <div class="absolute -inset-4 bg-gradient-to-r from-primary to-purple-600 rounded-[32px] blur-2xl opacity-20 animate-pulse"></div>
+                <div class="relative bg-dark-card border border-white/10 rounded-[24px] shadow-2xl overflow-hidden mockup-content">
+                    <!-- Mockup Header -->
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/5">
+                        <div class="flex gap-1.5">
+                            <div class="w-3 h-3 rounded-full bg-red-500/50"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/50"></div>
+                        </div>
+                        <div class="px-4 py-1 bg-white/5 rounded-lg text-[10px] text-gray-500 font-mono">agriinvest.app/dashboard</div>
+                        <div class="w-10"></div>
+                    </div>
+                    
+                    <!-- Mockup Body -->
+                    <div class="p-8 grid grid-cols-12 gap-6">
+                        <div class="col-span-12 md:col-span-8 space-y-6">
+                            <div class="grid grid-cols-3 gap-4">
+                                <div class="p-4 rounded-2xl bg-white/5 border border-white/5">
+                                    <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Total Assets</div>
+                                    <div class="text-xl font-bold">$2.4M</div>
+                                    <div class="text-[10px] text-green-400 mt-1">+12.5% <i class="fas fa-arrow-up"></i></div>
+                                </div>
+                                <div class="p-4 rounded-2xl bg-white/5 border border-white/5">
+                                    <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Active Yield</div>
+                                    <div class="text-xl font-bold">18.2%</div>
+                                    <div class="text-[10px] text-green-400 mt-1">+2.1% <i class="fas fa-arrow-up"></i></div>
+                                </div>
+                                <div class="p-4 rounded-2xl bg-white/5 border border-white/5">
+                                    <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Risk Score</div>
+                                    <div class="text-xl font-bold">Low</div>
+                                    <div class="text-[10px] text-blue-400 mt-1">Stable <i class="fas fa-check"></i></div>
+                                </div>
+                            </div>
+                            <div class="h-64 w-full bg-white/5 rounded-2xl border border-white/5 relative overflow-hidden p-6">
+                                <div class="flex justify-between items-end h-full gap-2">
+                                    <div class="w-full bg-primary/20 rounded-t-lg" style="height: 40%"></div>
+                                    <div class="w-full bg-primary/40 rounded-t-lg" style="height: 60%"></div>
+                                    <div class="w-full bg-primary/60 rounded-t-lg" style="height: 45%"></div>
+                                    <div class="w-full bg-primary/80 rounded-t-lg" style="height: 80%"></div>
+                                    <div class="w-full bg-primary/40 rounded-t-lg" style="height: 55%"></div>
+                                    <div class="w-full bg-primary/20 rounded-t-lg" style="height: 30%"></div>
+                                    <div class="w-full bg-primary/90 rounded-t-lg" style="height: 95%"></div>
+                                </div>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <svg class="w-full h-full opacity-30" viewBox="0 0 400 200">
+                                        <path d="M0 150 Q 50 100, 100 130 T 200 80 T 300 110 T 400 50" fill="none" stroke="#3B82F6" stroke-width="3" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hidden md:block col-span-4 space-y-6">
+                            <div class="p-6 rounded-2xl bg-white/5 border border-white/5 h-full">
+                                <div class="text-xs font-bold mb-4">Recent Investments</div>
+                                <div class="space-y-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center text-green-500 text-xs"><i class="fas fa-seedling"></i></div>
+                                        <div>
+                                            <div class="text-[10px] font-bold">Soybean Cluster A</div>
+                                            <div class="text-[8px] text-gray-500">2 mins ago</div>
+                                        </div>
+                                        <div class="ml-auto text-[10px] font-bold text-green-400">+$12k</div>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-500 text-xs"><i class="fas fa-tint"></i></div>
+                                        <div>
+                                            <div class="text-[10px] font-bold">Irrigation Tech</div>
+                                            <div class="text-[8px] text-gray-500">1 hour ago</div>
+                                        </div>
+                                        <div class="ml-auto text-[10px] font-bold text-green-400">+$45k</div>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-500 text-xs"><i class="fas fa-robot"></i></div>
+                                        <div>
+                                            <div class="text-[10px] font-bold">AI Harvesting</div>
+                                            <div class="text-[8px] text-gray-500">5 hours ago</div>
+                                        </div>
+                                        <div class="ml-auto text-[10px] font-bold text-green-400">+$8k</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Floating Badges -->
+                <div class="absolute -top-10 -right-10 hidden lg:flex flex-col gap-4 animate-float">
+                    <div class="px-6 py-4 bg-white dark:bg-dark-card rounded-2xl shadow-2xl border border-white/10 flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-500">
+                            <i class="fas fa-arrow-trend-up"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold dark:text-white text-gray-900">+32% Growth</div>
+                            <div class="text-[10px] text-gray-500">This Quarter</div>
+                        </div>
+                    </div>
+                    <div class="px-6 py-4 bg-white dark:bg-dark-card rounded-2xl shadow-2xl border border-white/10 flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold dark:text-white text-gray-900">Live Sync</div>
+                            <div class="text-[10px] text-gray-500">Real-time Data</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trusted By -->
+    <section class="py-20 border-y dark:border-white/5 border-gray-200">
+        <div class="max-w-7xl mx-auto px-6">
+            <p class="text-center text-sm font-bold text-gray-500 uppercase tracking-[0.2em] mb-12">Empowering Industry Leaders</p>
+            <div class="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+                <div class="flex items-center gap-2 text-2xl font-bold text-gray-400 hover:text-primary transition-colors cursor-default">
+                    <i class="fas fa-cube"></i> ACME
+                </div>
+                <div class="flex items-center gap-2 text-2xl font-bold text-gray-400 hover:text-primary transition-colors cursor-default">
+                    <i class="fas fa-microchip"></i> TECHCORP
+                </div>
+                <div class="flex items-center gap-2 text-2xl font-bold text-gray-400 hover:text-primary transition-colors cursor-default">
+                    <i class="fas fa-landmark"></i> GLOBALBANK
+                </div>
+                <div class="flex items-center gap-2 text-2xl font-bold text-gray-400 hover:text-primary transition-colors cursor-default">
+                    <i class="fas fa-leaf"></i> ECOSYSTEM
+                </div>
+                <div class="flex items-center gap-2 text-2xl font-bold text-gray-400 hover:text-primary transition-colors cursor-default">
+                    <i class="fas fa-shield-halved"></i> SECURELY
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-32 relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-20 reveal">
+                <h2 class="text-4xl md:text-5xl font-extrabold mb-6">Everything You Need to <br><span class="text-primary">Scale Your Portfolio</span></h2>
+                <p class="text-gray-500 max-w-2xl mx-auto">Powerful tools designed to give you a competitive edge in the modern agricultural market.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="p-10 rounded-[32px] dark:bg-dark-card bg-white border dark:border-white/5 border-gray-200 card-hover reveal">
+                    <div class="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary text-2xl mb-8">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">Real-time Analytics</h3>
+                    <p class="text-gray-500 leading-relaxed">Monitor your agricultural assets with sub-second latency and precision data points.</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="p-10 rounded-[32px] dark:bg-dark-card bg-white border dark:border-white/5 border-gray-200 card-hover reveal">
+                    <div class="w-14 h-14 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-500 text-2xl mb-8">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">Custom Reports</h3>
+                    <p class="text-gray-500 leading-relaxed">Generate professional investment summaries and yield projections in one click.</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="p-10 rounded-[32px] dark:bg-dark-card bg-white border dark:border-white/5 border-gray-200 card-hover reveal">
+                    <div class="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 text-2xl mb-8">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">Team Collaboration</h3>
+                    <p class="text-gray-500 leading-relaxed">Invite partners and advisors to manage portfolios together with granular permissions.</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="p-10 rounded-[32px] dark:bg-dark-card bg-white border dark:border-white/5 border-gray-200 card-hover reveal">
+                    <div class="w-14 h-14 bg-green-500/10 rounded-2xl flex items-center justify-center text-green-500 text-2xl mb-8">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">Data Export</h3>
+                    <p class="text-gray-500 leading-relaxed">Export your data to CSV, PDF, or Excel for seamless integration with other tools.</p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="p-10 rounded-[32px] dark:bg-dark-card bg-white border dark:border-white/5 border-gray-200 card-hover reveal">
+                    <div class="w-14 h-14 bg-yellow-500/10 rounded-2xl flex items-center justify-center text-yellow-400 text-2xl mb-8">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">AI Insights</h3>
+                    <p class="text-gray-500 leading-relaxed">Leverage machine learning to predict market trends and optimize your harvest timing.</p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="p-10 rounded-[32px] dark:bg-dark-card bg-white border dark:border-white/5 border-gray-200 card-hover reveal">
+                    <div class="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 text-2xl mb-8">
+                        <i class="fas fa-shield-check"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">Security-first Design</h3>
+                    <p class="text-gray-500 leading-relaxed">Bank-grade encryption and multi-factor authentication keep your assets safe.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Preview Section -->
+    <section class="py-32 bg-primary/5 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-full bg-grid opacity-20"></div>
+        <div class="max-w-7xl mx-auto px-6 relative z-10">
+            <div class="flex flex-col lg:flex-row items-center gap-16">
+                <div class="lg:w-1/2 reveal">
+                    <div class="inline-block px-4 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full mb-6 uppercase tracking-wider">Visual Intelligence</div>
+                    <h2 class="text-4xl md:text-5xl font-extrabold mb-8 leading-tight">Visualize Your <br>Success in <span class="text-primary">High Definition</span></h2>
+                    <p class="text-gray-500 text-lg mb-10 leading-relaxed">Our interface isn't just beautiful—it's functional. Every pixel is optimized to help you make faster, more informed decisions about your agricultural investments.</p>
+                    
+                    <div class="space-y-6">
+                        <div class="flex items-start gap-4">
+                            <div class="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary mt-1">
+                                <i class="fas fa-check text-[10px]"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold mb-1">Dynamic Filtering</h4>
+                                <p class="text-sm text-gray-500">Drill down into specific regions, crop types, or timeframes instantly.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary mt-1">
+                                <i class="fas fa-check text-[10px]"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold mb-1">Predictive Modeling</h4>
+                                <p class="text-sm text-gray-500">See where your portfolio will be in 5, 10, or 20 years with AI projections.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="lg:w-1/2 reveal">
+                    <div class="relative">
+                        <div class="absolute -inset-10 bg-primary/20 blur-3xl rounded-full"></div>
+                        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=1000" alt="Dashboard Preview" class="rounded-[32px] shadow-2xl border border-white/10 relative z-10" referrerPolicy="no-referrer">
+                        
+                        <!-- Floating Labels -->
+                        <div class="absolute top-10 -left-10 z-20 px-4 py-2 bg-white dark:bg-dark-card rounded-xl shadow-xl border border-white/10 flex items-center gap-2 animate-float" style="animation-delay: 1s">
+                            <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                            <span class="text-[10px] font-bold">Live Data Feed</span>
+                        </div>
+                        <div class="absolute bottom-20 -right-5 z-20 px-4 py-2 bg-white dark:bg-dark-card rounded-xl shadow-xl border border-white/10 flex items-center gap-2 animate-float" style="animation-delay: 2s">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span class="text-[10px] font-bold">Syncing...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="py-32">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-20 reveal">
+                <h2 class="text-4xl md:text-5xl font-extrabold mb-6">Simple Steps to <span class="text-primary">Financial Growth</span></h2>
+                <p class="text-gray-500">Get started in minutes, not days. Our onboarding process is seamless.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+                <!-- Connector Line -->
+                <div class="hidden md:block absolute top-24 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-primary/20 to-transparent z-0"></div>
+                
+                <!-- Step 1 -->
+                <div class="text-center relative z-10 reveal">
+                    <div class="w-20 h-20 bg-primary text-white rounded-[24px] flex items-center justify-center text-3xl font-bold mx-auto mb-8 shadow-xl shadow-primary/30">
+                        1
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">Connect Your Data</h3>
+                    <p class="text-gray-500">Securely link your existing farm management systems or bank accounts.</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="text-center relative z-10 reveal" style="transition-delay: 0.2s">
+                    <div class="w-20 h-20 bg-primary text-white rounded-[24px] flex items-center justify-center text-3xl font-bold mx-auto mb-8 shadow-xl shadow-primary/30">
+                        2
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">Visualize Insights</h3>
+                    <p class="text-gray-500">Watch as our AI transforms raw data into actionable visual dashboards.</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="text-center relative z-10 reveal" style="transition-delay: 0.4s">
+                    <div class="w-20 h-20 bg-primary text-white rounded-[24px] flex items-center justify-center text-3xl font-bold mx-auto mb-8 shadow-xl shadow-primary/30">
+                        3
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">Collaborate & Decide</h3>
+                    <p class="text-gray-500">Share insights with your team and make data-driven investment choices.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Metrics Section -->
+    <section class="py-24 bg-dark-card border-y border-white/5 relative overflow-hidden">
+        <div class="absolute inset-0 bg-primary/5 animate-pulse"></div>
+        <div class="max-w-7xl mx-auto px-6 relative z-10">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-12">
+                <div class="text-center reveal">
+                    <div class="text-4xl md:text-5xl font-extrabold text-primary mb-2">99.9%</div>
+                    <div class="text-xs font-bold text-gray-500 uppercase tracking-widest">Uptime Guarantee</div>
+                </div>
+                <div class="text-center reveal" style="transition-delay: 0.1s">
+                    <div class="text-4xl md:text-5xl font-extrabold text-primary mb-2">10M+</div>
+                    <div class="text-xs font-bold text-gray-500 uppercase tracking-widest">Data Points</div>
+                </div>
+                <div class="text-center reveal" style="transition-delay: 0.2s">
+                    <div class="text-4xl md:text-5xl font-extrabold text-primary mb-2">500+</div>
+                    <div class="text-xs font-bold text-gray-500 uppercase tracking-widest">Integrations</div>
+                </div>
+                <div class="text-center reveal" style="transition-delay: 0.3s">
+                    <div class="text-4xl md:text-5xl font-extrabold text-primary mb-2">24/7</div>
+                    <div class="text-xs font-bold text-gray-500 uppercase tracking-widest">Expert Support</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="py-32 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-20 reveal">
+                <h2 class="text-4xl md:text-5xl font-extrabold mb-6">Loved by <span class="text-primary">Investors Worldwide</span></h2>
+                <p class="text-gray-500">Don't just take our word for it. Here's what our community has to say.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Testimonial 1 -->
+                <div class="p-10 rounded-[32px] dark:bg-dark-card bg-white border dark:border-white/5 border-gray-200 reveal">
+                    <div class="flex gap-1 text-yellow-400 mb-6">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    </div>
+                    <p class="text-lg italic mb-8 dark:text-gray-300 text-gray-600">"AgriInvest has completely transformed how we manage our family's farm portfolio. The AI insights are scarily accurate."</p>
+                    <div class="flex items-center gap-4">
+                        <img src="https://i.pravatar.cc/150?u=1" alt="User" class="w-12 h-12 rounded-full border-2 border-primary" referrerPolicy="no-referrer">
+                        <div>
+                            <div class="font-bold">Sarah Jenkins</div>
+                            <div class="text-xs text-gray-500">Portfolio Manager, GreenField</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testimonial 2 -->
+                <div class="p-10 rounded-[32px] dark:bg-dark-card bg-white border dark:border-white/5 border-gray-200 reveal" style="transition-delay: 0.2s">
+                    <div class="flex gap-1 text-yellow-400 mb-6">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    </div>
+                    <p class="text-lg italic mb-8 dark:text-gray-300 text-gray-600">"The best dashboard I've ever used. Clean, fast, and packed with features that actually matter to agricultural investors."</p>
+                    <div class="flex items-center gap-4">
+                        <img src="https://i.pravatar.cc/150?u=2" alt="User" class="w-12 h-12 rounded-full border-2 border-primary" referrerPolicy="no-referrer">
+                        <div>
+                            <div class="font-bold">Michael Chen</div>
+                            <div class="text-xs text-gray-500">CTO, AgriTech Solutions</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testimonial 3 -->
+                <div class="p-10 rounded-[32px] dark:bg-dark-card bg-white border dark:border-white/5 border-gray-200 reveal" style="transition-delay: 0.4s">
+                    <div class="flex gap-1 text-yellow-400 mb-6">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    </div>
+                    <p class="text-lg italic mb-8 dark:text-gray-300 text-gray-600">"Finally, a platform that understands the complexities of agricultural data. The team collaboration tools are a game changer."</p>
+                    <div class="flex items-center gap-4">
+                        <img src="https://i.pravatar.cc/150?u=3" alt="User" class="w-12 h-12 rounded-full border-2 border-primary" referrerPolicy="no-referrer">
+                        <div>
+                            <div class="font-bold">Elena Rodriguez</div>
+                            <div class="text-xs text-gray-500">Independent Investor</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-32 bg-primary/5 relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-20 reveal">
+                <h2 class="text-4xl md:text-5xl font-extrabold mb-6">Transparent <span class="text-primary">Pricing</span></h2>
+                <p class="text-gray-500">Choose the plan that fits your growth ambitions.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Basic Plan -->
+                <div class="p-10 rounded-[40px] dark:bg-dark-card bg-white border dark:border-white/5 border-gray-200 reveal">
+                    <div class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Basic</div>
+                    <div class="flex items-baseline gap-1 mb-8">
+                        <span class="text-4xl font-extrabold">$29</span>
+                        <span class="text-gray-500">/mo</span>
+                    </div>
+                    <ul class="space-y-4 mb-10">
+                        <li class="flex items-center gap-3 text-sm text-gray-500"><i class="fas fa-check text-primary"></i> Up to 5 Portfolios</li>
+                        <li class="flex items-center gap-3 text-sm text-gray-500"><i class="fas fa-check text-primary"></i> Real-time Analytics</li>
+                        <li class="flex items-center gap-3 text-sm text-gray-500"><i class="fas fa-check text-primary"></i> Standard Support</li>
+                        <li class="flex items-center gap-3 text-sm text-gray-400 opacity-50"><i class="fas fa-xmark"></i> AI Insights</li>
+                    </ul>
+                    <a href="#" class="block w-full py-4 border border-primary text-primary hover:bg-primary hover:text-white text-center font-bold rounded-2xl transition-all">Get Started</a>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="p-10 rounded-[40px] dark:bg-dark-card bg-white border-2 border-primary relative reveal shadow-2xl shadow-primary/20 scale-105 z-10">
+                    <div class="absolute -top-5 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-white text-[10px] font-bold uppercase rounded-full">Most Popular</div>
+                    <div class="text-sm font-bold text-primary uppercase tracking-widest mb-4">Pro</div>
+                    <div class="flex items-baseline gap-1 mb-8">
+                        <span class="text-4xl font-extrabold">$79</span>
+                        <span class="text-gray-500">/mo</span>
+                    </div>
+                    <ul class="space-y-4 mb-10">
+                        <li class="flex items-center gap-3 text-sm text-gray-500"><i class="fas fa-check text-primary"></i> Unlimited Portfolios</li>
+                        <li class="flex items-center gap-3 text-sm text-gray-500"><i class="fas fa-check text-primary"></i> Advanced AI Insights</li>
+                        <li class="flex items-center gap-3 text-sm text-gray-500"><i class="fas fa-check text-primary"></i> Priority Support</li>
+                        <li class="flex items-center gap-3 text-sm text-gray-500"><i class="fas fa-check text-primary"></i> Custom Integrations</li>
+                    </ul>
+                    <a href="#" class="block w-full py-4 bg-primary text-white text-center font-bold rounded-2xl transition-all shadow-lg shadow-primary/30 hover:scale-105">Get Started</a>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="p-10 rounded-[40px] dark:bg-dark-card bg-white border dark:border-white/5 border-gray-200 reveal">
+                    <div class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Enterprise</div>
+                    <div class="flex items-baseline gap-1 mb-8">
+                        <span class="text-4xl font-extrabold">$199</span>
+                        <span class="text-gray-500">/mo</span>
+                    </div>
+                    <ul class="space-y-4 mb-10">
+                        <li class="flex items-center gap-3 text-sm text-gray-500"><i class="fas fa-check text-primary"></i> Everything in Pro</li>
+                        <li class="flex items-center gap-3 text-sm text-gray-500"><i class="fas fa-check text-primary"></i> Dedicated Account Manager</li>
+                        <li class="flex items-center gap-3 text-sm text-gray-500"><i class="fas fa-check text-primary"></i> White-label Options</li>
+                        <li class="flex items-center gap-3 text-sm text-gray-500"><i class="fas fa-check text-primary"></i> On-premise Deployment</li>
+                    </ul>
+                    <a href="#" class="block w-full py-4 border border-primary text-primary hover:bg-primary hover:text-white text-center font-bold rounded-2xl transition-all">Contact Sales</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="py-32 relative overflow-hidden">
+        <div class="absolute inset-0 bg-primary/10"></div>
+        <div class="max-w-5xl mx-auto px-6 relative z-10 text-center">
+            <div class="p-16 md:p-24 rounded-[64px] bg-gradient-to-br from-primary to-purple-600 text-white shadow-2xl relative overflow-hidden reveal">
+                <div class="absolute top-0 left-0 w-full h-full bg-grid opacity-10"></div>
+                <h2 class="text-4xl md:text-6xl font-extrabold mb-8 relative z-10">Ready to Transform <br>Your Agri-Data?</h2>
+                <p class="text-white/80 text-lg mb-12 max-w-xl mx-auto relative z-10">Join thousands of investors who are already scaling their portfolios with AgriInvest.</p>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
+                    <a href="#" class="w-full sm:w-auto px-12 py-5 bg-white text-primary font-bold rounded-full transition-all shadow-xl hover:scale-105 active:scale-95">
+                        Get Started — It's Free
+                    </a>
+                </div>
+                <p class="mt-8 text-sm text-white/60 relative z-10">No credit card required • Cancel anytime</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="pt-20 pb-10 border-t dark:border-white/5 border-gray-200">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-20">
+                <div class="lg:col-span-2">
+                    <div class="flex items-center gap-2 mb-6">
+                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-line text-white text-sm"></i>
+                        </div>
+                        <span class="text-xl font-extrabold tracking-tighter dark:text-white text-gray-900">Agri<span class="text-primary">Invest</span></span>
+                    </div>
+                    <p class="text-gray-500 max-w-xs mb-8">Empowering the future of agriculture through smart, data-driven investment solutions.</p>
+                    <div class="flex gap-4">
+                        <a href="#" class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 hover:text-primary transition-all"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 hover:text-primary transition-all"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 hover:text-primary transition-all"><i class="fab fa-github"></i></a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 hover:text-primary transition-all"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold mb-6">Product</h4>
+                    <ul class="space-y-4 text-sm text-gray-500">
+                        <li><a href="#" class="hover:text-primary transition-colors">Features</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Integrations</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Pricing</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Changelog</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold mb-6">Resources</h4>
+                    <ul class="space-y-4 text-sm text-gray-500">
+                        <li><a href="#" class="hover:text-primary transition-colors">Documentation</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Help Center</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Community</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">API Reference</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold mb-6">Company</h4>
+                    <ul class="space-y-4 text-sm text-gray-500">
+                        <li><a href="#" class="hover:text-primary transition-colors">About Us</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Careers</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="pt-10 border-t dark:border-white/5 border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-xs text-gray-500">© 2026 AgriInvest Inc. All rights reserved.</p>
+                <div class="flex gap-8 text-xs text-gray-500">
+                    <a href="#" class="hover:text-primary transition-colors">Privacy</a>
+                    <a href="#" class="hover:text-primary transition-colors">Terms</a>
+                    <a href="#" class="hover:text-primary transition-colors">Cookies</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark');
+            body.classList.toggle('light');
+            if (body.classList.contains('light')) {
+                body.style.backgroundColor = '#F9FAFB';
+                body.style.color = '#111827';
+            } else {
+                body.style.backgroundColor = '#0A0F1D';
+                body.style.color = '#FFFFFF';
+            }
+        });
+
+        // Mobile Menu Toggle
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Scroll Reveal
+        const reveals = document.querySelectorAll('.reveal');
+        const revealOnScroll = () => {
+            reveals.forEach(reveal => {
+                const windowHeight = window.innerHeight;
+                const revealTop = reveal.getBoundingClientRect().top;
+                const revealPoint = 150;
+
+                if (revealTop < windowHeight - revealPoint) {
+                    reveal.classList.add('active');
+                }
+            });
+        };
+
+        window.addEventListener('scroll', revealOnScroll);
+        window.addEventListener('load', revealOnScroll);
+
+        // Navbar Glass Effect on Scroll
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('py-2');
+                navbar.classList.remove('py-4');
+            } else {
+                navbar.classList.add('py-4');
+                navbar.classList.remove('py-2');
+            }
+        });
+
+        // Cursor Glow
+        const glow = document.getElementById('glow');
+        window.addEventListener('mousemove', (e) => {
+            glow.style.left = e.clientX + 'px';
+            glow.style.top = e.clientY + 'px';
+        });
+
+        // Typewriter Effect
+        const typewriterElement = document.getElementById('typewriter');
+        const phrases = [
+            "The all-in-one platform for modern agricultural investors.",
+            "Real-time analytics for your harvesting portfolio.",
+            "AI-driven insights for maximum financial yield.",
+            "Secure, transparent, and built for the future of farming."
+        ];
+        let phraseIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        let typeSpeed = 100;
+
+        const type = () => {
+            const currentPhrase = phrases[phraseIndex];
+            
+            if (isDeleting) {
+                typewriterElement.textContent = currentPhrase.substring(0, charIndex - 1);
+                charIndex--;
+                typeSpeed = 50;
+            } else {
+                typewriterElement.textContent = currentPhrase.substring(0, charIndex + 1);
+                charIndex++;
+                typeSpeed = 100;
+            }
+
+            if (!isDeleting && charIndex === currentPhrase.length) {
+                isDeleting = true;
+                typeSpeed = 2000; // Pause at end
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting = false;
+                phraseIndex = (phraseIndex + 1) % phrases.length;
+                typeSpeed = 500;
+            }
+
+            setTimeout(type, typeSpeed);
+        };
+
+        type();
+    </script>
+</body>
+</html>

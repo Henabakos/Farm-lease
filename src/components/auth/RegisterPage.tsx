@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 type Step = 'ROLE' | 'DETAILS' | 'SUCCESS';
 
-export function RegisterPage({ onSwitch }: { onSwitch: () => void }) {
+export function RegisterPage({ onSwitch, onBack }: { onSwitch: () => void, onBack: () => void }) {
   const { login } = useRole();
   const [step, setStep] = useState<Step>('ROLE');
   const [role, setRole] = useState<UserRole | null>(null);
@@ -50,6 +50,7 @@ export function RegisterPage({ onSwitch }: { onSwitch: () => void }) {
       <AuthLayout 
         title="Account Created!" 
         subtitle="Your AgriInvest account is ready to use"
+        onBack={onBack}
       >
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
@@ -81,6 +82,7 @@ export function RegisterPage({ onSwitch }: { onSwitch: () => void }) {
     <AuthLayout 
       title={step === 'ROLE' ? "Choose Your Role" : "Complete Registration"} 
       subtitle={step === 'ROLE' ? "Select the account type that best fits your needs" : "Tell us more about yourself"}
+      onBack={onBack}
     >
       <AnimatePresence mode="wait">
         {step === 'ROLE' ? (

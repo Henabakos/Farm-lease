@@ -26,11 +26,12 @@ import { AuditLogs } from '@/src/components/admin/AuditLogs';
 import { SettingsPage } from '@/src/components/profile/SettingsPage';
 import { ResourceRecommendations } from '@/src/components/resources/ResourceRecommendations';
 import { DashboardOverview } from '@/src/components/dashboard/DashboardOverview';
+import { LandingPage } from '@/src/components/landing/LandingPage';
 import { Cluster, Proposal, Agreement, Payment, Conversation, Message } from '@/src/types';
 
 function AppContent() {
   const { isLoggedIn, user } = useRole();
-  const [authView, setAuthView] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
+  const [authView, setAuthView] = useState<'LANDING' | 'LOGIN' | 'REGISTER'>('LANDING');
   const [currentView, setCurrentView] = useState<'DASHBOARD' | 'PROFILE' | 'CLUSTERS' | 'PROPOSALS' | 'AGREEMENTS' | 'PAYMENTS' | 'MESSAGES' | 'MEETINGS' | 'ANALYTICS' | 'ADMIN_DASHBOARD' | 'AUDIT_LOGS' | 'RESOURCES' | 'SETTINGS'>('DASHBOARD');
   const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(null);
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
@@ -69,10 +70,13 @@ function AppContent() {
   });
 
   if (!isLoggedIn) {
+    if (authView === 'LANDING') {
+      return <LandingPage onLogin={() => setAuthView('LOGIN')} onRegister={() => setAuthView('REGISTER')} />;
+    }
     return authView === 'LOGIN' ? (
-      <LoginPage onSwitch={() => setAuthView('REGISTER')} />
+      <LoginPage onSwitch={() => setAuthView('REGISTER')} onBack={() => setAuthView('LANDING')} />
     ) : (
-      <RegisterPage onSwitch={() => setAuthView('LOGIN')} />
+      <RegisterPage onSwitch={() => setAuthView('LOGIN')} onBack={() => setAuthView('LANDING')} />
     );
   }
 
