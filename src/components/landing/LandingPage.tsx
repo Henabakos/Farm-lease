@@ -1,5 +1,4 @@
 import React from 'react';
-// AgriInvest Landing Page v1.1 - Updated with consistent UI and enhanced dashboard preview
 import { motion } from 'motion/react';
 import { 
   Sprout, 
