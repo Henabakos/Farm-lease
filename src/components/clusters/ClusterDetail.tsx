@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/src/store/useStore';
 import { toast } from 'sonner';
+import { GeospatialClusterDetail } from '@/src/components/geospatial';
 
 import { motion } from 'motion/react';
 
@@ -318,26 +319,8 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
 
                   <div className="space-y-6">
                     <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden h-full flex flex-col">
-                      <CardHeader className="p-6 pb-4">
-                        <CardTitle className="text-xl font-bold tracking-tight">Map View</CardTitle>
-                        <CardDescription className="text-sm font-normal">Visual representation of cluster boundaries.</CardDescription>
-                      </CardHeader>
-                      <CardContent className="p-6 flex-1 flex items-center justify-center min-h-[350px]">
-                        <div className="w-full h-full rounded-md bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center p-6 space-y-4">
-                          <div className="w-16 h-16 bg-white border border-slate-200 rounded-lg flex items-center justify-center shadow-sm">
-                            <MapIcon className="w-8 h-8 text-primary" />
-                          </div>
-                          <div className="space-y-1">
-                            <h3 className="text-lg font-bold">Interactive Map Placeholder</h3>
-                            <p className="text-xs text-slate-500 max-w-[200px] leading-relaxed">
-                              Map integration would display plot boundaries and satellite imagery here.
-                            </p>
-                          </div>
-                          <Button variant="outline" className="gap-2 rounded-md h-9 px-4 border-slate-200 bg-white hover:bg-slate-50 transition-all text-xs">
-                            <Layers className="w-3.5 h-3.5" />
-                            <span>Toggle Layers</span>
-                          </Button>
-                        </div>
+                      <CardContent className="p-6 flex-1 flex flex-col min-h-[500px]">
+                        <GeospatialClusterDetail cluster={cluster} />
                       </CardContent>
                     </Card>
                   </div>

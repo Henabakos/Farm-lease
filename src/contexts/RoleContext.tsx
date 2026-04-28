@@ -1,23 +1,39 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { UserRole, User } from '@/src/types';
-import { useStore } from '@/src/store/useStore';
+import { useAuth } from './AuthContext';
 
 interface RoleContextType {
-  user: User;
-  isLoggedIn: boolean;
-  setUser: (user: User) => void;
-  setRole: (role: UserRole) => void;
-  login: (role: UserRole) => void;
-  logout: () => void;
+  role: 'owner' | 'tenant' | 'admin' | null;
+  isOwner: boolean;
+  isTenant: boolean;
+  isAdmin: boolean;
+  canAccess: (requiredRoles: string[]) => boolean;
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
 export function RoleProvider({ children }: { children: ReactNode }) {
-  const { user, isLoggedIn, setUser, setRole, login, logout } = useStore();
+  const { user } = useAuth();
+
+  const role = user?.role || null;
+  const isOwner = role === 'owner';
+  const isTenant = role === 'tenant';
+  const isAdmin = role === 'admin';
+
+  const canAccess = (requiredRoles: string[]) => {
+    if (!role) return false;
+    return requiredRoles.includes(role) || role === 'admin';
+  };
+
+  const value: RoleContextType = {
+    role,
+    isOwner,
+    isTenant,
+    isAdmin,
+    canAccess
+  };
 
   return (
-    <RoleContext.Provider value={{ user, isLoggedIn, setUser, setRole, login, logout }}>
+    <RoleContext.Provider value={value}>
       {children}
     </RoleContext.Provider>
   );
