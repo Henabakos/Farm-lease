@@ -18,6 +18,9 @@ import meetingRoutes from './routes/meetings.js';
 import analyticsRoutes from './routes/analytics.js';
 import adminRoutes from './routes/admin.js';
 import geospatialRoutes from './routes/geospatial.js';
+import paymentVerificationRoutes from './routes/payment-verification.js';
+import contractTemplateRoutes from './routes/contract-templates.js';
+import multiClusterRoutes from './routes/multi-cluster.js';
 
 // Import middleware
 import { authMiddleware, errorHandler, auditLogger } from './middleware/index.js';
@@ -82,6 +85,9 @@ app.use('/api/meetings', authMiddleware, meetingRoutes);
 app.use('/api/analytics', authMiddleware, analyticsRoutes);
 app.use('/api/admin', authMiddleware, adminRoutes);
 app.use('/api/geospatial', authMiddleware, geospatialRoutes);
+app.use('/api/payment-verification', authMiddleware, paymentVerificationRoutes);
+app.use('/api/contract-templates', authMiddleware, contractTemplateRoutes);
+app.use('/api/multi-cluster', authMiddleware, multiClusterRoutes);
 
 // Real-time WebSocket connections
 io.on('connection', (socket) => {
