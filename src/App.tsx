@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { AuthProvider, useAuth } from '@/src/contexts/AuthContext';
 import { RoleProvider, useRole } from '@/src/contexts/RoleContext';
+import { NotificationProvider } from '@/src/contexts/NotificationContext';
 import { DashboardLayout } from '@/src/components/layout/DashboardLayout';
 import { LoginPage } from '@/src/components/auth/LoginPage';
 import { RegisterPage } from '@/src/components/auth/RegisterPage';
@@ -30,7 +32,8 @@ import { LandingPage } from '@/src/components/landing/LandingPage';
 import { Cluster, Proposal, Agreement, Payment, Conversation, Message } from '@/src/types';
 
 function AppContent() {
-  const { isLoggedIn, user } = useRole();
+  const { isAuthenticated, user: authUser, isLoading: authLoading } = useAuth();
+  const { role } = useRole();
   const [authView, setAuthView] = useState<'LANDING' | 'LOGIN' | 'REGISTER'>('LANDING');
   const [currentView, setCurrentView] = useState<'DASHBOARD' | 'PROFILE' | 'CLUSTERS' | 'PROPOSALS' | 'AGREEMENTS' | 'PAYMENTS' | 'MESSAGES' | 'MEETINGS' | 'ANALYTICS' | 'ADMIN_DASHBOARD' | 'AUDIT_LOGS' | 'RESOURCES' | 'SETTINGS'>('DASHBOARD');
   const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(null);
@@ -69,7 +72,18 @@ function AppContent() {
     ]
   });
 
-  if (!isLoggedIn) {
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-background via-background to-muted/30">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
     if (authView === 'LANDING') {
       return <LandingPage onLogin={() => setAuthView('LOGIN')} onRegister={() => setAuthView('REGISTER')} />;
     }
@@ -111,8 +125,8 @@ function AppContent() {
                     const newMsg: Message = {
                       id: Math.random().toString(36).substr(2, 9),
                       conversationId: selectedConversationId,
-                      senderId: user.id,
-                      senderName: user.name,
+                      senderId: authUser!.id,
+                      senderName: authUser!.full_name,
                       content,
                       timestamp: new Date().toISOString(),
                       attachments
@@ -272,10 +286,14 @@ import { Button } from '@/components/ui/button';
 
 export default function App() {
   return (
-    <RoleProvider>
-      <AppContent />
-      <Toaster position="top-right" />
-    </RoleProvider>
+    <AuthProvider>
+      <RoleProvider>
+        <NotificationProvider>
+          <AppContent />
+          <Toaster position="top-right" richColors closeButton />
+        </NotificationProvider>
+      </RoleProvider>
+    </AuthProvider>
   );
 }
 
