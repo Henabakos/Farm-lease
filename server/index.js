@@ -17,6 +17,7 @@ import notificationRoutes from './routes/notifications.js';
 import meetingRoutes from './routes/meetings.js';
 import analyticsRoutes from './routes/analytics.js';
 import adminRoutes from './routes/admin.js';
+import geospatialRoutes from './routes/geospatial.js';
 
 // Import middleware
 import { authMiddleware, errorHandler, auditLogger } from './middleware/index.js';
@@ -80,6 +81,7 @@ app.use('/api/notifications', authMiddleware, notificationRoutes);
 app.use('/api/meetings', authMiddleware, meetingRoutes);
 app.use('/api/analytics', authMiddleware, analyticsRoutes);
 app.use('/api/admin', authMiddleware, adminRoutes);
+app.use('/api/geospatial', authMiddleware, geospatialRoutes);
 
 // Real-time WebSocket connections
 io.on('connection', (socket) => {
