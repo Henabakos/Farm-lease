@@ -126,9 +126,9 @@ CREATE INDEX idx_contract_template_clauses_clause_id ON contract_template_clause
 CREATE INDEX idx_contract_template_clauses_display_order ON contract_template_clauses(display_order);
 
 -- 5. Update leases/agreements to reference templates
-ALTER TABLE lease_agreements ADD COLUMN IF NOT EXISTS template_id UUID REFERENCES contract_templates(id) ON DELETE SET NULL;
-ALTER TABLE lease_agreements ADD COLUMN IF NOT EXISTS template_version_id UUID REFERENCES contract_template_versions(id) ON DELETE SET NULL;
-ALTER TABLE lease_agreements ADD COLUMN IF NOT EXISTS customizations JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE agreements ADD COLUMN IF NOT EXISTS template_id UUID REFERENCES contract_templates(id) ON DELETE SET NULL;
+ALTER TABLE agreements ADD COLUMN IF NOT EXISTS template_version_id UUID REFERENCES contract_template_versions(id) ON DELETE SET NULL;
+ALTER TABLE agreements ADD COLUMN IF NOT EXISTS customizations JSONB DEFAULT '{}'::jsonb;
 
 -- 6. Row Level Security for contract_templates
 ALTER TABLE contract_templates ENABLE ROW LEVEL SECURITY;

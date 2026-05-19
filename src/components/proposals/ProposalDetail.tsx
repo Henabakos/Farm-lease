@@ -1,18 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Proposal, ProposalStatus } from '@/src/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { 
-  ArrowLeft, 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
-  MessageSquare, 
-  FileText, 
-  Download, 
-  Eye, 
+import {
+  ArrowLeft,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  MessageSquare,
+  FileText,
   History,
   DollarSign,
   Calendar,
@@ -20,62 +18,137 @@ import {
   TrendingUp,
   Users,
   Sprout,
-  ExternalLink,
-  PenTool
+  Send,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useStore } from '@/src/store/useStore';
-import { toast } from 'sonner';
+import { useProposals, type ProposalHistoryEntry } from '@/src/hooks/useProposals';
+import { useAuth } from '@/src/contexts/AuthContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
-export function ProposalDetail({ 
-  proposal, 
-  onBack, 
-  onNegotiate 
-}: { 
-  proposal: Proposal, 
-  onBack: () => void,
-  onNegotiate: () => void
+function StatusBadge({ status }: { status: ProposalStatus }) {
+  switch (status) {
+    case 'PENDING':
+      return (
+        <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-100 gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider">
+          <Clock className="w-3 h-3" /> Pending
+        </Badge>
+      );
+    case 'APPROVED':
+      return (
+        <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider">
+          <CheckCircle2 className="w-3 h-3" /> Accepted
+        </Badge>
+      );
+    case 'REJECTED':
+      return (
+        <Badge variant="outline" className="bg-destructive/5 text-destructive border-destructive/10 gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider">
+          <XCircle className="w-3 h-3" /> Rejected
+        </Badge>
+      );
+    case 'NEGOTIATING':
+      return (
+        <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider">
+          <MessageSquare className="w-3 h-3" /> Negotiating
+        </Badge>
+      );
+    default:
+      return null;
+  }
+}
+
+export function ProposalDetail({
+  proposal,
+  onBack,
+  onNegotiate,
+}: {
+  proposal: Proposal;
+  onBack: () => void;
+  onNegotiate: () => void;
 }) {
-  const { user, updateProposalStatus, createAgreement } = useStore();
+  const { user } = useAuth();
+  const { acceptProposal, rejectProposal, publishProposal, getHistory } = useProposals();
   const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'history'>('overview');
+  const [history, setHistory] = useState<ProposalHistoryEntry[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isActing, setIsActing] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
 
-  const getStatusBadge = (status: ProposalStatus) => {
-    switch (status) {
-      case 'PENDING':
-        return <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-100 gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><Clock className="w-3 h-3" /> Pending</Badge>;
-      case 'APPROVED':
-        return <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><CheckCircle2 className="w-3 h-3" /> Approved</Badge>;
-      case 'REJECTED':
-        return <Badge variant="outline" className="bg-destructive/5 text-destructive border-destructive/10 gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><XCircle className="w-3 h-3" /> Rejected</Badge>;
-      case 'NEGOTIATING':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><MessageSquare className="w-3 h-3" /> Negotiating</Badge>;
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setIsLoadingHistory(true);
+      try {
+        const rows = await getHistory(proposal.id);
+        if (!cancelled) setHistory(rows);
+      } catch {
+        // history is non-critical
+      } finally {
+        if (!cancelled) setIsLoadingHistory(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [proposal.id, getHistory]);
+
+  // Permission model (mirrors backend rules):
+  //  - The counterparty (target farmer OR cluster owner) can accept / reject.
+  //  - The investor can publish (if draft) and negotiate at any non-terminal stage.
+  //  - Any party can negotiate (until terminal).
+  const isInvestor = user?.id === (proposal as any).investorId || user?.role === 'INVESTOR';
+  const isCounterparty =
+    proposal.targetType === 'FARMER'
+      ? user?.id === proposal.targetId
+      : user?.role === 'CLUSTER_REP' || user?.role === 'ADMIN';
+
+  const apiStatus = proposal.apiStatus ?? 'published';
+  const isDraft = apiStatus === 'draft';
+  const isTerminal = apiStatus === 'accepted' || apiStatus === 'rejected' || apiStatus === 'expired';
+
+  const canPublish = isDraft && (isInvestor || user?.role === 'ADMIN');
+  const canActOnProposal = !isDraft && !isTerminal && (isCounterparty || user?.role === 'ADMIN');
+  const canNegotiate = !isDraft && !isTerminal;
+
+  const handleAccept = async () => {
+    setIsActing(true);
+    try {
+      await acceptProposal(proposal.id);
+    } finally {
+      setIsActing(false);
     }
   };
 
-  const handleApprove = () => {
-    updateProposalStatus(proposal.id, 'APPROVED');
-    createAgreement(proposal);
-    toast.success('Proposal approved and agreement generated');
+  const handlePublish = async () => {
+    setIsActing(true);
+    try {
+      await publishProposal(proposal.id);
+    } finally {
+      setIsActing(false);
+    }
   };
 
-  const handleReject = () => {
-    updateProposalStatus(proposal.id, 'REJECTED');
-    toast.error('Proposal rejected');
+  const handleReject = async () => {
+    setIsActing(true);
+    try {
+      await rejectProposal(proposal.id, rejectReason.trim() || undefined);
+      setShowRejectModal(false);
+      setRejectReason('');
+    } finally {
+      setIsActing(false);
+    }
   };
-
-  const handleSignAgreement = () => {
-    createAgreement(proposal);
-    toast.success('Agreement generated and sent for signing');
-  };
-
-  const canApprove = (user.role === 'FARMER' && proposal.targetType === 'FARMER') || 
-                    (user.role === 'CLUSTER_REP' && proposal.targetType === 'CLUSTER') ||
-                    (user.role === 'ADMIN');
-
-  const canSign = proposal.status === 'APPROVED' && 
-                  ((user.role === 'INVESTOR') || 
-                   (user.role === 'FARMER' && proposal.targetType === 'FARMER') || 
-                   (user.role === 'CLUSTER_REP' && proposal.targetType === 'CLUSTER'));
 
   return (
     <div className="space-y-6">
@@ -87,38 +160,60 @@ export function ProposalDetail({
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">{proposal.title}</h1>
-              {getStatusBadge(proposal.status)}
+              <StatusBadge status={proposal.status} />
+              {isDraft && (
+                <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider">
+                  Draft
+                </Badge>
+              )}
             </div>
-            <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase font-bold tracking-wider">
+            <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase font-bold tracking-wider mt-1">
               {proposal.targetType === 'CLUSTER' ? <Users className="w-3 h-3" /> : <Sprout className="w-3 h-3" />}
               <span>Target: <span className="text-slate-900">{proposal.targetName}</span></span>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider border-slate-200 bg-white shadow-sm transition-all active:scale-95" onClick={onNegotiate}>
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Negotiate</span>
-          </Button>
-          
-          {proposal.status === 'PENDING' && canApprove && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {canPublish && (
+            <Button
+              onClick={handlePublish}
+              disabled={isActing}
+              className="gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95"
+            >
+              {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+              <span>Publish</span>
+            </Button>
+          )}
+          {canNegotiate && (
+            <Button
+              variant="outline"
+              className="gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider border-slate-200 bg-white shadow-sm transition-all active:scale-95"
+              onClick={onNegotiate}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Negotiate</span>
+            </Button>
+          )}
+          {canActOnProposal && (
             <>
-              <Button variant="outline" className="text-destructive hover:bg-destructive/5 border-destructive/10 gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95" onClick={handleReject}>
+              <Button
+                variant="outline"
+                disabled={isActing}
+                className="text-destructive hover:bg-destructive/5 border-destructive/10 gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95"
+                onClick={() => setShowRejectModal(true)}
+              >
                 <XCircle className="w-3.5 h-3.5" />
                 <span>Reject</span>
               </Button>
-              <Button className="gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95" onClick={handleApprove}>
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Approve</span>
+              <Button
+                disabled={isActing}
+                onClick={handleAccept}
+                className="gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95"
+              >
+                {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                <span>Accept</span>
               </Button>
             </>
-          )}
-
-          {canSign && (
-            <Button className="gap-2 bg-primary hover:bg-primary/90 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95" onClick={handleSignAgreement}>
-              <PenTool className="w-3.5 h-3.5" />
-              <span>Sign Agreement</span>
-            </Button>
           )}
         </div>
       </div>
@@ -126,25 +221,34 @@ export function ProposalDetail({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <div className="flex gap-1 border-b border-slate-100 pb-2 overflow-x-auto">
-            <Button 
-              variant="ghost" 
-              className={cn("gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all", activeTab === 'overview' ? "bg-slate-100 text-primary" : "text-slate-500 hover:bg-slate-50")}
+            <Button
+              variant="ghost"
+              className={cn(
+                'gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all',
+                activeTab === 'overview' ? 'bg-slate-100 text-primary' : 'text-slate-500 hover:bg-slate-50',
+              )}
               onClick={() => setActiveTab('overview')}
             >
               <TrendingUp className="w-3.5 h-3.5" />
               <span>Overview</span>
             </Button>
-            <Button 
-              variant="ghost" 
-              className={cn("gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all", activeTab === 'documents' ? "bg-slate-100 text-primary" : "text-slate-500 hover:bg-slate-50")}
+            <Button
+              variant="ghost"
+              className={cn(
+                'gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all',
+                activeTab === 'documents' ? 'bg-slate-100 text-primary' : 'text-slate-500 hover:bg-slate-50',
+              )}
               onClick={() => setActiveTab('documents')}
             >
               <FileText className="w-3.5 h-3.5" />
               <span>Documents</span>
             </Button>
-            <Button 
-              variant="ghost" 
-              className={cn("gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all", activeTab === 'history' ? "bg-slate-100 text-primary" : "text-slate-500 hover:bg-slate-50")}
+            <Button
+              variant="ghost"
+              className={cn(
+                'gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all',
+                activeTab === 'history' ? 'bg-slate-100 text-primary' : 'text-slate-500 hover:bg-slate-50',
+              )}
               onClick={() => setActiveTab('history')}
             >
               <History className="w-3.5 h-3.5" />
@@ -156,13 +260,11 @@ export function ProposalDetail({
             <div className="space-y-6">
               <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-400">Proposal Description</CardTitle>
+                  <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-400">Description</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <p className="text-sm text-slate-600 leading-relaxed">
-                    {proposal.description}
-                  </p>
-                  
+                  <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{proposal.description || 'No description provided.'}</p>
+
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-50">
                     <div className="space-y-1">
                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Budget</p>
@@ -182,7 +284,9 @@ export function ProposalDetail({
                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Interest Rate</p>
                       <div className="flex items-center gap-1.5">
                         <TrendingUp className="w-3 h-3 text-primary" />
-                        <span className="font-bold text-xs text-slate-900">{proposal.terms.interestRate}%</span>
+                        <span className="font-bold text-xs text-slate-900">
+                          {proposal.terms.interestRate ? `${proposal.terms.interestRate}%` : '—'}
+                        </span>
                       </div>
                     </div>
                     <div className="space-y-1">
@@ -201,7 +305,7 @@ export function ProposalDetail({
                   <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-400">Financial Terms</CardTitle>
                   <CardDescription className="text-xs">Detailed breakdown of the investment structure.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div className="space-y-1">
                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Repayment Period</p>
@@ -209,15 +313,17 @@ export function ProposalDetail({
                     </div>
                     <div className="space-y-1">
                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Interest Rate</p>
-                      <p className="text-xs font-bold text-slate-900">{proposal.terms.interestRate}% Annually</p>
+                      <p className="text-xs font-bold text-slate-900">
+                        {proposal.terms.interestRate ? `${proposal.terms.interestRate}% Annually` : '—'}
+                      </p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Collateral</p>
                       <p className="text-xs font-bold text-slate-900">{proposal.terms.collateral || 'No collateral required'}</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Funding Type</p>
-                      <p className="text-xs font-bold text-slate-900">Direct Investment (Debt)</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">ROI</p>
+                      <p className="text-xs font-bold text-slate-900">{proposal.roi ? `${proposal.roi}%` : '—'}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -229,48 +335,30 @@ export function ProposalDetail({
             <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-400">Supporting Documents</CardTitle>
-                <CardDescription className="text-xs">Review the technical and legal documents attached to this proposal.</CardDescription>
+                <CardDescription className="text-xs">Files attached to this proposal.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {proposal.documents.map((doc, i) => (
-                    <div key={i} className="p-3 rounded-md border border-slate-100 bg-slate-50 flex items-center justify-between group hover:bg-slate-100 transition-all">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center">
-                          <FileText className="w-3.5 h-3.5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-[11px] font-bold text-slate-900 truncate max-w-[120px]">{doc.name}</p>
-                          <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">{doc.size} • {doc.type}</p>
+                {proposal.documents.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {proposal.documents.map((doc, i) => (
+                      <div key={i} className="p-3 rounded-md border border-slate-100 bg-slate-50 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center">
+                            <FileText className="w-3.5 h-3.5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-bold text-slate-900 truncate max-w-[160px]">{doc.name}</p>
+                            <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">{doc.size} • {doc.type}</p>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-white hover:text-primary border border-transparent hover:border-slate-200 transition-all">
-                          <Eye className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-white hover:text-primary border border-transparent hover:border-slate-200 transition-all">
-                          <Download className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 p-6 rounded-md bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center space-y-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-primary" />
+                    ))}
                   </div>
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-slate-900">Document Preview</h3>
-                    <p className="text-[11px] text-slate-500 max-w-[200px]">
-                      Select a document to preview its contents directly in the platform.
-                    </p>
+                ) : (
+                  <div className="py-10 text-center text-xs text-slate-400 font-bold uppercase tracking-wider">
+                    No documents attached
                   </div>
-                  <Button variant="outline" className="gap-2 h-8 px-3 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                    <ExternalLink className="w-3 h-3" />
-                    <span>Open in New Tab</span>
-                  </Button>
-                </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -279,30 +367,41 @@ export function ProposalDetail({
             <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-400">Proposal History</CardTitle>
-                <CardDescription className="text-xs">Timeline of all actions and changes made to this proposal.</CardDescription>
+                <CardDescription className="text-xs">Timeline of all actions on this proposal.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="relative space-y-6 before:absolute before:inset-0 before:ml-4 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-100">
-                  {proposal.history.map((item, i) => (
-                    <div key={i} className="relative flex items-start gap-4 pl-10">
-                      <div className="absolute left-0 mt-1 w-8 h-8 rounded-md bg-white border border-slate-200 flex items-center justify-center z-10 shadow-sm">
-                        <History className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <div className="flex-1 space-y-0.5">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold text-slate-900">{item.action}</p>
-                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{new Date(item.date).toLocaleString()}</p>
+                {isLoadingHistory ? (
+                  <div className="py-10 text-center">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary mx-auto" />
+                  </div>
+                ) : history.length === 0 ? (
+                  <div className="py-10 text-center text-xs text-slate-400 font-bold uppercase tracking-wider">
+                    No history yet
+                  </div>
+                ) : (
+                  <div className="relative space-y-6 before:absolute before:inset-0 before:ml-4 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-100">
+                    {history.map((h) => (
+                      <div key={h.id} className="relative flex items-start gap-4 pl-10">
+                        <div className="absolute left-0 mt-1 w-8 h-8 rounded-md bg-white border border-slate-200 flex items-center justify-center z-10 shadow-sm">
+                          <History className="w-3.5 h-3.5 text-primary" />
                         </div>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">By <span className="text-slate-900">{item.user}</span></p>
-                        {item.details && (
-                          <p className="text-[11px] bg-slate-50 p-2.5 rounded-md mt-2 border border-slate-100 text-slate-600 font-medium">
-                            {item.details}
-                          </p>
-                        )}
+                        <div className="flex-1 space-y-0.5">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-slate-900">{h.action.replace(/_/g, ' ')}</p>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                              {new Date(h.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                          {h.details && (
+                            <pre className="text-[11px] bg-slate-50 p-2.5 rounded-md mt-2 border border-slate-100 text-slate-600 font-mono overflow-x-auto whitespace-pre-wrap">
+                              {typeof h.details === 'string' ? h.details : JSON.stringify(h.details, null, 2)}
+                            </pre>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -311,42 +410,7 @@ export function ProposalDetail({
         <div className="space-y-6">
           <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-400">Compliance Status</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="space-y-2">
-                {[
-                  { label: 'KYC Verified', status: true },
-                  { label: 'Land Title Confirmed', status: true },
-                  { label: 'Environmental Check', status: true },
-                  { label: 'Financial Audit', status: false },
-                ].map((check) => (
-                  <div key={check.label} className="flex items-center justify-between p-2.5 rounded-md bg-slate-50 border border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">{check.label}</span>
-                    {check.status ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                    ) : (
-                      <Clock className="w-3.5 h-3.5 text-amber-500" />
-                    )}
-                  </div>
-                ))}
-              </div>
-              
-              <div className="p-3.5 rounded-md bg-primary/5 border border-primary/10 space-y-1.5">
-                <div className="flex items-center gap-2 text-primary">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider">Secure Transaction</span>
-                </div>
-                <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
-                  All funds are held in escrow until all compliance checks are completed and both parties sign the agreement.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-400">Target Profile</CardTitle>
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-400">Target</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
@@ -360,21 +424,50 @@ export function ProposalDetail({
               </div>
               <Separator className="bg-slate-100" />
               <div className="space-y-2">
-                <div className="flex justify-between text-[10px] uppercase tracking-wider">
-                  <span className="text-slate-500 font-bold">Reliability Score</span>
-                  <span className="font-bold text-primary">98%</span>
+                <div className="flex items-center gap-2 text-primary">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Secure Transaction</span>
                 </div>
-                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                  <div className="h-full bg-primary w-[98%]" />
-                </div>
+                <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
+                  All actions on this proposal are recorded in an immutable audit log.
+                </p>
               </div>
-              <Button variant="outline" className="w-full h-9 rounded-md text-[10px] font-bold uppercase tracking-wider border-slate-200 bg-white hover:bg-slate-50 shadow-sm transition-all active:scale-95">
-                View Full Profile
-              </Button>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reject this proposal?</DialogTitle>
+            <DialogDescription>
+              Optionally include a reason. The investor will be notified.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="reason" className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Reason (optional)
+            </Label>
+            <Textarea
+              id="reason"
+              rows={4}
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="The interest rate is higher than our threshold..."
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectModal(false)} disabled={isActing}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleReject} disabled={isActing}>
+              {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <XCircle className="w-3.5 h-3.5 mr-2" />}
+              Reject Proposal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

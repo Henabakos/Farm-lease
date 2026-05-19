@@ -126,6 +126,8 @@ CREATE TABLE IF NOT EXISTS conversations (
   UNIQUE(user1_id, user2_id)
 );
 
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE;
+
 -- 9. Notifications table
 CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

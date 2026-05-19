@@ -61,7 +61,16 @@ router.post('/', async (req, res) => {
   try {
     const supabase = req.app.locals.supabase;
     const userId = req.userId;
-    const { name, location, areaHectares, description, imageUrl } = req.body;
+    const {
+      name,
+      location,
+      areaHectares,
+      area_hectares,
+      description,
+      imageUrl,
+      image_url,
+      metadata,
+    } = req.body;
 
     if (!name || !location) {
       return res.status(400).json({ error: 'Name and location required' });
@@ -73,9 +82,10 @@ router.post('/', async (req, res) => {
         owner_id: userId,
         name,
         location,
-        area_hectares: areaHectares,
+        area_hectares: area_hectares ?? areaHectares,
         description,
-        image_url: imageUrl,
+        image_url: image_url ?? imageUrl,
+        metadata: metadata || {},
         status: 'active'
       })
       .select()

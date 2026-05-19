@@ -10,6 +10,8 @@ export interface Cluster {
   size: number; // in hectares
   description?: string;
   establishedDate: string;
+  centerLatitude?: number;
+  centerLongitude?: number;
 }
 
 export interface Plot {
@@ -19,6 +21,8 @@ export interface Plot {
   location: string;
   status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE';
   coordinates?: { lat: number; lng: number };
+  latitude?: number;
+  longitude?: number;
 }
 
 export type ProposalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'NEGOTIATING';
@@ -36,6 +40,10 @@ export interface Proposal {
   roi: number; // Added to match component usage
   timeline: string;
   status: ProposalStatus;
+  // Raw backend FSM state — distinguishes draft from published from negotiating,
+  // unlike the simplified UI `status` field. Used to decide which actions
+  // (publish, accept, negotiate, ...) are valid in the current state.
+  apiStatus?: 'draft' | 'published' | 'negotiating' | 'accepted' | 'rejected' | 'expired';
   createdAt: string;
   documents: { name: string; size: string; type: string }[];
   terms: {

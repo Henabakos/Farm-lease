@@ -26,7 +26,10 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useStore } from '@/src/store/useStore';
+import { useProposals } from '@/src/hooks/useProposals';
+import { useAuth } from '@/src/contexts/AuthContext';
+import { apiRoleToUi, mapProposalFromApi } from '@/src/lib/apiMappers';
+import { Loader2 } from 'lucide-react';
 
 import { motion } from 'motion/react';
 
@@ -37,9 +40,20 @@ export function ProposalList({
   onSelectProposal: (proposal: Proposal) => void,
   onCreateProposal: () => void
 }) {
-  const { proposals, user } = useStore();
+  const { proposals: apiProposals, isLoading } = useProposals();
+  const { user } = useAuth();
+  const uiRole = user ? apiRoleToUi(user.role) : null;
+  const proposals = Array.isArray(apiProposals) ? apiProposals.map((p) => mapProposalFromApi(p as unknown as Record<string, unknown>)) : [];
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  if (isLoading && proposals.length === 0) {
+    return (
+      <motion.div className="flex items-center justify-center py-24">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </motion.div>
+    );
+  }
 
   const getStatusBadge = (status: ProposalStatus) => {
     switch (status) {
@@ -88,7 +102,7 @@ export function ProposalList({
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 leading-tight">Investment Proposals</h1>
           <p className="text-slate-500 mt-1 text-[10px] font-bold uppercase tracking-wider">Track and manage your funding offers to farmers and clusters.</p>
         </div>
-        {user.role === 'INVESTOR' && (
+        {uiRole === 'INVESTOR' && (
           <Button onClick={onCreateProposal} className="gap-2 h-9 px-4 rounded-md bg-primary hover:bg-primary/90 shadow-sm transition-all active:scale-95 text-[10px] font-bold uppercase tracking-wider">
             <Plus className="w-3.5 h-3.5" />
             <span>New Proposal</span>

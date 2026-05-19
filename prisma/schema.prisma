@@ -1,0 +1,1110 @@
+// ============================================================================
+// Farm Lease — Prisma Schema
+// ----------------------------------------------------------------------------
+// This is the single source of truth for the database. It replaces all five
+// legacy /scripts/*.sql migrations and removes every Supabase coupling
+// (no `auth.users` FK, no RLS policies — authorization is enforced in the
+// application layer by the RBAC policy engine).
+//
+// Conventions:
+//   • UUID primary keys, generated via Prisma (`@default(uuid())`).
+//   • All timestamps are `timestamptz`; createdAt/updatedAt are managed by ORM.
+//   • Enums are first-class Postgres enums for type safety and small storage.
+//   • Geometry uses PostGIS `geography(Polygon, 4326)` via `Unsupported(...)`.
+//   • Vector embeddings use pgvector `vector(1536)` via `Unsupported(...)`.
+//   • Aggregates are commented with their bounded context.
+// ============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgcrypto]
+}
+
+// ============================================================================
+// IDENTITY & ACCESS
+// ============================================================================
+
+enum UserRole {
+  ADMIN
+  INVESTOR
+  CLUSTER_REP
+  FARMER
+}
+
+enum UserStatus {
+  PENDING_APPROVAL   // awaiting admin review (when REQUIRE_ADMIN_APPROVAL=true)
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model User {
+  id                  String             @id @default(uuid()) @db.Uuid
+  email               String             @unique
+  passwordHash        String
+  fullName            String
+  role                UserRole
+  status              UserStatus         @default(ACTIVE)
+  verificationStatus  VerificationStatus @default(UNVERIFIED)
+  emailVerifiedAt     DateTime?          @db.Timestamptz()
+  phone               String?
+  avatarUrl           String?
+  bio                 String?
+  lastLoginAt         DateTime?          @db.Timestamptz()
+  createdAt           DateTime           @default(now()) @db.Timestamptz()
+  updatedAt           DateTime           @updatedAt @db.Timestamptz()
+
+  // Relations
+  sessions            Session[]
+  verificationTokens  VerificationToken[]
+  kycDocuments        KycDocument[]
+  clusterMemberships  ClusterMembership[]
+  ownedClusters       Cluster[]          @relation("ClusterOwner")
+  proposalsAsInvestor Proposal[]         @relation("ProposalInvestor")
+  proposalsAsTarget   Proposal[]         @relation("ProposalTarget")
+  negotiations        Negotiation[]
+  signatures          Signature[]
+  paymentsSent        Payment[]          @relation("PaymentPayer")
+  paymentsReceived    Payment[]          @relation("PaymentReceiver")
+  messagesSent        Message[]          @relation("MessageSender")
+  conversations1      Conversation[]     @relation("ConversationUser1")
+  conversations2     Conversation[]     @relation("ConversationUser2")
+  providerRequests    ProviderRequest[]
+  conversationReads   ConversationRead[]
+  notifications       Notification[]     @relation("NotificationRecipient")
+  notificationsActed  Notification[]     @relation("NotificationActor")
+  meetingsHosted      Meeting[]          @relation("MeetingHost")
+  meetingParticipants MeetingParticipant[]
+  auditLogs           AuditLog[]
+  knowledgeBases      KnowledgeBase[]
+  aiChats             AiChat[]
+  recommendations     Recommendation[]
+
+  @@index([role])
+  @@index([status])
+  @@index([email])
+}
+
+// JWT refresh-token family (rotation + reuse detection).
+// Each refresh emits a new Session row and revokes the previous via `replacedBy`.
+model Session {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @db.Uuid
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyId        String   @db.Uuid                     // groups rotated tokens
+  refreshTokenHash String  @unique                       // sha256 of opaque token
+  userAgent       String?
+  ipAddress       String?
+  expiresAt       DateTime @db.Timestamptz()
+  revokedAt       DateTime? @db.Timestamptz()
+  replacedById    String?  @db.Uuid                     // pointer to rotated successor
+  createdAt       DateTime @default(now()) @db.Timestamptz()
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+}
+
+enum VerificationTokenPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+model VerificationToken {
+  id        String                   @id @default(uuid()) @db.Uuid
+  userId    String                   @db.Uuid
+  user      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose   VerificationTokenPurpose
+  tokenHash String                   @unique             // sha256 of the secret
+  expiresAt DateTime                 @db.Timestamptz()
+  usedAt    DateTime?                @db.Timestamptz()
+  createdAt DateTime                 @default(now()) @db.Timestamptz()
+
+  @@index([userId, purpose])
+}
+
+// KYC documents uploaded by users; reviewed by admins.
+enum KycDocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model KycDocument {
+  id           String            @id @default(uuid()) @db.Uuid
+  userId       String            @db.Uuid
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentType String                                                    // e.g. "national_id", "land_title"
+  storageKey   String                                                    // MinIO/S3 object key
+  fileName     String
+  mimeType     String
+  fileSize     Int
+  status       KycDocumentStatus @default(PENDING)
+  reviewedById String?           @db.Uuid
+  reviewedAt   DateTime?         @db.Timestamptz()
+  reviewNotes  String?
+  createdAt    DateTime          @default(now()) @db.Timestamptz()
+  updatedAt    DateTime          @updatedAt @db.Timestamptz()
+
+  @@index([userId])
+  @@index([status])
+}
+
+// RBAC: role → permission strings, editable at runtime by admins.
+model RolePermission {
+  id         String   @id @default(uuid()) @db.Uuid
+  role       UserRole
+  permission String                                                      // e.g. "cluster:create"
+  createdAt  DateTime @default(now()) @db.Timestamptz()
+
+  @@unique([role, permission])
+  @@index([role])
+}
+
+// ============================================================================
+// CLUSTERS, MEMBERSHIPS, GEOSPATIAL
+// ============================================================================
+
+enum ClusterStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+model Cluster {
+  id              String           @id @default(uuid()) @db.Uuid
+  ownerId         String           @db.Uuid                              // primary cluster rep / creator
+  owner           User             @relation("ClusterOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  name            String
+  location        String
+  region          String?
+  areaHectares    Decimal?         @db.Decimal(12, 2)
+  description     String?
+  imageUrl        String?
+  centerLat       Decimal?         @db.Decimal(10, 7)
+  centerLng       Decimal?         @db.Decimal(10, 7)
+  status          ClusterStatus    @default(ACTIVE)
+  metadata        Json             @default("{}")
+  createdAt       DateTime         @default(now()) @db.Timestamptz()
+  updatedAt       DateTime         @updatedAt @db.Timestamptz()
+
+  memberships     ClusterMembership[]
+  permissions     ClusterPermission[]
+  boundaries      LandBoundary[]
+  plots           Plot[]
+  proposals       Proposal[]
+  agreements      Agreement[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+enum MembershipRole {
+  REPRESENTATIVE
+  FARMER
+}
+
+// A user can belong to multiple clusters; one membership per (user, cluster).
+model ClusterMembership {
+  id         String         @id @default(uuid()) @db.Uuid
+  userId     String         @db.Uuid
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clusterId  String         @db.Uuid
+  cluster    Cluster        @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  role       MembershipRole
+  isActive   Boolean        @default(true)
+  joinedAt   DateTime       @default(now()) @db.Timestamptz()
+  leftAt     DateTime?      @db.Timestamptz()
+
+  @@unique([userId, clusterId])
+  @@index([clusterId, role])
+  @@index([userId, isActive])
+}
+
+// Cluster-scoped fine-grained permissions overriding role defaults.
+model ClusterPermission {
+  id         String  @id @default(uuid()) @db.Uuid
+  clusterId  String  @db.Uuid
+  cluster    Cluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  userId     String  @db.Uuid
+  permission String                                                       // e.g. "agreement:sign"
+  grantedAt  DateTime @default(now()) @db.Timestamptz()
+
+  @@unique([clusterId, userId, permission])
+}
+
+enum BoundaryVerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+// Geospatial boundary using PostGIS geography(Polygon, 4326).
+// We use Unsupported because Prisma has no first-class PostGIS type;
+// reads/writes for `geom` happen via raw SQL in the geospatial repository.
+model LandBoundary {
+  id                 String                     @id @default(uuid()) @db.Uuid
+  clusterId          String                     @db.Uuid
+  cluster            Cluster                    @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  createdById        String                     @db.Uuid
+  // geom               Unsupported("geography(Polygon, 4326)")  // Temporarily disabled - requires PostGIS
+  geojson            Json                                                  // canonical GeoJSON copy for fast reads
+  areaHectares       Decimal?                   @db.Decimal(12, 2)
+  centerLat          Decimal?                   @db.Decimal(10, 7)
+  centerLng          Decimal?                   @db.Decimal(10, 7)
+  verificationStatus BoundaryVerificationStatus @default(UNVERIFIED)
+  verifiedById       String?                    @db.Uuid
+  verifiedAt         DateTime?                  @db.Timestamptz()
+  notes              String?
+  createdAt          DateTime                   @default(now()) @db.Timestamptz()
+  updatedAt          DateTime                   @updatedAt @db.Timestamptz()
+
+  surveys            LandSurvey[]
+
+  @@index([clusterId])
+  @@index([verificationStatus])
+}
+
+model Plot {
+  id          String              @id @default(uuid()) @db.Uuid
+  clusterId   String              @db.Uuid
+  cluster     Cluster             @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  location    String
+  size        Decimal             @db.Decimal(12, 2)
+  status      PlotStatus          @default(AVAILABLE)
+  latitude    Decimal?            @db.Decimal(10, 7)
+  longitude   Decimal?            @db.Decimal(10, 7)
+  createdAt   DateTime            @default(now()) @db.Timestamptz()
+  updatedAt   DateTime            @updatedAt @db.Timestamptz()
+
+  @@index([clusterId])
+  @@index([status])
+}
+
+enum PlotStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+}
+
+model Resource {
+  id          String              @id @default(uuid()) @db.Uuid
+  title       String
+  category    ResourceCategory
+  provider    String
+  description String              @db.Text
+  priceRange  String?
+  rating      Decimal             @db.Decimal(3, 2)
+  reviewCount Int                @default(0)
+  cropTypes   CropType[]
+  imageUrl    String?
+  contactEmail String?
+  websiteUrl  String?
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now()) @db.Timestamptz()
+  updatedAt   DateTime           @updatedAt @db.Timestamptz()
+
+  @@index([category])
+  @@index([isActive])
+}
+
+enum ResourceCategory {
+  INSURANCE
+  LABOR
+  SUPPORT
+}
+
+enum CropType {
+  MAIZE
+  SOYBEANS
+  COCOA
+  RICE
+  CASSAVA
+}
+
+model ProviderRequest {
+  id          String               @id @default(uuid()) @db.Uuid
+  userId      String               @db.Uuid
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName String
+  serviceType ResourceCategory
+  description String               @db.Text
+  contactEmail String
+  contactPhone String?
+  status      ProviderRequestStatus @default(PENDING)
+  reviewedBy  String?              @db.Uuid
+  reviewedAt  DateTime?            @db.Timestamptz()
+  reviewNotes String?
+  createdAt   DateTime             @default(now()) @db.Timestamptz()
+  updatedAt   DateTime             @updatedAt @db.Timestamptz()
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum ProviderRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LandSurveyStatus {
+  UPLOADED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model LandSurvey {
+  id           String           @id @default(uuid()) @db.Uuid
+  boundaryId   String           @db.Uuid
+  boundary     LandBoundary     @relation(fields: [boundaryId], references: [id], onDelete: Cascade)
+  uploadedById String           @db.Uuid
+  storageKey   String
+  fileName     String
+  mimeType     String
+  fileSize     Int
+  status       LandSurveyStatus @default(UPLOADED)
+  reviewedById String?          @db.Uuid
+  reviewedAt   DateTime?        @db.Timestamptz()
+  reviewNotes  String?
+  createdAt    DateTime         @default(now()) @db.Timestamptz()
+  updatedAt    DateTime         @updatedAt @db.Timestamptz()
+
+  @@index([boundaryId])
+  @@index([status])
+}
+
+// ============================================================================
+// PROPOSALS & NEGOTIATIONS
+// ============================================================================
+
+enum ProposalStatus {
+  DRAFT
+  PUBLISHED
+  NEGOTIATING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum ProposalTargetType {
+  CLUSTER
+  FARMER
+}
+
+model Proposal {
+  id              String             @id @default(uuid()) @db.Uuid
+  investorId      String             @db.Uuid                              // who is proposing (INVESTOR or CLUSTER_REP)
+  investor        User               @relation("ProposalInvestor", fields: [investorId], references: [id], onDelete: Restrict)
+  targetType      ProposalTargetType
+  clusterId       String?            @db.Uuid
+  cluster         Cluster?           @relation(fields: [clusterId], references: [id], onDelete: SetNull)
+  targetUserId    String?            @db.Uuid
+  targetUser      User?              @relation("ProposalTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+  title           String
+  description     String?
+  proposedAmount  Decimal            @db.Decimal(15, 2)
+  currency        String             @default("USD")
+  leaseTermMonths Int?
+  roi             Decimal?           @db.Decimal(6, 2)
+  location        String?
+  terms           Json               @default("{}")                        // interestRate, repaymentPeriod, collateral, ...
+  status          ProposalStatus     @default(DRAFT)
+  expiresAt       DateTime?          @db.Timestamptz()
+  createdAt       DateTime           @default(now()) @db.Timestamptz()
+  updatedAt       DateTime           @updatedAt @db.Timestamptz()
+
+  negotiations    Negotiation[]
+  documents       ProposalDocument[]
+  history         ProposalHistory[]
+  agreement       Agreement?
+
+  @@index([clusterId])
+  @@index([investorId])
+  @@index([targetUserId])
+  @@index([status])
+}
+
+model ProposalDocument {
+  id         String   @id @default(uuid()) @db.Uuid
+  proposalId String   @db.Uuid
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  storageKey String
+  fileName   String
+  mimeType   String
+  fileSize   Int
+  createdAt  DateTime @default(now()) @db.Timestamptz()
+
+  @@index([proposalId])
+}
+
+// Append-only audit of every status/term change on a proposal.
+model ProposalHistory {
+  id         String   @id @default(uuid()) @db.Uuid
+  proposalId String   @db.Uuid
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  actorId    String   @db.Uuid
+  action     String                                                          // "PUBLISHED", "COUNTERED", "ACCEPTED", ...
+  details    Json?
+  createdAt  DateTime @default(now()) @db.Timestamptz()
+
+  @@index([proposalId, createdAt])
+}
+
+enum NegotiationStatus {
+  OPEN
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+model Negotiation {
+  id            String              @id @default(uuid()) @db.Uuid
+  proposalId    String              @db.Uuid
+  proposal      Proposal            @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  initiatorId   String              @db.Uuid
+  initiator     User                @relation(fields: [initiatorId], references: [id], onDelete: Restrict)
+  proposedAmount Decimal            @db.Decimal(15, 2)
+  proposedTerms Json                @default("{}")
+  message       String?
+  status        NegotiationStatus   @default(OPEN)
+  createdAt     DateTime            @default(now()) @db.Timestamptz()
+  updatedAt     DateTime            @updatedAt @db.Timestamptz()
+
+  @@index([proposalId, createdAt])
+}
+
+// ============================================================================
+// CONTRACT TEMPLATES & AGREEMENTS
+// ============================================================================
+
+model ContractTemplate {
+  id          String                    @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  category    String?
+  isActive    Boolean                   @default(true)
+  createdById String                    @db.Uuid
+  createdAt   DateTime                  @default(now()) @db.Timestamptz()
+  updatedAt   DateTime                  @updatedAt @db.Timestamptz()
+
+  versions    ContractTemplateVersion[]
+}
+
+model ContractTemplateVersion {
+  id           String                @id @default(uuid()) @db.Uuid
+  templateId   String                @db.Uuid
+  template     ContractTemplate      @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  versionNumber Int
+  body         String                                                       // markdown / mustache body
+  variables    Json                  @default("[]")                         // declared placeholders
+  publishedAt  DateTime?             @db.Timestamptz()
+  createdById  String                @db.Uuid
+  createdAt    DateTime              @default(now()) @db.Timestamptz()
+
+  clauses      TemplateClause[]
+  agreements   Agreement[]
+
+  @@unique([templateId, versionNumber])
+}
+
+enum ClauseCategory {
+  PAYMENT
+  TERMINATION
+  DISPUTE
+  CONFIDENTIALITY
+  GENERAL
+  CUSTOM
+}
+
+model ContractClause {
+  id          String         @id @default(uuid()) @db.Uuid
+  title       String
+  category    ClauseCategory
+  body        String
+  isActive    Boolean        @default(true)
+  createdById String         @db.Uuid
+  createdAt   DateTime       @default(now()) @db.Timestamptz()
+  updatedAt   DateTime       @updatedAt @db.Timestamptz()
+
+  templates   TemplateClause[]
+}
+
+model TemplateClause {
+  id                String                  @id @default(uuid()) @db.Uuid
+  templateVersionId String                  @db.Uuid
+  templateVersion   ContractTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: Cascade)
+  clauseId          String                  @db.Uuid
+  clause            ContractClause          @relation(fields: [clauseId], references: [id], onDelete: Restrict)
+  ordering          Int
+
+  @@unique([templateVersionId, clauseId])
+}
+
+enum AgreementStatus {
+  DRAFT
+  PENDING_SIGNATURES
+  ACTIVE
+  COMPLETED
+  TERMINATED
+  DISPUTED
+}
+
+model Agreement {
+  id                String                  @id @default(uuid()) @db.Uuid
+  proposalId        String                  @unique @db.Uuid
+  proposal          Proposal                @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  clusterId         String                  @db.Uuid
+  cluster           Cluster                 @relation(fields: [clusterId], references: [id], onDelete: Restrict)
+  templateVersionId String?                 @db.Uuid
+  templateVersion   ContractTemplateVersion? @relation(fields: [templateVersionId], references: [id], onDelete: SetNull)
+  title             String
+  status            AgreementStatus         @default(DRAFT)
+  startDate         DateTime                @db.Date
+  endDate           DateTime                @db.Date
+  totalAmount       Decimal                 @db.Decimal(15, 2)
+  installmentAmount Decimal?                @db.Decimal(15, 2)
+  paymentFrequency  String                  @default("monthly")
+  currency          String                  @default("USD")
+  terms             Json                    @default("{}")
+  renderedBody      String?                                                   // materialized contract text
+  pdfStorageKey     String?
+  activatedAt       DateTime?               @db.Timestamptz()
+  completedAt       DateTime?               @db.Timestamptz()
+  createdAt         DateTime                @default(now()) @db.Timestamptz()
+  updatedAt         DateTime                @updatedAt @db.Timestamptz()
+
+  signatures        Signature[]
+  revisions         AgreementRevision[]
+  payments          Payment[]
+  clauses           AgreementClause[]
+
+  @@index([clusterId])
+  @@index([status])
+}
+
+// Snapshot of clauses at agreement creation time (so template edits don't mutate signed agreements).
+model AgreementClause {
+  id          String    @id @default(uuid()) @db.Uuid
+  agreementId String    @db.Uuid
+  agreement   Agreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  title       String
+  body        String
+  ordering    Int
+  isEditable  Boolean   @default(false)
+
+  @@index([agreementId])
+}
+
+model AgreementRevision {
+  id           String    @id @default(uuid()) @db.Uuid
+  agreementId  String    @db.Uuid
+  agreement    Agreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  revisionNumber Int
+  body         String
+  changedById  String    @db.Uuid
+  changeNote   String?
+  createdAt    DateTime  @default(now()) @db.Timestamptz()
+
+  @@unique([agreementId, revisionNumber])
+}
+
+enum SignatureMethod {
+  DRAWN
+  TYPED
+  UPLOADED
+}
+
+model Signature {
+  id           String          @id @default(uuid()) @db.Uuid
+  agreementId  String          @db.Uuid
+  agreement    Agreement       @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  signerId     String          @db.Uuid
+  signer       User            @relation(fields: [signerId], references: [id], onDelete: Restrict)
+  method       SignatureMethod
+  signatureData String                                                      // base64 PNG or typed name
+  ipAddress    String?
+  userAgent    String?
+  signedAt     DateTime        @default(now()) @db.Timestamptz()
+
+  @@unique([agreementId, signerId])
+  @@index([agreementId])
+}
+
+// ============================================================================
+// PAYMENTS, RECEIPTS, VERIFICATION
+// ============================================================================
+
+enum PaymentStatus {
+  PENDING
+  SUBMITTED
+  VERIFIED
+  REJECTED
+  REFUNDED
+}
+
+enum PaymentType {
+  DISBURSEMENT
+  REPAYMENT
+  FEE
+}
+
+model Payment {
+  id           String        @id @default(uuid()) @db.Uuid
+  agreementId  String        @db.Uuid
+  agreement    Agreement     @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  payerId      String        @db.Uuid
+  payer        User          @relation("PaymentPayer", fields: [payerId], references: [id], onDelete: Restrict)
+  receiverId   String        @db.Uuid
+  receiver     User          @relation("PaymentReceiver", fields: [receiverId], references: [id], onDelete: Restrict)
+  amount       Decimal       @db.Decimal(15, 2)
+  currency     String        @default("USD")
+  type         PaymentType   @default(REPAYMENT)
+  status       PaymentStatus @default(PENDING)
+  dueDate      DateTime?     @db.Date
+  paidAt       DateTime?     @db.Timestamptz()
+  notes        String?
+  metadata     Json          @default("{}")
+  createdAt    DateTime      @default(now()) @db.Timestamptz()
+  updatedAt    DateTime      @updatedAt @db.Timestamptz()
+
+  receipts     PaymentReceipt[]
+  verification PaymentVerification?
+
+  @@index([agreementId])
+  @@index([status])
+  @@index([payerId])
+  @@index([receiverId])
+}
+
+model PaymentReceipt {
+  id             String   @id @default(uuid()) @db.Uuid
+  paymentId      String   @db.Uuid
+  payment        Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  storageKey     String
+  fileName       String
+  mimeType       String
+  fileSize       Int
+  perceptualHash String?                                                     // for duplicate detection (image OCR pipeline)
+  extractedFields Json?                                                      // OCR'd amount/date/txid
+  uploadedById   String   @db.Uuid
+  createdAt      DateTime @default(now()) @db.Timestamptz()
+
+  @@index([paymentId])
+  @@index([perceptualHash])
+}
+
+enum VerificationDecision {
+  PENDING
+  APPROVED
+  REJECTED
+  ESCALATED
+}
+
+model PaymentVerification {
+  id              String               @id @default(uuid()) @db.Uuid
+  paymentId       String               @unique @db.Uuid
+  payment         Payment              @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  reviewerId      String?              @db.Uuid
+  decision        VerificationDecision @default(PENDING)
+  reviewerNotes   String?
+  isDuplicate     Boolean              @default(false)
+  duplicateOfId   String?              @db.Uuid
+  fraudFlags      Json                 @default("[]")                        // ["amount_mismatch","duplicate_hash",...]
+  reviewedAt      DateTime?            @db.Timestamptz()
+  createdAt       DateTime             @default(now()) @db.Timestamptz()
+  updatedAt       DateTime             @updatedAt @db.Timestamptz()
+}
+
+// ============================================================================
+// MESSAGING
+// ============================================================================
+
+enum ConversationContext {
+  GENERAL
+  PROPOSAL
+  AGREEMENT
+  PAYMENT
+}
+
+model Conversation {
+  id            String              @id @default(uuid()) @db.Uuid
+  user1Id       String              @db.Uuid
+  user2Id       String              @db.Uuid
+  user1         User                @relation("ConversationUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2         User                @relation("ConversationUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  context       ConversationContext @default(GENERAL)
+  relatedId     String?             @db.Uuid                                 // proposalId/agreementId/paymentId
+  lastMessageAt DateTime?           @db.Timestamptz()
+  createdAt     DateTime            @default(now()) @db.Timestamptz()
+  updatedAt     DateTime            @updatedAt @db.Timestamptz()
+
+  messages      Message[]
+  reads         ConversationRead[]
+
+  @@unique([user1Id, user2Id, context, relatedId])
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id             String        @id @default(uuid()) @db.Uuid
+  conversationId String        @db.Uuid
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String        @db.Uuid
+  sender         User          @relation("MessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+  content        String
+  isSystem       Boolean       @default(false)
+  createdAt      DateTime      @default(now()) @db.Timestamptz()
+  updatedAt      DateTime      @updatedAt @db.Timestamptz()
+
+  attachments    MessageAttachment[]
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+}
+
+model MessageAttachment {
+  id         String  @id @default(uuid()) @db.Uuid
+  messageId  String  @db.Uuid
+  message    Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  storageKey String
+  fileName   String
+  mimeType   String
+  fileSize   Int
+
+  @@index([messageId])
+}
+
+// Tracks per-user "last read message" pointers for unread counts.
+model ConversationRead {
+  id              String       @id @default(uuid()) @db.Uuid
+  conversationId  String       @db.Uuid
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId          String       @db.Uuid
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt      DateTime     @default(now()) @db.Timestamptz()
+  lastReadMessageId String?    @db.Uuid
+
+  @@unique([conversationId, userId])
+}
+
+// ============================================================================
+// MEETINGS
+// ============================================================================
+
+enum MeetingProvider {
+  ZOOM
+  GOOGLE_MEET
+  IN_PERSON
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+model Meeting {
+  id              String          @id @default(uuid()) @db.Uuid
+  hostId          String          @db.Uuid
+  host            User            @relation("MeetingHost", fields: [hostId], references: [id], onDelete: Restrict)
+  title           String
+  description     String?
+  provider        MeetingProvider @default(ZOOM)
+  externalMeetingId String?                                                   // Zoom meeting id / Google event id
+  joinUrl         String?
+  startUrl        String?                                                     // host-only join URL
+  scheduledAt     DateTime        @db.Timestamptz()
+  durationMinutes Int             @default(30)
+  startedAt       DateTime?       @db.Timestamptz()
+  endedAt         DateTime?       @db.Timestamptz()
+  status          MeetingStatus   @default(SCHEDULED)
+  relatedId       String?         @db.Uuid                                    // proposalId/agreementId
+  relatedType     String?
+  notes           String?
+  createdAt       DateTime        @default(now()) @db.Timestamptz()
+  updatedAt       DateTime        @updatedAt @db.Timestamptz()
+
+  participants    MeetingParticipant[]
+
+  @@index([hostId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model MeetingParticipant {
+  id         String   @id @default(uuid()) @db.Uuid
+  meetingId  String   @db.Uuid
+  meeting    Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  userId     String   @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt   DateTime? @db.Timestamptz()
+  leftAt     DateTime? @db.Timestamptz()
+
+  @@unique([meetingId, userId])
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  PROPOSAL
+  AGREEMENT
+  PAYMENT
+  MESSAGE
+  MEETING
+  SYSTEM
+}
+
+model Notification {
+  id           String           @id @default(uuid()) @db.Uuid
+  recipientId  String           @db.Uuid
+  recipient    User             @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actorId      String?          @db.Uuid
+  actor        User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  type         NotificationType
+  title        String
+  body         String?
+  link         String?
+  relatedId    String?          @db.Uuid
+  relatedType  String?
+  dedupeKey    String?                                                       // idempotency: skip identical notifications
+  isRead       Boolean          @default(false)
+  readAt       DateTime?        @db.Timestamptz()
+  createdAt    DateTime         @default(now()) @db.Timestamptz()
+
+  @@unique([recipientId, dedupeKey])
+  @@index([recipientId, isRead])
+  @@index([recipientId, createdAt])
+}
+
+// ============================================================================
+// AUDIT LOG
+// ============================================================================
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @db.Uuid
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String                                                          // "PROPOSAL_ACCEPTED", "USER_SUSPENDED" ...
+  entityType String?
+  entityId   String?  @db.Uuid
+  changes    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now()) @db.Timestamptz()
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// ANALYTICS (event ingestion; aggregates computed on demand or by workers)
+// ============================================================================
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @db.Uuid
+  eventType  String
+  entityType String?
+  entityId   String?  @db.Uuid
+  payload    Json     @default("{}")
+  createdAt  DateTime @default(now()) @db.Timestamptz()
+
+  @@index([eventType, createdAt])
+  @@index([userId, createdAt])
+}
+
+// ============================================================================
+// AI / RAG
+// ============================================================================
+
+enum KnowledgeBaseScope {
+  GLOBAL                                                                     // visible to all authenticated users
+  CLUSTER                                                                    // scoped to a single cluster
+  USER                                                                       // private notes/docs for a user
+}
+
+model KnowledgeBase {
+  id          String              @id @default(uuid()) @db.Uuid
+  name        String
+  scope       KnowledgeBaseScope  @default(GLOBAL)
+  ownerId     String?             @db.Uuid
+  owner       User?               @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  clusterId   String?             @db.Uuid
+  description String?
+  createdAt   DateTime            @default(now()) @db.Timestamptz()
+  updatedAt   DateTime            @updatedAt @db.Timestamptz()
+
+  documents   KbDocument[]
+
+  @@index([scope])
+  @@index([clusterId])
+}
+
+enum KbDocumentStatus {
+  PENDING
+  PROCESSING
+  INDEXED
+  FAILED
+}
+
+enum KbDocumentSource {
+  UPLOAD
+  URL
+}
+
+model KbDocument {
+  id             String           @id @default(uuid()) @db.Uuid
+  knowledgeBaseId String          @db.Uuid
+  knowledgeBase  KnowledgeBase    @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  source         KbDocumentSource
+  sourceUrl      String?
+  storageKey     String?
+  title          String
+  mimeType       String?
+  fileSize       Int?
+  status         KbDocumentStatus @default(PENDING)
+  errorMessage   String?
+  metadata       Json             @default("{}")
+  createdAt      DateTime         @default(now()) @db.Timestamptz()
+  updatedAt      DateTime         @updatedAt @db.Timestamptz()
+
+  chunks         KbDocumentChunk[]
+
+  @@index([knowledgeBaseId, status])
+}
+
+model KbDocumentChunk {
+  id          String   @id @default(uuid()) @db.Uuid
+  documentId  String   @db.Uuid
+  document    KbDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  chunkIndex  Int
+  content     String
+  tokenCount  Int?
+  // embedding   Unsupported("vector(1536)")?  // Temporarily disabled - requires pgvector
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @db.Timestamptz()
+
+  @@unique([documentId, chunkIndex])
+  // Note: ivfflat index for cosine similarity is created in the migration SQL,
+  // not declared here because Prisma can't model vector indexes natively.
+}
+
+model AiChat {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @db.Uuid
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String?
+  createdAt DateTime      @default(now()) @db.Timestamptz()
+  updatedAt DateTime      @updatedAt @db.Timestamptz()
+
+  messages  AiChatMessage[]
+}
+
+enum AiChatRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  TOOL
+}
+
+model AiChatMessage {
+  id        String     @id @default(uuid()) @db.Uuid
+  chatId    String     @db.Uuid
+  chat      AiChat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  role      AiChatRole
+  content   String
+  citations Json       @default("[]")                                         // [{ documentId, chunkId, snippet }]
+  tokenUsage Json?                                                            // { prompt, completion, total }
+  createdAt DateTime   @default(now()) @db.Timestamptz()
+
+  @@index([chatId, createdAt])
+}
+
+// Investor ↔ Cluster match scores, precomputed by the recommendation worker.
+model Recommendation {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clusterId  String   @db.Uuid
+  score      Decimal  @db.Decimal(6, 4)
+  reasons    Json     @default("[]")                                          // [{ feature, weight }]
+  createdAt  DateTime @default(now()) @db.Timestamptz()
+
+  @@unique([userId, clusterId])
+  @@index([userId, score])
+}
+
+// ============================================================================
+// EVENTING / OUTBOX
+// ============================================================================
+
+// Transactional outbox: domain events written inside the same DB transaction
+// as the state change, then dispatched to BullMQ by a polling/notify worker.
+// Guarantees at-least-once delivery with strict ordering per aggregate.
+enum OutboxStatus {
+  PENDING
+  DISPATCHED
+  FAILED
+}
+
+model Outbox {
+  id          String       @id @default(uuid()) @db.Uuid
+  eventType   String                                                          // e.g. "proposal.accepted"
+  aggregateType String
+  aggregateId String       @db.Uuid
+  payload     Json
+  status      OutboxStatus @default(PENDING)
+  attempts    Int          @default(0)
+  lastError   String?
+  dispatchedAt DateTime?   @db.Timestamptz()
+  createdAt   DateTime     @default(now()) @db.Timestamptz()
+
+  @@index([status, createdAt])
+  @@index([aggregateType, aggregateId])
+}
+
+// ============================================================================
+// FEATURE FLAGS
+// ============================================================================
+
+enum FeatureFlagKind {
+  BOOLEAN
+  STRING
+  JSON
+}
+
+model FeatureFlag {
+  id          String          @id @default(uuid()) @db.Uuid
+  key         String          @unique
+  kind        FeatureFlagKind @default(BOOLEAN)
+  value       Json                                                            // { enabled: true } or arbitrary config
+  description String?
+  updatedById String?         @db.Uuid
+  createdAt   DateTime        @default(now()) @db.Timestamptz()
+  updatedAt   DateTime        @updatedAt @db.Timestamptz()
+}

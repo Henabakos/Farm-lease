@@ -4,7 +4,7 @@ import { Topbar } from './Topbar';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRole } from '@/src/contexts/RoleContext';
 
-export function DashboardLayout({ children, onNavigate }: { children: React.ReactNode, onNavigate: (view: 'DASHBOARD' | 'PROFILE' | 'CLUSTERS' | 'PROPOSALS' | 'AGREEMENTS' | 'PAYMENTS' | 'MESSAGES' | 'MEETINGS' | 'ANALYTICS' | 'ADMIN_DASHBOARD' | 'AUDIT_LOGS' | 'SETTINGS') => void }) {
+export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user } = useRole();
 
   return (
@@ -15,10 +15,10 @@ export function DashboardLayout({ children, onNavigate }: { children: React.Reac
         <div className="absolute top-[20%] -right-[5%] w-[30%] h-[30%] bg-primary/10 rounded-full blur-[100px]" />
       </div>
 
-      <Sidebar className="hidden md:flex relative z-10" onNavigate={onNavigate} />
+      <Sidebar className="hidden md:flex relative z-10" />
       
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
-        <Topbar onNavigate={onNavigate} />
+        <Topbar />
         
         <main className="flex-1 overflow-y-auto p-5 scrollbar-hide">
           <AnimatePresence mode="wait">

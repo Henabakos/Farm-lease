@@ -3,15 +3,16 @@ import { MapPin, Plus, Trash2, CheckCircle, Eye, Upload, BarChart3, AlertCircle 
 import { MapViewer } from './MapViewer';
 import { BoundaryDrawer } from './BoundaryDrawer';
 import { useGeospatial } from '@/src/hooks/useGeospatial';
-import { Cluster } from '@/src/types';
+import { Cluster, Plot } from '@/src/types';
 
 interface GeospatialClusterDetailProps {
   cluster: Cluster;
+  plots?: Plot[];
 }
 
 type ViewMode = 'map' | 'draw' | 'surveys' | 'stats';
 
-export function GeospatialClusterDetail({ cluster }: GeospatialClusterDetailProps) {
+export function GeospatialClusterDetail({ cluster, plots = [] }: GeospatialClusterDetailProps) {
   const {
     boundaries,
     selectedBoundary,
@@ -28,6 +29,36 @@ export function GeospatialClusterDetail({ cluster }: GeospatialClusterDetailProp
 
   const [viewMode, setViewMode] = useState<ViewMode>('map');
   const [showDrawer, setShowDrawer] = useState(false);
+
+  // Convert plots to boundary-like format for map display
+  const plotBoundaries = plots
+    .filter(plot => plot.latitude && plot.longitude)
+    .map(plot => {
+      const lat = Number(plot.latitude);
+      const lng = Number(plot.longitude);
+      return {
+        id: `plot-${plot.id}`,
+        cluster_id: cluster.id,
+        created_by: '',
+        name: plot.location,
+        coordinates: [
+          { lat, lng },
+          { lat: lat + 0.001, lng },
+          { lat: lat + 0.001, lng: lng + 0.001 },
+          { lat, lng: lng + 0.001 },
+        ],
+        geometry: null,
+        area_hectares: plot.size,
+        area_sqm: Number(plot.size) * 10000,
+        accuracy_rating: 5,
+        verified_at: null,
+        survey_date: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    });
+
+  const allBoundaries = [...boundaries, ...plotBoundaries] as any[];
 
   // Load data on mount
   useEffect(() => {
@@ -122,10 +153,10 @@ export function GeospatialClusterDetail({ cluster }: GeospatialClusterDetailProp
           <>
             {/* Map View */}
             {viewMode === 'map' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
-                <div className="lg:col-span-2 h-full">
+              <div className="grid grid-cols-1 grid-rows-[2fr_1fr] gap-4 h-full">
+                <div className="h-full">
                   <MapViewer
-                    boundaries={boundaries}
+                    boundaries={allBoundaries}
                     selectedBoundary={selectedBoundary}
                     onBoundarySelect={setSelectedBoundary}
                     centerLat={cluster.centerLatitude || 20}
@@ -137,18 +168,18 @@ export function GeospatialClusterDetail({ cluster }: GeospatialClusterDetailProp
                 <div className="bg-card border border-border rounded-lg overflow-hidden flex flex-col">
                   <div className="border-b border-border p-3 bg-muted">
                     <p className="text-sm font-semibold text-foreground">
-                      Boundaries ({boundaries.length})
+                      Boundaries & Plots ({allBoundaries.length})
                     </p>
                   </div>
                   <div className="overflow-y-auto flex-1">
-                    {boundaries.length === 0 ? (
+                    {allBoundaries.length === 0 ? (
                       <div className="p-4 text-center text-muted-foreground">
                         <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">No boundaries yet</p>
+                        <p className="text-sm">No boundaries or plots yet</p>
                       </div>
                     ) : (
                       <div className="divide-y divide-border">
-                        {boundaries.map((boundary) => (
+                        {allBoundaries.map((boundary) => (
                           <div
                             key={boundary.id}
                             onClick={() => setSelectedBoundary(boundary)}
@@ -164,13 +195,19 @@ export function GeospatialClusterDetail({ cluster }: GeospatialClusterDetailProp
                                   {boundary.name}
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  {boundary.area_hectares.toFixed(2)} ha
+                                  {Number(boundary.area_hectares).toFixed(2)} ha
                                 </p>
                                 <div className="flex items-center gap-2 mt-2">
                                   {boundary.verified_at && (
                                     <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
                                       <CheckCircle className="w-3 h-3" />
                                       Verified
+                                    </span>
+                                  )}
+                                  {boundary.id.startsWith('plot-') && (
+                                    <span className="flex items-center gap-1 text-xs text-blue-600 font-medium">
+                                      <MapPin className="w-3 h-3" />
+                                      Plot
                                     </span>
                                   )}
                                 </div>
@@ -182,7 +219,7 @@ export function GeospatialClusterDetail({ cluster }: GeospatialClusterDetailProp
                     )}
                   </div>
 
-                  {selectedBoundary && (
+                  {selectedBoundary && !selectedBoundary.id.startsWith('plot-') && (
                     <div className="border-t border-border p-3 space-y-2">
                       {!selectedBoundary.verified_at && (
                         <button
@@ -228,13 +265,13 @@ export function GeospatialClusterDetail({ cluster }: GeospatialClusterDetailProp
                     <div className="p-4 bg-muted rounded-lg">
                       <p className="text-sm text-muted-foreground">Total Area</p>
                       <p className="text-3xl font-bold text-foreground mt-1">
-                        {(statistics.total_area_hectares || 0).toFixed(2)} ha
+                        {Number(statistics.total_area_hectares || 0).toFixed(2)} ha
                       </p>
                     </div>
                     <div className="p-4 bg-muted rounded-lg">
                       <p className="text-sm text-muted-foreground">Avg. Accuracy</p>
                       <p className="text-3xl font-bold text-foreground mt-1">
-                        {(statistics.avg_accuracy || 0).toFixed(1)}/5
+                        {Number(statistics.avg_accuracy || 0).toFixed(1)}/5
                       </p>
                     </div>
                     <div className="p-4 bg-muted rounded-lg">

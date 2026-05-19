@@ -1,20 +1,25 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { notificationsAPI } from '../services/api';
 import { subscribeToNotifications } from '../services/realtime';
 import { useAuth } from './AuthContext';
+import { toast } from 'sonner';
 
-interface Notification {
+// Field names below match the backend DTO emitted by
+// `server/modules/notifications/notifications.service.js#toDto`:
+//   { id, type, title, message, link, related_id, related_type, actor_id,
+//     read, read_at, timestamp }
+export interface Notification {
   id: string;
-  user_id: string;
-  actor_id?: string;
-  type: 'proposal' | 'agreement' | 'payment' | 'message' | 'system' | 'negotiation';
+  type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' | 'PROPOSAL' | 'AGREEMENT' | 'PAYMENT' | 'MESSAGE' | 'MEETING' | 'SYSTEM';
   title: string;
-  content?: string;
-  related_to_id?: string;
-  related_to_type?: string;
-  is_read: boolean;
-  action_url?: string;
-  created_at: string;
+  message: string;
+  link?: string | null;
+  related_id?: string | null;
+  related_type?: string | null;
+  actor_id?: string | null;
+  read: boolean;
+  read_at?: string | null;
+  timestamp: string;
 }
 
 interface NotificationContextType {
@@ -29,87 +34,108 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
+function normaliseIncoming(raw: any): Notification {
+  // Real-time payload from `pushNotification` in broadcaster.js uses
+  // `{ id, title, body, type, relatedId, relatedType, link, timestamp }`.
+  // The REST DTO uses `{ message, related_id, related_type, read }`. We
+  // canonicalise to the REST shape used by the rest of the UI.
+  return {
+    id: raw.id,
+    type: (raw.type ?? 'INFO').toUpperCase(),
+    title: raw.title ?? '',
+    message: raw.message ?? raw.body ?? '',
+    link: raw.link ?? null,
+    related_id: raw.related_id ?? raw.relatedId ?? null,
+    related_type: raw.related_type ?? raw.relatedType ?? null,
+    actor_id: raw.actor_id ?? raw.actorId ?? null,
+    read: raw.read ?? false,
+    read_at: raw.read_at ?? null,
+    timestamp: raw.timestamp ?? raw.createdAt ?? new Date().toISOString(),
+  };
+}
+
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch notifications
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!isAuthenticated || !user) return;
-
     try {
       setIsLoading(true);
-      const response = await notificationsAPI.getAll({
-        unreadOnly: false,
-        limit: 50,
-        offset: 0
-      });
-      setNotifications(response.data);
-
-      // Fetch unread count
-      const countResponse = await notificationsAPI.getUnreadCount();
-      setUnreadCount(countResponse.data.unreadCount);
+      const [listRes, countRes] = await Promise.all([
+        notificationsAPI.getAll({ page: 1, pageSize: 50 }),
+        notificationsAPI.getUnreadCount(),
+      ]);
+      // List endpoint returns { data, pagination } (paginated envelope).
+      const rows = Array.isArray(listRes.data) ? listRes.data : listRes.data?.data ?? [];
+      setNotifications(rows.map(normaliseIncoming));
+      // Unread count endpoint returns { count }.
+      setUnreadCount(countRes.data?.count ?? countRes.data?.unreadCount ?? 0);
     } catch (error) {
-      console.error('[v0] Failed to fetch notifications:', error);
+      // Silent fail — surfaced elsewhere; never break the rest of the UI.
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, user]);
 
-  // Mark notification as read
   const markAsRead = async (id: string) => {
     try {
       await notificationsAPI.markAsRead(id);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error('[v0] Failed to mark notification as read:', error);
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch {
+      toast.error('Failed to mark notification as read');
     }
   };
 
-  // Mark all as read
   const markAllAsRead = async () => {
     try {
       await notificationsAPI.markAllAsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
-    } catch (error) {
-      console.error('[v0] Failed to mark all as read:', error);
+    } catch {
+      toast.error('Failed to mark all as read');
     }
   };
 
-  // Delete notification
   const deleteNotification = async (id: string) => {
     try {
       await notificationsAPI.delete(id);
-      const notification = notifications.find(n => n.id === id);
-      if (notification && !notification.is_read) {
-        setUnreadCount(prev => Math.max(0, prev - 1));
-      }
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    } catch (error) {
-      console.error('[v0] Failed to delete notification:', error);
+      setNotifications((prev) => {
+        const target = prev.find((n) => n.id === id);
+        if (target && !target.read) setUnreadCount((u) => Math.max(0, u - 1));
+        return prev.filter((n) => n.id !== id);
+      });
+    } catch {
+      toast.error('Failed to delete notification');
     }
   };
 
-  // Subscribe to real-time notifications
+  // Initial fetch + real-time subscription.
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (!isAuthenticated || !user) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
 
-    // Initial fetch
     fetchNotifications();
 
-    // Subscribe to real-time updates
-    const unsubscribe = subscribeToNotifications(user.id, (data) => {
-      console.log('[v0] Received notification:', data);
-      // Refetch notifications when a new one arrives
-      fetchNotifications();
+    const unsubscribe = subscribeToNotifications(user.id, (raw) => {
+      const n = normaliseIncoming(raw);
+      setNotifications((prev) => {
+        if (prev.some((p) => p.id === n.id)) return prev;
+        return [n, ...prev];
+      });
+      setUnreadCount((c) => c + 1);
+      // Lightweight in-app toast — sonner positioned top-right via App.tsx.
+      toast(n.title, { description: n.message });
     });
 
     return unsubscribe;
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, fetchNotifications]);
 
   const value: NotificationContextType = {
     notifications,
@@ -118,14 +144,10 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     fetchNotifications,
     markAsRead,
     markAllAsRead,
-    deleteNotification
+    deleteNotification,
   };
 
-  return (
-    <NotificationContext.Provider value={value}>
-      {children}
-    </NotificationContext.Provider>
-  );
+  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 };
 
 export const useNotifications = () => {

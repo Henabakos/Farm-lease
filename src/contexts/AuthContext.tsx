@@ -1,13 +1,20 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authAPI, setAccessToken, usersAPI } from '../services/api';
+import { authAPI, setAccessToken, setRefreshToken, usersAPI, AUTH_LOGOUT_EVENT } from '../services/api';
+import { disconnect as disconnectSocket, reconnectWithToken } from '../services/realtime';
 import { toast } from 'sonner';
 
+// Roles are now the canonical 4-role taxonomy emitted by the new backend
+// (Phase 4 of the backend rewrite). The legacy owner/tenant/admin mapping
+// in `src/lib/apiMappers.ts` is deprecated and only retained for the
+// non-role mappers (cluster/proposal/agreement/payment shape adapters).
 interface User {
   id: string;
   email: string;
   full_name: string;
-  role: 'owner' | 'tenant' | 'admin';
+  role: 'INVESTOR' | 'FARMER' | 'CLUSTER_REP' | 'ADMIN';
   avatar_url?: string;
+  phone?: string;
+  bio?: string;
   verification_status: 'unverified' | 'pending' | 'verified';
 }
 
@@ -27,26 +34,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize auth on mount
+  // Initialize auth on mount + listen for hard-logout signals from the API layer.
   useEffect(() => {
     const initAuth = async () => {
       try {
         const token = localStorage.getItem('accessToken');
         if (token) {
           setAccessToken(token);
+          // The api interceptor will attempt a refresh on 401, so a stale
+          // access token won't immediately log the user out.
           const response = await authAPI.getCurrentUser();
           setUser(response.data);
+          reconnectWithToken();
         }
       } catch (error) {
-        console.error('[v0] Failed to restore session:', error);
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        // getCurrentUser failed even after the refresh attempt — session is gone.
+        setAccessToken(null);
+        setRefreshToken(null);
       } finally {
         setIsLoading(false);
       }
     };
 
     initAuth();
+
+    const onForcedLogout = () => {
+      setUser(null);
+      disconnectSocket();
+      toast.error('Your session has expired. Please log in again.');
+    };
+    window.addEventListener(AUTH_LOGOUT_EVENT, onForcedLogout);
+    return () => window.removeEventListener(AUTH_LOGOUT_EVENT, onForcedLogout);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -55,12 +73,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const response = await authAPI.login({ email, password });
       
       const { access_token, refresh_token, user: userData } = response.data;
-      
-      localStorage.setItem('accessToken', access_token);
-      localStorage.setItem('refreshToken', refresh_token);
+
       setAccessToken(access_token);
-      
+      setRefreshToken(refresh_token);
+
       setUser(userData);
+      reconnectWithToken();
       toast.success('Logged in successfully');
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Login failed';
@@ -89,21 +107,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     try {
       setIsLoading(true);
-      await authAPI.logout();
-      
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      const refreshToken = localStorage.getItem('refreshToken');
+      await authAPI.logout(refreshToken || undefined);
+
       setAccessToken(null);
+      setRefreshToken(null);
       setUser(null);
-      
+      disconnectSocket();
+
       toast.success('Logged out successfully');
     } catch (error: any) {
-      console.error('[v0] Logout error:', error);
-      // Still clear local state even if server call fails
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      // Still clear local state even if server call fails.
       setAccessToken(null);
+      setRefreshToken(null);
       setUser(null);
+      disconnectSocket();
     } finally {
       setIsLoading(false);
     }

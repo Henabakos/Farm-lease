@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, Link, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/src/contexts/AuthContext';
 import { RoleProvider, useRole } from '@/src/contexts/RoleContext';
 import { NotificationProvider } from '@/src/contexts/NotificationContext';
@@ -18,8 +19,7 @@ import { PaymentList } from '@/src/components/payments/PaymentList';
 import { PaymentSubmit } from '@/src/components/payments/PaymentSubmit';
 import { PaymentReview } from '@/src/components/payments/PaymentReview';
 import { PaymentDetail } from '@/src/components/payments/PaymentDetail';
-import { ConversationList } from '@/src/components/messaging/ConversationList';
-import { ChatWindow } from '@/src/components/messaging/ChatWindow';
+import { MessagingPage } from '@/src/components/messaging/MessagingPage';
 import { MeetingScheduler } from '@/src/components/meetings/MeetingScheduler';
 import { AnalyticsDashboard } from '@/src/components/analytics/AnalyticsDashboard';
 import { AIChatbot } from '@/src/components/ai/AIChatbot';
@@ -29,49 +29,42 @@ import { SettingsPage } from '@/src/components/profile/SettingsPage';
 import { ResourceRecommendations } from '@/src/components/resources/ResourceRecommendations';
 import { DashboardOverview } from '@/src/components/dashboard/DashboardOverview';
 import { LandingPage } from '@/src/components/landing/LandingPage';
-import { Cluster, Proposal, Agreement, Payment, Conversation, Message } from '@/src/types';
+import { Payment } from '@/src/types';
+import { useStore } from '@/src/store/useStore';
 
 function AppContent() {
   const { isAuthenticated, user: authUser, isLoading: authLoading } = useAuth();
   const { role } = useRole();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { currentView, setCurrentView, selectedCluster, setSelectedCluster, selectedProposal, setSelectedProposal, selectedAgreement, setSelectedAgreement, selectedPayment, setSelectedPayment, proposalView, setProposalView, paymentView, setPaymentView, resetNavigation } = useStore();
   const [authView, setAuthView] = useState<'LANDING' | 'LOGIN' | 'REGISTER'>('LANDING');
-  const [currentView, setCurrentView] = useState<'DASHBOARD' | 'PROFILE' | 'CLUSTERS' | 'PROPOSALS' | 'AGREEMENTS' | 'PAYMENTS' | 'MESSAGES' | 'MEETINGS' | 'ANALYTICS' | 'ADMIN_DASHBOARD' | 'AUDIT_LOGS' | 'RESOURCES' | 'SETTINGS'>('DASHBOARD');
-  const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(null);
-  const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
-  const [selectedAgreement, setSelectedAgreement] = useState<Agreement | null>(null);
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
-  const [proposalView, setProposalView] = useState<'LIST' | 'CREATE' | 'DETAIL' | 'NEGOTIATE'>('LIST');
-  const [paymentView, setPaymentView] = useState<'LIST' | 'SUBMIT' | 'REVIEW' | 'DETAIL'>('LIST');
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptPayment, setReceiptPayment] = useState<Payment | null>(null);
 
-  // Mock Conversations and Messages
-  const [conversations, setConversations] = useState<Conversation[]>([
-    {
-      id: 'c1',
-      participants: [{ id: 'u2', name: 'Zaria Organic Growers', role: 'FARMER' }],
-      unreadCount: 2,
-      lastMessage: { id: 'm1', conversationId: 'c1', senderId: 'u2', senderName: 'Zaria Organic Growers', content: 'The irrigation system is working great!', timestamp: new Date().toISOString() }
-    },
-    {
-      id: 'c2',
-      participants: [{ id: 'u3', name: 'Sarah Miller', role: 'CLUSTER_REP' }],
-      unreadCount: 0,
-      lastMessage: { id: 'm2', conversationId: 'c2', senderId: 'u3', senderName: 'Sarah Miller', content: 'Let\'s discuss the next phase.', timestamp: new Date().toISOString() }
+  // Sync URL with currentView
+  React.useEffect(() => {
+    const path = location.pathname;
+    const viewMap: Record<string, any> = {
+      '/dashboard': 'DASHBOARD',
+      '/profile': 'PROFILE',
+      '/clusters': 'CLUSTERS',
+      '/proposals': 'PROPOSALS',
+      '/agreements': 'AGREEMENTS',
+      '/payments': 'PAYMENTS',
+      '/messages': 'MESSAGES',
+      '/meetings': 'MEETINGS',
+      '/analytics': 'ANALYTICS',
+      '/admin': 'ADMIN_DASHBOARD',
+      '/audit-logs': 'AUDIT_LOGS',
+      '/resources': 'RESOURCES',
+      '/settings': 'SETTINGS',
+    };
+    const matchedView = Object.entries(viewMap).find(([path]) => location.pathname.startsWith(path));
+    if (matchedView) {
+      setCurrentView(matchedView[1]);
     }
-  ]);
-
-  const [messages, setMessages] = useState<Record<string, Message[]>>({
-    'c1': [
-      { id: 'm0', conversationId: 'c1', senderId: 'u1', senderName: 'Alex Johnson', content: 'Hi, how is the project going?', timestamp: new Date(Date.now() - 3600000).toISOString() },
-      { id: 'm1', conversationId: 'c1', senderId: 'u2', senderName: 'Zaria Organic Growers', content: 'The irrigation system is working great!', timestamp: new Date().toISOString() }
-    ],
-    'c2': [
-      { id: 'm2', conversationId: 'c2', senderId: 'u3', senderName: 'Sarah Miller', content: 'Let\'s discuss the next phase.', timestamp: new Date().toISOString() }
-    ]
-  });
-
+  }, [location.pathname, setCurrentView]);
   if (authLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-background via-background to-muted/30">
@@ -84,190 +77,47 @@ function AppContent() {
   }
 
   if (!isAuthenticated) {
-    if (authView === 'LANDING') {
-      return <LandingPage onLogin={() => setAuthView('LOGIN')} onRegister={() => setAuthView('REGISTER')} />;
-    }
-    return authView === 'LOGIN' ? (
-      <LoginPage onSwitch={() => setAuthView('REGISTER')} onBack={() => setAuthView('LANDING')} />
-    ) : (
-      <RegisterPage onSwitch={() => setAuthView('LOGIN')} onBack={() => setAuthView('LANDING')} />
+    return (
+      <>
+        {authView === 'LANDING' ? (
+          <LandingPage onLogin={() => setAuthView('LOGIN')} onRegister={() => setAuthView('REGISTER')} />
+        ) : authView === 'LOGIN' ? (
+          <LoginPage onSwitch={() => setAuthView('REGISTER')} onBack={() => setAuthView('LANDING')} />
+        ) : (
+          <RegisterPage onSwitch={() => setAuthView('LOGIN')} onBack={() => setAuthView('LANDING')} />
+        )}
+      </>
     );
   }
 
-  const renderView = () => {
-    switch (currentView) {
-      case 'PROFILE':
-        return <ProfilePage />;
-      case 'CLUSTERS':
-        return selectedCluster ? (
-          <ClusterDetail cluster={selectedCluster} onBack={() => setSelectedCluster(null)} />
-        ) : (
-          <ClusterList onSelectCluster={(cluster) => setSelectedCluster(cluster)} />
-        );
-      case 'MEETINGS':
-        return <MeetingScheduler />;
-      case 'MESSAGES':
-        return (
-          <div className="flex h-[calc(100vh-120px)] -m-6 overflow-hidden">
-            <div className="w-80 shrink-0">
-              <ConversationList 
-                conversations={conversations} 
-                selectedId={selectedConversationId || undefined} 
-                onSelect={(id) => setSelectedConversationId(id)} 
-              />
-            </div>
-            <div className="flex-1">
-              {selectedConversationId ? (
-                <ChatWindow 
-                  conversation={conversations.find(c => c.id === selectedConversationId)!} 
-                  messages={messages[selectedConversationId] || []} 
-                  onSendMessage={(content, attachments) => {
-                    const newMsg: Message = {
-                      id: Math.random().toString(36).substr(2, 9),
-                      conversationId: selectedConversationId,
-                      senderId: authUser!.id,
-                      senderName: authUser!.full_name,
-                      content,
-                      timestamp: new Date().toISOString(),
-                      attachments
-                    };
-                    setMessages({
-                      ...messages,
-                      [selectedConversationId]: [...(messages[selectedConversationId] || []), newMsg]
-                    });
-                  }} 
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full p-12 text-center space-y-6 bg-card/10 backdrop-blur-sm">
-                  <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                    <MessageSquare className="w-10 h-10 text-primary" />
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-bold">Your Conversations</h2>
-                    <p className="text-muted-foreground max-w-xs mx-auto">Select a conversation from the list to start messaging with your partners.</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      case 'PAYMENTS':
-        switch (paymentView) {
-          case 'SUBMIT':
-            return selectedPayment ? (
-              <PaymentSubmit 
-                payment={selectedPayment} 
-                onBack={() => setPaymentView('LIST')} 
-                onSubmit={(id, receiptUrl, notes) => {
-                  setSelectedPayment({ ...selectedPayment, status: 'SUBMITTED', receiptUrl, notes, submittedAt: new Date().toISOString() });
-                  setPaymentView('LIST');
-                }} 
-              />
-            ) : null;
-          case 'REVIEW':
-            return selectedPayment ? (
-              <PaymentReview 
-                payment={selectedPayment} 
-                onBack={() => setPaymentView('LIST')} 
-                onVerify={(id) => {
-                  setSelectedPayment({ ...selectedPayment, status: 'VERIFIED', verifiedAt: new Date().toISOString() });
-                  setPaymentView('LIST');
-                }}
-                onReject={(id, reason) => {
-                  setSelectedPayment({ ...selectedPayment, status: 'REJECTED', notes: reason });
-                  setPaymentView('LIST');
-                }}
-              />
-            ) : null;
-          case 'DETAIL':
-            return selectedPayment ? (
-              <PaymentDetail 
-                payment={selectedPayment} 
-                onBack={() => setPaymentView('LIST')} 
-                onViewReceipt={(p) => {
-                  setReceiptPayment(p);
-                  setShowReceiptModal(true);
-                }}
-              />
-            ) : null;
-          case 'LIST':
-          default:
-            return (
-              <PaymentList 
-                onSelectPayment={(p) => { setSelectedPayment(p); setPaymentView('DETAIL'); }} 
-                onSubmitPayment={(p) => { setSelectedPayment(p); setPaymentView('SUBMIT'); }}
-                onReviewPayment={(p) => { setSelectedPayment(p); setPaymentView('REVIEW'); }}
-                onViewReceipt={(p) => {
-                  setReceiptPayment(p);
-                  setShowReceiptModal(true);
-                }}
-              />
-            );
-        }
-      case 'AGREEMENTS':
-        return selectedAgreement ? (
-          <AgreementDetail 
-            agreement={selectedAgreement} 
-            onBack={() => setSelectedAgreement(null)} 
-            onSign={(id) => setSelectedAgreement({ ...selectedAgreement, status: 'SIGNED', signedAt: new Date().toISOString() })} 
-          />
-        ) : (
-          <AgreementList onSelectAgreement={(agreement) => setSelectedAgreement(agreement)} />
-        );
-      case 'PROPOSALS':
-        switch (proposalView) {
-          case 'CREATE':
-            return <ProposalCreate onBack={() => setProposalView('LIST')} onSubmit={() => setProposalView('LIST')} />;
-          case 'DETAIL':
-            return selectedProposal ? (
-              <ProposalDetail 
-                proposal={selectedProposal} 
-                onBack={() => setProposalView('LIST')} 
-                onNegotiate={() => setProposalView('NEGOTIATE')} 
-              />
-            ) : null;
-          case 'NEGOTIATE':
-            return selectedProposal ? (
-              <NegotiationView 
-                proposal={selectedProposal} 
-                onBack={() => setProposalView('DETAIL')} 
-                onUpdateProposal={(updated) => setSelectedProposal({ ...selectedProposal, ...updated })} 
-              />
-            ) : null;
-          case 'LIST':
-          default:
-            return (
-              <ProposalList 
-                onSelectProposal={(p) => { setSelectedProposal(p); setProposalView('DETAIL'); }} 
-                onCreateProposal={() => setProposalView('CREATE')} 
-              />
-            );
-        }
-      case 'ANALYTICS':
-        return <AnalyticsDashboard />;
-      case 'ADMIN_DASHBOARD':
-        return <AdminDashboard />;
-      case 'AUDIT_LOGS':
-        return <AuditLogs />;
-      case 'RESOURCES':
-        return <ResourceRecommendations />;
-      case 'SETTINGS':
-        return <SettingsPage />;
-      case 'DASHBOARD':
-      default:
-        return <DashboardOverview />;
-    }
-  };
-
   return (
-    <DashboardLayout onNavigate={(view: any) => { setCurrentView(view); setSelectedCluster(null); setSelectedProposal(null); setSelectedAgreement(null); setSelectedPayment(null); setSelectedConversationId(null); setProposalView('LIST'); setPaymentView('LIST'); }}>
-      {renderView()}
+    <DashboardLayout>
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<DashboardOverview />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/clusters" element={<ClusterList onSelectCluster={(cluster) => { setSelectedCluster(cluster); navigate(`/clusters/${cluster.id}`); }} />} />
+        <Route path="/clusters/:id" element={selectedCluster ? <ClusterDetail cluster={selectedCluster} onBack={() => { setSelectedCluster(null); navigate('/clusters'); }} /> : <Navigate to="/clusters" />} />
+        <Route path="/proposals" element={<ProposalList onSelectProposal={(p) => { setSelectedProposal(p); navigate(`/proposals/${p.id}`); }} onCreateProposal={() => navigate('/proposals/create')} />} />
+        <Route path="/proposals/create" element={<ProposalCreate onBack={() => navigate('/proposals')} onSubmit={() => navigate('/proposals')} />} />
+        <Route path="/proposals/:id" element={selectedProposal ? <ProposalDetail proposal={selectedProposal} onBack={() => { setSelectedProposal(null); navigate('/proposals'); }} onNegotiate={() => navigate(`/proposals/${selectedProposal.id}/negotiate`)} /> : <Navigate to="/proposals" />} />
+        <Route path="/proposals/:id/negotiate" element={selectedProposal ? <NegotiationView proposal={selectedProposal} onBack={() => navigate(`/proposals/${selectedProposal.id}`)} onUpdateProposal={(updated) => setSelectedProposal({ ...selectedProposal, ...updated })} /> : <Navigate to="/proposals" />} />
+        <Route path="/agreements" element={<AgreementList onSelectAgreement={(a) => { setSelectedAgreement(a); navigate(`/agreements/${a.id}`); }} />} />
+        <Route path="/agreements/:id" element={selectedAgreement ? <AgreementDetail agreement={selectedAgreement} onBack={() => { setSelectedAgreement(null); navigate('/agreements'); }} onSign={(id) => setSelectedAgreement({ ...selectedAgreement, status: 'SIGNED', signedAt: new Date().toISOString() })} /> : <Navigate to="/agreements" />} />
+        <Route path="/payments" element={<PaymentList onSelectPayment={(p) => { setSelectedPayment(p); navigate(`/payments/${p.id}`); }} onSubmitPayment={(p) => navigate(`/payments/${p.id}/submit`)} onReviewPayment={(p) => navigate(`/payments/${p.id}/review`)} />} />
+        <Route path="/payments/:id/submit" element={selectedPayment ? <PaymentSubmit payment={selectedPayment} onBack={() => navigate('/payments')} onSubmit={(id, receiptUrl, notes) => { setSelectedPayment({ ...selectedPayment, status: 'SUBMITTED', receiptUrl, notes, submittedAt: new Date().toISOString() }); navigate('/payments'); }} /> : <Navigate to="/payments" />} />
+        <Route path="/payments/:id/review" element={selectedPayment ? <PaymentReview payment={selectedPayment} onBack={() => navigate('/payments')} onVerify={(id) => { setSelectedPayment({ ...selectedPayment, status: 'VERIFIED', verifiedAt: new Date().toISOString() }); navigate('/payments'); }} onReject={(id, reason) => { setSelectedPayment({ ...selectedPayment, status: 'REJECTED', notes: reason }); navigate('/payments'); }} /> : <Navigate to="/payments" />} />
+        <Route path="/payments/:id" element={selectedPayment ? <PaymentDetail payment={selectedPayment} onBack={() => navigate('/payments')} onViewReceipt={(p) => { setReceiptPayment(p); setShowReceiptModal(true); }} /> : <Navigate to="/payments" />} />
+        <Route path="/messages" element={<MessagingPage />} />
+        <Route path="/meetings" element={<MeetingScheduler />} />
+        <Route path="/analytics" element={<AnalyticsDashboard />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/audit-logs" element={<AuditLogs />} />
+        <Route path="/resources" element={<ResourceRecommendations />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Routes>
       <AIChatbot />
-      <ReceiptModal 
-        payment={receiptPayment} 
-        open={showReceiptModal} 
-        onOpenChange={setShowReceiptModal} 
-      />
+      <ReceiptModal payment={receiptPayment} open={showReceiptModal} onOpenChange={setShowReceiptModal} />
     </DashboardLayout>
   );
 }
@@ -281,19 +131,21 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { FileText, Download, ExternalLink, MessageSquare } from 'lucide-react';
+import { FileText, Download, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function App() {
   return (
-    <AuthProvider>
-      <RoleProvider>
-        <NotificationProvider>
-          <AppContent />
-          <Toaster position="top-right" richColors closeButton />
-        </NotificationProvider>
-      </RoleProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <RoleProvider>
+          <NotificationProvider>
+            <AppContent />
+            <Toaster position="top-right" richColors closeButton />
+          </NotificationProvider>
+        </RoleProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

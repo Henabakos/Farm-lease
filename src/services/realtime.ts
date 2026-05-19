@@ -1,84 +1,168 @@
+// ============================================================================
+// Socket.IO client wrapper.
+//
+// Why this layer exists:
+//   - Auth: the gateway requires a JWT in the `auth.token` handshake field.
+//     The previous implementation never sent it -> every socket was rejected
+//     and the entire real-time layer was silently dead.
+//   - URL: the HTTP API client lives at `${BASE}/api`, but Socket.IO must
+//     connect to the BARE origin. We strip a trailing `/api` if present.
+//   - Token rotation: the access token can change at any time (refresh
+//     interceptor in api.ts). `reconnectWithToken()` re-binds the new token
+//     and forces a reconnect so subsequent rooms authorize with the new JWT.
+// ============================================================================
 import { io, Socket } from 'socket.io-client';
+import { getAccessToken } from './api';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+function resolveSocketUrl(): string {
+  const raw = (import.meta.env.VITE_API_URL as string | undefined)
+    ?? (import.meta.env.VITE_SOCKET_URL as string | undefined)
+    ?? 'http://localhost:3001';
+  return raw.replace(/\/api\/?$/, '').replace(/\/$/, '');
+}
 
 let socket: Socket | null = null;
 
-export const initializeSocket = () => {
-  if (socket?.connected) return socket;
+/**
+ * Initialise the singleton socket. Idempotent: returns the existing instance
+ * if one is already connected. Pulls the access token at connect-time so it
+ * always uses the freshest value.
+ */
+export function initializeSocket(): Socket | null {
+  if (socket && socket.connected) return socket;
+  if (socket && !socket.connected) socket.connect();
+  if (socket) return socket;
 
-  socket = io(SOCKET_URL, {
+  const token = getAccessToken();
+  if (!token) return null; // No auth yet — skip; AuthContext will reconnect later.
+
+  socket = io(resolveSocketUrl(), {
+    transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
-    reconnectionAttempts: 5
+    reconnectionAttempts: Infinity,
+    auth: { token },
   });
 
-  socket.on('connect', () => {
-    console.log('[v0] Socket connected');
-  });
-
-  socket.on('disconnect', () => {
-    console.log('[v0] Socket disconnected');
-  });
-
-  socket.on('error', (error) => {
-    console.error('[v0] Socket error:', error);
+  socket.on('connect_error', (err) => {
+    // eslint-disable-next-line no-console
+    console.warn('[socket] connect_error', err.message);
   });
 
   return socket;
-};
+}
 
-export const getSocket = () => socket;
-
-export const disconnect = () => {
+/**
+ * Force the socket to reconnect with the current access token. Call this
+ * after a successful login or after the API interceptor rotates the token.
+ */
+export function reconnectWithToken(): void {
   if (socket) {
     socket.disconnect();
     socket = null;
   }
-};
+  initializeSocket();
+}
 
-// Notification listeners
-export const subscribeToNotifications = (userId: string, callback: (data: any) => void) => {
-  if (!socket) initializeSocket();
+export function getSocket(): Socket | null {
+  return socket;
+}
 
-  socket?.emit('subscribe_notifications', userId);
-  socket?.on('notification', callback);
-  socket?.on('payment_received', callback);
-  socket?.on('meeting_scheduled', callback);
+export function disconnect(): void {
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+}
 
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+/** Subscribe to live notifications for a user. Returns an unsubscribe fn. */
+export function subscribeToNotifications(
+  _userId: string,
+  callback: (data: any) => void,
+): () => void {
+  const s = initializeSocket();
+  if (!s) return () => undefined;
+  s.on('notification', callback);
+  s.on('payment_received', callback);
+  s.on('meeting_scheduled', callback);
   return () => {
-    socket?.off('notification', callback);
-    socket?.off('payment_received', callback);
-    socket?.off('meeting_scheduled', callback);
+    s.off('notification', callback);
+    s.off('payment_received', callback);
+    s.off('meeting_scheduled', callback);
   };
-};
+}
 
-// Message listeners
-export const subscribeToMessages = (conversationId: string, callback: (message: any) => void) => {
-  if (!socket) initializeSocket();
-
-  socket?.emit('subscribe_messages', conversationId);
-  socket?.on('new_message', callback);
-
+// ---------------------------------------------------------------------------
+// Messaging
+// ---------------------------------------------------------------------------
+/** Join the per-conversation room and listen for new messages. */
+export function subscribeToMessages(
+  conversationId: string,
+  onMessage: (message: any) => void,
+): () => void {
+  const s = initializeSocket();
+  if (!s) return () => undefined;
+  s.emit('subscribe_messages', conversationId);
+  s.on('new_message', onMessage);
   return () => {
-    socket?.off('new_message', callback);
+    s.off('new_message', onMessage);
+    s.emit('unsubscribe_messages', conversationId);
   };
-};
+}
 
-// Presence listeners
-export const subscribeToPresence = (userId: string, callback: (data: any) => void) => {
-  if (!socket) initializeSocket();
+/** Subscribe to typing indicators inside a conversation. */
+export function subscribeToTyping(
+  onTyping: (payload: { conversationId: string; userId: string; isTyping: boolean }) => void,
+): () => void {
+  const s = initializeSocket();
+  if (!s) return () => undefined;
+  s.on('typing', onTyping);
+  return () => s.off('typing', onTyping);
+}
 
-  socket?.emit('subscribe_user_presence', userId);
-  socket?.on('user_online', callback);
+export function emitTyping(conversationId: string, isTyping: boolean): void {
+  const s = initializeSocket();
+  s?.emit('typing', { conversationId, isTyping });
+}
 
-  return () => {
-    socket?.off('user_online', callback);
-  };
-};
+/** Subscribe to read receipts for a conversation (the OTHER party reading). */
+export function subscribeToReadReceipts(
+  onRead: (payload: {
+    conversationId: string;
+    readerId: string;
+    lastReadMessageId: string | null;
+    at: string;
+  }) => void,
+): () => void {
+  const s = initializeSocket();
+  if (!s) return () => undefined;
+  s.on('messages_read', onRead);
+  return () => s.off('messages_read', onRead);
+}
 
-export const emitEvent = (eventName: string, data: any) => {
-  if (!socket) initializeSocket();
-  socket?.emit(eventName, data);
-};
+export function emitMessagesRead(conversationId: string, lastReadMessageId?: string): void {
+  const s = initializeSocket();
+  s?.emit('messages_read', { conversationId, lastReadMessageId: lastReadMessageId ?? null });
+}
+
+// ---------------------------------------------------------------------------
+// Presence
+// ---------------------------------------------------------------------------
+export function subscribeToPresence(
+  _userId: string,
+  callback: (data: { userId: string; online: boolean }) => void,
+): () => void {
+  const s = initializeSocket();
+  if (!s) return () => undefined;
+  s.on('user_online', callback);
+  return () => s.off('user_online', callback);
+}
+
+export function emitEvent(eventName: string, data: any): void {
+  const s = initializeSocket();
+  s?.emit(eventName, data);
+}

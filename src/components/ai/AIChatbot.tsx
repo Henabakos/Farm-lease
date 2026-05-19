@@ -14,7 +14,7 @@ import {
   BrainCircuit,
   Zap
 } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
+import { aiAPI } from '@/src/services/ai';
 import Markdown from 'react-markdown';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -46,6 +46,9 @@ export const AIChatbot: React.FC = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Persistent chat id returned by the backend on the first message; reused
+  // on subsequent turns so the AiChat row accumulates history server-side.
+  const chatIdRef = useRef<string | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -70,29 +73,28 @@ export const AIChatbot: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: text,
-        config: {
-          systemInstruction: "You are a professional agricultural investment assistant. Provide concise, data-driven advice on crop yields, ROI, risk mitigation, and regional farming strategies. Use markdown for formatting.",
-        },
+      // The backend keeps chat state in the AiChat table; once we get a chat_id
+      // back we reuse it on subsequent turns so context + history persist.
+      const response = await aiAPI.chat({
+        message: text,
+        chat_id: chatIdRef.current ?? undefined,
       });
+      if (response.data.chat_id) chatIdRef.current = response.data.chat_id;
 
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: response.data.message_id,
         role: 'assistant',
-        content: response.text || "I'm sorry, I couldn't process that request.",
-        timestamp: new Date()
+        content: response.data.content || "I'm sorry, I couldn't process that request.",
+        timestamp: new Date(response.data.created_at),
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Error:", error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: "I encountered an error while processing your request. Please try again later.",
+        content: error?.response?.data?.error ?? "I encountered an error while processing your request. Please try again later.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);

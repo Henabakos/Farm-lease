@@ -21,8 +21,12 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { useStore } from '@/src/store/useStore';
+import { useClusters } from '@/src/hooks/useClusters';
+import { useAuth } from '@/src/contexts/AuthContext';
+import { apiRoleToUi, mapClusterFromApi } from '@/src/lib/apiMappers';
 import { motion } from 'motion/react';
+import { Loader2 } from 'lucide-react';
+import { CreateClusterDialog } from './CreateClusterDialog';
 
 const container = {
   hidden: { opacity: 0 },
@@ -40,10 +44,14 @@ const item = {
 };
 
 export function ClusterList({ onSelectCluster }: { onSelectCluster: (cluster: Cluster) => void }) {
-  const { clusters, user } = useStore();
+  const { clusters: apiClusters, isLoading, fetchClusters } = useClusters();
+  const { user } = useAuth();
+  const clusters = Array.isArray(apiClusters) ? apiClusters.map((c) => mapClusterFromApi(c as unknown as Record<string, unknown>)) : [];
+  const uiRole = user ? apiRoleToUi(user.role) : null;
   const [searchQuery, setSearchQuery] = useState('');
   const [regionFilter, setRegionFilter] = useState('all');
   const [verifiedFilter, setVerifiedFilter] = useState('all');
+  const [showCreate, setShowCreate] = useState(false);
 
   const filteredClusters = clusters.filter(cluster => {
     const matchesSearch = cluster.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -56,7 +64,15 @@ export function ClusterList({ onSelectCluster }: { onSelectCluster: (cluster: Cl
     return matchesSearch && matchesRegion && matchesVerified;
   });
 
-  const canCreateCluster = user.role === 'ADMIN' || user.role === 'CLUSTER_REP';
+  const canCreateCluster = uiRole === 'ADMIN' || uiRole === 'CLUSTER_REP' || uiRole === 'FARMER';
+
+  if (isLoading && clusters.length === 0) {
+    return (
+      <motion.div className="flex items-center justify-center py-24">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div 
@@ -71,7 +87,10 @@ export function ClusterList({ onSelectCluster }: { onSelectCluster: (cluster: Cl
           <p className="text-slate-500 mt-1 text-[10px] font-bold uppercase tracking-wider">Manage and monitor agricultural production groups.</p>
         </div>
         {canCreateCluster && (
-          <Button className="gap-2 h-9 px-4 rounded-md bg-primary hover:bg-primary/90 shadow-sm transition-all active:scale-95 text-[10px] font-bold uppercase tracking-wider">
+          <Button
+            onClick={() => setShowCreate(true)}
+            className="gap-2 h-9 px-4 rounded-md bg-primary hover:bg-primary/90 shadow-sm transition-all active:scale-95 text-[10px] font-bold uppercase tracking-wider"
+          >
             <Plus className="w-3.5 h-3.5" />
             <span>Create New Cluster</span>
           </Button>
@@ -198,6 +217,12 @@ export function ClusterList({ onSelectCluster }: { onSelectCluster: (cluster: Cl
           </Button>
         </div>
       )}
+
+      <CreateClusterDialog
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        onCreated={() => fetchClusters()}
+      />
     </motion.div>
   );
 }

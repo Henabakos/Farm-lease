@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useRole } from '@/src/contexts/RoleContext';
+import { useAuth } from '@/src/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,21 +10,26 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { motion } from 'motion/react';
 
 export function LoginPage({ onSwitch, onBack }: { onSwitch: () => void, onBack: () => void }) {
-  const { login } = useRole();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    // Simulate API call
-    setTimeout(() => {
-      login('INVESTOR'); // Default for demo
+    try {
+      await login(email, password);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Login failed';
+      setError(message);
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -51,32 +56,36 @@ export function LoginPage({ onSwitch, onBack }: { onSwitch: () => void, onBack: 
             </motion.div>
           )}
 
-          <div className="space-y-1.5">
+          <motion.div className="space-y-1.5">
             <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">Email Address</Label>
-            <div className="relative group">
+            <motion.div className="relative group">
               <Input 
                 id="email" 
                 type="email" 
                 placeholder="name@company.com" 
                 required 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="h-10 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-sm font-medium pl-4"
               />
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
-          <div className="space-y-1.5">
+          <motion.div className="space-y-1.5">
             <div className="flex items-center justify-between ml-1">
               <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Password</Label>
-              <Button variant="link" className="px-0 font-bold text-[10px] h-auto text-primary hover:no-underline hover:text-primary/80 uppercase tracking-wider">
+              <Button variant="link" type="button" className="px-0 font-bold text-[10px] h-auto text-primary hover:no-underline hover:text-primary/80 uppercase tracking-wider">
                 Forgot password?
               </Button>
             </div>
-            <div className="relative group">
+            <motion.div className="relative group">
               <Input 
                 id="password" 
                 type={showPassword ? "text" : "password"} 
                 placeholder="••••••••" 
                 required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="h-10 bg-slate-50 border-slate-200 rounded-md pr-12 focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-sm font-medium pl-4"
               />
               <button 
@@ -86,8 +95,8 @@ export function LoginPage({ onSwitch, onBack }: { onSwitch: () => void, onBack: 
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           <div className="flex items-center space-x-2.5 ml-1">
             <Checkbox id="remember" className="w-4 h-4 rounded-sm border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
@@ -115,9 +124,9 @@ export function LoginPage({ onSwitch, onBack }: { onSwitch: () => void, onBack: 
           </Button>
 
           <div className="relative py-2">
-            <div className="absolute inset-0 flex items-center">
+            <motion.div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-slate-100" />
-            </div>
+            </motion.div>
             <div className="relative flex justify-center text-[9px] uppercase tracking-widest font-bold">
               <span className="bg-white px-4 text-slate-400">Or continue with</span>
             </div>

@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react';
 import geospatialService, { LandBoundary, LandSurvey, BoundaryStatistics } from '@/src/services/geospatial';
-import { useNotification } from '@/src/contexts/NotificationContext';
+import { toast } from 'sonner';
 
 export function useGeospatial(clusterId?: string) {
-  const { notify } = useNotification();
   const [boundaries, setBoundaries] = useState<LandBoundary[]>([]);
   const [selectedBoundary, setSelectedBoundary] = useState<LandBoundary | null>(null);
   const [surveys, setSurveys] = useState<LandSurvey[]>([]);
@@ -11,28 +10,24 @@ export function useGeospatial(clusterId?: string) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load boundaries for cluster
   const loadBoundaries = useCallback(async (id: string) => {
     if (!id) return;
     setLoading(true);
     setError(null);
     try {
       const data = await geospatialService.getBoundariesForCluster(id);
-      setBoundaries(data);
+      // Extract items array from paginated response
+      const boundariesArray = Array.isArray(data) ? data : data?.items || [];
+      setBoundaries(boundariesArray);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load boundaries';
       setError(message);
-      notify({
-        type: 'error',
-        title: 'Error',
-        description: message
-      });
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, [notify]);
+  }, []);
 
-  // Load boundary details
   const loadBoundaryDetails = useCallback(async (boundaryId: string) => {
     setLoading(true);
     setError(null);
@@ -45,17 +40,12 @@ export function useGeospatial(clusterId?: string) {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load boundary details';
       setError(message);
-      notify({
-        type: 'error',
-        title: 'Error',
-        description: message
-      });
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, [notify]);
+  }, []);
 
-  // Create boundary
   const createBoundary = useCallback(async (
     name: string,
     coordinates: Array<{ lat: number; lng: number }>,
@@ -77,116 +67,71 @@ export function useGeospatial(clusterId?: string) {
         description,
         accuracyRating
       );
-      setBoundaries([newBoundary, ...boundaries]);
-      notify({
-        type: 'success',
-        title: 'Success',
-        description: 'Boundary created successfully'
-      });
+      setBoundaries((prev) => [newBoundary, ...prev]);
+      toast.success('Boundary created successfully');
       return newBoundary;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create boundary';
       setError(message);
-      notify({
-        type: 'error',
-        title: 'Error',
-        description: message
-      });
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, [clusterId, boundaries, notify]);
+  }, [clusterId]);
 
-  // Update boundary
-  const updateBoundary = useCallback(async (
-    boundaryId: string,
-    updates: any
-  ) => {
+  const updateBoundary = useCallback(async (boundaryId: string, updates: Record<string, unknown>) => {
     setLoading(true);
     setError(null);
     try {
       const updated = await geospatialService.updateBoundary(boundaryId, updates);
-      setBoundaries(boundaries.map(b => b.id === boundaryId ? updated : b));
-      if (selectedBoundary?.id === boundaryId) {
-        setSelectedBoundary(updated);
-      }
-      notify({
-        type: 'success',
-        title: 'Success',
-        description: 'Boundary updated successfully'
-      });
+      setBoundaries((prev) => prev.map((b) => (b.id === boundaryId ? updated : b)));
+      setSelectedBoundary((prev) => (prev?.id === boundaryId ? updated : prev));
+      toast.success('Boundary updated successfully');
       return updated;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update boundary';
       setError(message);
-      notify({
-        type: 'error',
-        title: 'Error',
-        description: message
-      });
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, [boundaries, selectedBoundary, notify]);
+  }, []);
 
-  // Delete boundary
   const deleteBoundary = useCallback(async (boundaryId: string) => {
     setLoading(true);
     setError(null);
     try {
       await geospatialService.deleteBoundary(boundaryId);
-      setBoundaries(boundaries.filter(b => b.id !== boundaryId));
-      if (selectedBoundary?.id === boundaryId) {
-        setSelectedBoundary(null);
-      }
-      notify({
-        type: 'success',
-        title: 'Success',
-        description: 'Boundary deleted successfully'
-      });
+      setBoundaries((prev) => prev.filter((b) => b.id !== boundaryId));
+      setSelectedBoundary((prev) => (prev?.id === boundaryId ? null : prev));
+      toast.success('Boundary deleted successfully');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete boundary';
       setError(message);
-      notify({
-        type: 'error',
-        title: 'Error',
-        description: message
-      });
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, [boundaries, selectedBoundary, notify]);
+  }, []);
 
-  // Verify boundary
   const verifyBoundary = useCallback(async (boundaryId: string, notes?: string) => {
     setLoading(true);
     setError(null);
     try {
       const verified = await geospatialService.verifyBoundary(boundaryId, notes);
-      setBoundaries(boundaries.map(b => b.id === boundaryId ? verified : b));
-      if (selectedBoundary?.id === boundaryId) {
-        setSelectedBoundary(verified);
-      }
-      notify({
-        type: 'success',
-        title: 'Success',
-        description: 'Boundary verified successfully'
-      });
+      setBoundaries((prev) => prev.map((b) => (b.id === boundaryId ? verified : b)));
+      setSelectedBoundary((prev) => (prev?.id === boundaryId ? verified : prev));
+      toast.success('Boundary verified successfully');
       return verified;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to verify boundary';
       setError(message);
-      notify({
-        type: 'error',
-        title: 'Error',
-        description: message
-      });
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, [boundaries, selectedBoundary, notify]);
+  }, []);
 
-  // Upload survey
   const uploadSurvey = useCallback(async (
     boundaryId: string,
     surveyType: string,
@@ -204,27 +149,18 @@ export function useGeospatial(clusterId?: string) {
         fileName,
         fileSize
       );
-      setSurveys([newSurvey, ...surveys]);
-      notify({
-        type: 'success',
-        title: 'Success',
-        description: 'Survey uploaded successfully'
-      });
+      setSurveys((prev) => [newSurvey, ...prev]);
+      toast.success('Survey uploaded successfully');
       return newSurvey;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to upload survey';
       setError(message);
-      notify({
-        type: 'error',
-        title: 'Error',
-        description: message
-      });
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, [surveys, notify]);
+  }, []);
 
-  // Load statistics
   const loadStatistics = useCallback(async (id: string) => {
     if (!id) return;
     setLoading(true);
@@ -239,15 +175,12 @@ export function useGeospatial(clusterId?: string) {
   }, []);
 
   return {
-    // State
     boundaries,
     selectedBoundary,
     surveys,
     statistics,
     loading,
     error,
-
-    // Actions
     loadBoundaries,
     loadBoundaryDetails,
     createBoundary,
@@ -256,10 +189,8 @@ export function useGeospatial(clusterId?: string) {
     verifyBoundary,
     uploadSurvey,
     loadStatistics,
-
-    // Utilities
     setSelectedBoundary,
     setBoundaries,
-    setSurveys
+    setSurveys,
   };
 }

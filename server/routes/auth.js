@@ -1,5 +1,5 @@
 import express from 'express';
-import bcrypt from 'bcryptjs';
+import { authMiddleware } from '../middleware/index.js';
 
 const router = express.Router();
 
@@ -80,21 +80,20 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Fetch user role
-    const { data: userData } = await supabase
+    const { data: userData, error: profileError } = await supabase
       .from('users')
-      .select('role')
+      .select('id, email, full_name, role, avatar_url, verification_status')
       .eq('id', data.user.id)
       .single();
+
+    if (profileError || !userData) {
+      return res.status(404).json({ error: 'User profile not found' });
+    }
 
     res.json({
       access_token: data.session.access_token,
       refresh_token: data.session.refresh_token,
-      user: {
-        id: data.user.id,
-        email: data.user.email,
-        role: userData?.role || 'tenant'
-      }
+      user: userData
     });
   } catch (error) {
     console.error('[v0] Login error:', error.message);
@@ -148,7 +147,7 @@ router.post('/refresh', async (req, res) => {
 });
 
 // Get current user
-router.get('/me', async (req, res) => {
+router.get('/me', authMiddleware, async (req, res) => {
   try {
     const supabase = req.app.locals.supabase;
     const userId = req.userId;

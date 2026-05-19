@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { 
-  Users, 
-  ShieldCheck, 
-  Wallet, 
-  Activity, 
-  Search, 
-  Filter, 
-  MoreVertical, 
-  CheckCircle2, 
-  XCircle, 
+import React, { useState, useEffect } from 'react';
+import {
+  Users,
+  ShieldCheck,
+  Wallet,
+  Activity,
+  Search,
+  Filter,
+  MoreVertical,
+  CheckCircle2,
+  XCircle,
   Clock,
   ArrowUpRight,
   UserPlus,
@@ -17,20 +17,28 @@ import {
   Shield,
   BarChart3,
   Lock,
-  ChevronRight
+  ChevronRight,
+  BrainCircuit,
+  LayoutDashboard,
+  FileSignature,
+  History
 } from 'lucide-react';
+import { AdminAIPanel } from './AdminAIPanel';
+import { useAdmin } from '../../hooks/useAdmin';
+import { useClusters } from '@/src/hooks/useClusters';
+import { paymentsAPI } from '@/src/services/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
 } from '@/components/ui/tabs';
 import { User, Cluster, Payment, UserRole } from '../../types';
-import { useStore } from '@/src/store/useStore';
+import { apiRoleToUi, mapClusterFromApi } from '@/src/lib/apiMappers';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
@@ -51,36 +59,69 @@ const item = {
 };
 
 export const AdminDashboard: React.FC = () => {
-  const { clusters, payments, verifyCluster, verifyPayment } = useStore();
+  const { users, stats, isLoading, updateUserStatus, approveUser, fetchAuditLogs } = useAdmin();
+  const { clusters: apiClusters, verifyCluster } = useClusters();
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'USERS' | 'CLUSTERS' | 'PAYMENTS'>('USERS');
+  const filteredUsers = Array.isArray(users) ? users.filter(user =>
+    user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
+  const [activeTab, setActiveTab] = useState<'USERS' | 'CLUSTERS' | 'PAYMENTS' | 'ANALYTICS' | 'ADMIN' | 'CONTRACTS' | 'AI'>('USERS');
 
-  // Mock users for now as they aren't in the store yet
-  const mockUsers: User[] = [
-    { id: 'u1', name: 'Alex Johnson', email: 'alex@example.com', role: 'INVESTOR', joinedDate: '2024-01-15', location: 'New York, USA' },
-    { id: 'u2', name: 'Sarah Miller', email: 'sarah@example.com', role: 'FARMER', joinedDate: '2024-02-10', location: 'Zaria, Nigeria' },
-    { id: 'u3', name: 'John Doe', email: 'john@example.com', role: 'CLUSTER_REP', joinedDate: '2024-03-05', location: 'Nairobi, Kenya' },
-    { id: 'u4', name: 'Admin User', email: 'admin@agriinvest.com', role: 'ADMIN', joinedDate: '2023-12-01', location: 'Remote' },
-  ];
+  // Map API clusters to UI clusters
+  const clusters = Array.isArray(apiClusters)
+    ? apiClusters.map((c) => mapClusterFromApi(c as unknown as Record<string, unknown>))
+    : [];
 
   const pendingClusters = clusters.filter(c => !c.isVerified);
   const pendingPayments = payments.filter(p => p.status === 'SUBMITTED');
 
-  const stats = [
-    { title: 'Total Users', value: '1,284', change: '+12%', icon: Users, color: 'text-blue-600', bg: 'bg-blue-500/10' },
+  // Fetch payments on mount
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        const response = await paymentsAPI.getAll();
+        setPayments(Array.isArray(response.data) ? response.data : []);
+      } catch (err) {
+        console.error('Failed to fetch payments', err);
+      }
+    };
+    fetchPayments();
+  }, []);
+
+  // Fetch audit logs when ADMIN tab is selected
+  useEffect(() => {
+    if (activeTab === 'ADMIN') {
+      fetchAuditLogs().then(logs => setAuditLogs(Array.isArray(logs) ? logs : []));
+    }
+  }, [activeTab, fetchAuditLogs]);
+
+  const statsData = [
+    { title: 'Total Users', value: String(stats?.users?.total || 0), change: '+12%', icon: Users, color: 'text-blue-600', bg: 'bg-blue-500/10' },
     { title: 'Active Clusters', value: clusters.length.toString(), change: '+8%', icon: MapPin, color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
     { title: 'Total Volume', value: `$${(payments.filter(p => p.status === 'VERIFIED').reduce((sum, p) => sum + p.amount, 0) / 1000).toFixed(1)}k`, change: '+15%', icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-500/10' },
     { title: 'System Health', value: '99.9%', change: 'Stable', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-500/10' },
   ];
 
-  const handleVerifyCluster = (id: string) => {
-    verifyCluster(id);
-    toast.success('Cluster verified successfully');
+  const handleVerifyCluster = async (id: string) => {
+    try {
+      await verifyCluster(id);
+      toast.success('Cluster verified successfully');
+    } catch (err) {
+      console.error('Failed to verify cluster', err);
+    }
   };
 
-  const handleVerifyPayment = (id: string) => {
-    verifyPayment(id);
-    toast.success('Payment verified successfully');
+  const handleVerifyPayment = async (id: string) => {
+    try {
+      await paymentsAPI.verify(id, { verified: true });
+      setPayments(prev => prev.map(p => p.id === id ? { ...p, status: 'VERIFIED' as any } : p));
+      toast.success('Payment verified successfully');
+    } catch (err) {
+      console.error('Failed to verify payment', err);
+    }
   };
 
   return (
@@ -113,7 +154,7 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
+        {statsData.map((stat) => (
           <motion.div key={stat.title} variants={item}>
             <Card className="border border-slate-200 shadow-sm bg-white hover:shadow-md transition-all duration-300 group overflow-hidden relative rounded-lg">
               <CardContent className="p-6">
@@ -159,10 +200,14 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
               <Tabs defaultValue="USERS" className="mt-6" onValueChange={(v) => setActiveTab(v as any)}>
-                <TabsList className="bg-slate-100 p-1 rounded-md h-10 w-full md:w-auto border border-slate-200">
-                  <TabsTrigger value="USERS" className="rounded-sm px-6 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all">Users</TabsTrigger>
-                  <TabsTrigger value="CLUSTERS" className="rounded-sm px-6 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all">Clusters</TabsTrigger>
-                  <TabsTrigger value="PAYMENTS" className="rounded-sm px-6 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all">Payments</TabsTrigger>
+                <TabsList className="bg-slate-100 p-1 rounded-md h-10 w-full md:w-auto border border-slate-200 flex-wrap">
+                  <TabsTrigger value="USERS" className="rounded-sm px-4 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all">Users</TabsTrigger>
+                  <TabsTrigger value="CLUSTERS" className="rounded-sm px-4 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all">Clusters</TabsTrigger>
+                  <TabsTrigger value="PAYMENTS" className="rounded-sm px-4 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all">Payments</TabsTrigger>
+                  <TabsTrigger value="ANALYTICS" className="rounded-sm px-4 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all gap-1.5"><LayoutDashboard className="w-3 h-3" />Analytics</TabsTrigger>
+                  <TabsTrigger value="ADMIN" className="rounded-sm px-4 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all gap-1.5"><Shield className="w-3 h-3" />Admin</TabsTrigger>
+                  <TabsTrigger value="CONTRACTS" className="rounded-sm px-4 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all gap-1.5"><FileSignature className="w-3 h-3" />Contracts</TabsTrigger>
+                  <TabsTrigger value="AI" className="rounded-sm px-4 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all gap-1.5"><BrainCircuit className="w-3 h-3" />AI</TabsTrigger>
                 </TabsList>
               </Tabs>
             </CardHeader>
@@ -177,26 +222,62 @@ export const AdminDashboard: React.FC = () => {
                 >
                   {activeTab === 'USERS' && (
                     <div className="space-y-3">
-                      {mockUsers.map((user) => (
+                      {filteredUsers.map((user) => (
                         <div key={user.id} className="flex items-center justify-between p-4 rounded-md bg-slate-50 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 transition-all group">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-primary font-bold group-hover:scale-105 transition-transform">
-                              {user.name.charAt(0)}
+                              {user.fullName?.charAt(0) || user.name?.charAt(0) || 'U'}
                             </div>
                             <div>
-                              <h4 className="font-bold text-sm text-slate-900 tracking-tight">{user.name}</h4>
-                              <p className="text-[11px] text-slate-500 font-medium">{user.email}</p>
+                              <h4 className="font-bold text-sm text-slate-900 tracking-tight">{user.fullName || user.name || 'Unknown'}</h4>
+                              <p className="text-[11px] text-slate-500 font-medium">{user.email || 'No email'}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-3">
                             <div className="hidden md:block text-right">
-                              <Badge variant="outline" className="bg-white text-slate-600 border-slate-200 font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider">
-                                {user.role}
+                              <Badge variant="outline" className={cn(
+                                "font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider",
+                                user.status === 'ACTIVE' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                user.status === 'PENDING' ? "bg-amber-50 text-amber-700 border-amber-200" :
+                                user.status === 'SUSPENDED' ? "bg-red-50 text-red-700 border-red-200" :
+                                "bg-white text-slate-600 border-slate-200"
+                              )}>
+                                {user.status || 'UNKNOWN'}
                               </Badge>
                             </div>
-                            <Button variant="ghost" size="icon" className="rounded-md h-8 w-8 hover:bg-white hover:text-primary border border-transparent hover:border-slate-200">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
+                            {user.status === 'PENDING' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-3 text-[10px] font-bold rounded-md border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                                onClick={() => approveUser(user.id)}
+                              >
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Approve
+                              </Button>
+                            )}
+                            {user.status === 'ACTIVE' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-3 text-[10px] font-bold rounded-md border-red-200 hover:bg-red-50 hover:text-red-700"
+                                onClick={() => updateUserStatus(user.id, 'SUSPENDED', 'Admin action')}
+                              >
+                                <XCircle className="w-3 h-3 mr-1" />
+                                Suspend
+                              </Button>
+                            )}
+                            {user.status === 'SUSPENDED' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-3 text-[10px] font-bold rounded-md border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                                onClick={() => updateUserStatus(user.id, 'ACTIVE', 'Admin action')}
+                              >
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Reactivate
+                              </Button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -231,6 +312,60 @@ export const AdminDashboard: React.FC = () => {
                       ))}
                     </div>
                   )}
+                  {activeTab === 'ANALYTICS' && (
+                    <div className="space-y-6">
+                      <div className="text-center py-12 text-slate-500">
+                        Analytics dashboard is available in the Analytics section
+                      </div>
+                    </div>
+                  )}
+                  {activeTab === 'ADMIN' && (
+                    <div className="space-y-6">
+                      <Card className="p-6 border-slate-200">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="font-bold flex items-center gap-2"><History className="w-4 h-4" /> Audit Logs</h3>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => fetchAuditLogs().then(logs => setAuditLogs(Array.isArray(logs) ? logs : []))}
+                          >
+                            Refresh
+                          </Button>
+                        </div>
+                        <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                          {auditLogs.length === 0 ? (
+                            <p className="text-slate-500 text-sm text-center py-8">No audit logs available</p>
+                          ) : (
+                            auditLogs.map((log) => (
+                              <div key={log.id} className="p-3 rounded-md bg-slate-50 border border-slate-200 text-xs">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="font-bold text-slate-900">{log.action || 'Unknown action'}</span>
+                                  <span className="text-[10px] text-slate-500">
+                                    {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}
+                                  </span>
+                                </div>
+                                <p className="text-slate-600">{log.details || 'No details'}</p>
+                                {log.userId && (
+                                  <p className="text-[10px] text-slate-400 mt-1">User ID: {log.userId}</p>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </Card>
+                    </div>
+                  )}
+                  {activeTab === 'CONTRACTS' && (
+                    <div className="space-y-4">
+                      <Card className="p-6 border-slate-200">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="font-bold flex items-center gap-2"><FileSignature className="w-4 h-4" /> Contract Templates</h3>
+                          <Button size="sm" className="bg-primary hover:bg-primary/90">Create Template</Button>
+                        </div>
+                        <p className="text-slate-500 text-sm">Contract template management interface coming soon.</p>
+                      </Card>
+                    </div>
+                  )}
                   {activeTab === 'PAYMENTS' && (
                     <div className="space-y-3">
                       {payments.map((payment) => (
@@ -261,6 +396,9 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                       ))}
                     </div>
+                  )}
+                  {activeTab === 'AI' && (
+                    <AdminAIPanel />
                   )}
                 </motion.div>
               </AnimatePresence>

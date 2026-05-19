@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import L from 'leaflet';
+import L from "leaflet";
+
+import "leaflet-draw";
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
-import LeafletDraw from 'leaflet-draw';
+
 import { MapPin, Trash2, Save } from 'lucide-react';
 import { calculatePolygonArea, formatArea } from '@/src/services/geospatial';
 
@@ -45,29 +47,29 @@ export function BoundaryDrawer({
     mapRef.current.addLayer(drawnLayersRef.current);
 
     // Add Leaflet Draw control
-    const drawControl = new LeafletDraw({
-      position: 'topleft',
-      draw: {
-        polygon: {
-          shapeOptions: {
-            color: '#3b82f6',
-            weight: 2,
-            opacity: 0.7,
-            fill: true,
-            fillOpacity: 0.3
-          }
-        },
-        polyline: false,
-        rectangle: true,
-        circle: false,
-        marker: false,
-        circlemarker: false
-      },
-      edit: {
-        featureGroup: drawnLayersRef.current,
-        remove: true
+    const drawControl = new (L.Control as any).Draw({
+  position: 'topleft',
+  draw: {
+    polygon: {
+      shapeOptions: {
+        color: '#3b82f6',
+        weight: 2,
+        opacity: 0.7,
+        fill: true,
+        fillOpacity: 0.3
       }
-    });
+    },
+    polyline: false,
+    rectangle: true,
+    circle: false,
+    marker: false,
+    circlemarker: false
+  },
+  edit: {
+    featureGroup: drawnLayersRef.current,
+    remove: true
+  }
+});
 
     mapRef.current.addControl(drawControl);
 
@@ -126,7 +128,7 @@ export function BoundaryDrawer({
 
     drawnLayersRef.current.eachLayer((layer: any) => {
       if (layer instanceof L.Polygon) {
-        const latlngs = layer.getLatLngs()[0];
+        const latlngs = layer.getLatLngs()[0] as L.LatLng[];
         latlngs.forEach((latlng: L.LatLng) => {
           coords.push({ lat: latlng.lat, lng: latlng.lng });
         });

@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Cluster, Plot, User } from '@/src/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  MapPin, 
-  Users, 
-  CheckCircle2, 
+import {
+  MapPin,
+  Users,
+  CheckCircle2,
   ArrowLeft,
   Calendar,
   Layers,
@@ -19,51 +20,169 @@ import {
   Info,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  FileText as FileTextIcon
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { useStore } from '@/src/store/useStore';
+import { useAuth } from '@/src/contexts/AuthContext';
+import { apiRoleToUi } from '@/src/lib/apiMappers';
 import { toast } from 'sonner';
 import { GeospatialClusterDetail } from '@/src/components/geospatial';
-
+import { useClusters } from '@/src/hooks/useClusters';
+import { clustersAPI, plotsAPI } from '@/src/services/api';
+import { InviteMemberDialog } from './InviteMemberDialog';
+import { PlotMapPicker } from './PlotMapPicker';
 import { motion } from 'motion/react';
 
 export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: () => void }) {
-  const { user, verifyCluster } = useStore();
-  const [members, setMembers] = useState<User[]>([]); // In real app, fetch from store/api
-  const [plots, setPlots] = useState<Plot[]>([]); // In real app, fetch from store/api
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { listMembers, removeMember: apiRemoveMember, verifyCluster } = useClusters();
+  const uiRole = user ? apiRoleToUi(user.role) : null;
+  const [members, setMembers] = useState<User[]>([]);
+  const [plots, setPlots] = useState<Plot[]>([]);
   const [searchMember, setSearchMember] = useState('');
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [inviteRole, setInviteRole] = useState<'FARMER' | 'REPRESENTATIVE'>('FARMER');
+  const [showPlotDialog, setShowPlotDialog] = useState(false);
+  const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null);
 
-  const canManage = user.role === 'ADMIN' || user.role === 'CLUSTER_REP';
-  const canVerify = user.role === 'ADMIN';
+  const canManage = uiRole === 'ADMIN' || uiRole === 'CLUSTER_REP';
+  const canVerify = uiRole === 'ADMIN';
+  const canPropose = uiRole === 'INVESTOR' || uiRole === 'FARMER';
+  const canInvite = uiRole === 'ADMIN' || uiRole === 'CLUSTER_REP' || uiRole === 'FARMER';
 
-  const handleVerify = () => {
-    verifyCluster(cluster.id);
-    toast.success('Cluster verified successfully');
+  const handleCreateProposal = () => {
+    // Navigate to proposal creation with cluster pre-selected
+    navigate('/proposals/create', { state: { clusterId: cluster.id, clusterName: cluster.name } });
   };
 
-  const filteredMembers = members.filter(m => 
-    m.name.toLowerCase().includes(searchMember.toLowerCase()) || 
+  // Load real members on mount
+  useEffect(() => {
+    const loadMembers = async () => {
+      setLoadingMembers(true);
+      try {
+        const data = await listMembers(cluster.id);
+        setMembers(data.map((m: any) => ({
+          id: m.id,
+          name: m.name,
+          email: m.email,
+          role: m.role,
+          cluster_role: m.cluster_role,
+          joinedDate: m.joined_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+          avatar: m.avatar,
+        })));
+      } catch (err) {
+        console.error('Failed to load members:', err);
+      } finally {
+        setLoadingMembers(false);
+      }
+    };
+    loadMembers();
+  }, [cluster.id, listMembers]);
+
+  // Load plots from backend on mount
+  useEffect(() => {
+    const loadPlots = async () => {
+      try {
+        const response = await plotsAPI.getClusterPlots(cluster.id);
+        setPlots(response.data || []);
+      } catch (err) {
+        console.error('Failed to load plots:', err);
+      }
+    };
+    loadPlots();
+  }, [cluster.id]);
+
+  const handleVerify = async () => {
+    try {
+      await verifyCluster(cluster.id);
+      toast.success('Cluster verified successfully');
+    } catch (err) {
+      console.error('Failed to verify cluster', err);
+    }
+  };
+
+  const filteredMembers = members.filter(m =>
+    m.name.toLowerCase().includes(searchMember.toLowerCase()) ||
     m.email.toLowerCase().includes(searchMember.toLowerCase())
   );
 
-  const removeMember = (id: string) => {
-    setMembers(members.filter(m => m.id !== id));
+  const handleRemoveMember = async (id: string) => {
+    try {
+      await apiRemoveMember(cluster.id, id);
+      setMembers(members.filter(m => m.id !== id));
+      toast.success('Member removed');
+    } catch (err) {
+      console.error('Failed to remove member', err);
+    }
   };
 
-  const addMember = () => {
-    // Mock adding a member
-    const newMember: User = {
-      id: `m${Date.now()}`,
-      name: 'New Farmer',
-      email: 'new@farmer.com',
-      role: 'FARMER',
-      joinedDate: new Date().toISOString().split('T')[0],
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${Date.now()}`
-    };
-    setMembers([...members, newMember]);
+  const handleInviteRep = () => {
+    setInviteRole('REPRESENTATIVE');
+    setShowInviteDialog(true);
+  };
+
+  const handleInviteFarmer = () => {
+    setInviteRole('FARMER');
+    setShowInviteDialog(true);
+  };
+
+  const handleMemberInvited = () => {
+    // Reload members after invite
+    listMembers(cluster.id).then((data) => {
+      setMembers(data.map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        email: m.email,
+        role: m.role,
+        cluster_role: m.cluster_role,
+        joinedDate: m.joined_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+        avatar: m.avatar,
+      })));
+    });
+  };
+
+  const handleMakeRep = async (memberId: string) => {
+    try {
+      await clustersAPI.updateMemberRole(cluster.id, memberId, 'REPRESENTATIVE');
+      toast.success('Member promoted to representative');
+      handleMemberInvited();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to promote member');
+    }
+  };
+
+  const handleSavePlot = async (plotData: { location: string; size: number; status: string; latitude: number; longitude: number }) => {
+    try {
+      const response = await plotsAPI.create({
+        clusterId: cluster.id,
+        location: plotData.location,
+        size: plotData.size,
+        status: plotData.status,
+        latitude: plotData.latitude,
+        longitude: plotData.longitude,
+      });
+      setPlots([...plots, response.data]);
+      toast.success('Plot added successfully');
+      // Reload plots from backend to ensure consistency
+      const updatedPlots = await plotsAPI.getClusterPlots(cluster.id);
+      setPlots(updatedPlots.data || []);
+    } catch (err) {
+      console.error('Failed to save plot:', err);
+      toast.error('Failed to save plot');
+    }
+  };
+
+  const handleViewOnMap = (plot: Plot) => {
+    if (plot.latitude && plot.longitude) {
+      window.open(`https://www.google.com/maps?q=${plot.latitude},${plot.longitude}`, '_blank');
+    } else {
+      toast.error('This plot has no coordinates');
+    }
   };
 
   const container = {
@@ -82,35 +201,47 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
   };
 
   return (
-    <motion.div 
-      variants={container}
-      initial="hidden"
-      animate="show"
-      className="space-y-8"
-    >
-      <motion.div variants={item} className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9 rounded-md hover:bg-slate-50 hover:text-primary transition-all active:scale-95 border border-transparent hover:border-slate-200 shadow-sm">
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 leading-tight">{cluster.name}</h1>
-            {cluster.isVerified && (
-              <Badge className="bg-emerald-50 text-emerald-600 border border-emerald-100 font-bold px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider">
-                <CheckCircle2 className="w-3 h-3 mr-1" />
-                Verified
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 text-slate-500 mt-1 text-[10px] font-bold uppercase tracking-wider">
-            <MapPin className="w-3 h-3 text-slate-400" />
-            <span>{cluster.location}, {cluster.region}</span>
+    <>
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="space-y-8"
+      >
+      <motion.div variants={item} className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9 rounded-md hover:bg-slate-50 hover:text-primary transition-all active:scale-95 border border-transparent hover:border-slate-200 shadow-sm">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 leading-tight">{cluster.name}</h1>
+              {cluster.isVerified && (
+                <Badge className="bg-emerald-50 text-emerald-600 border border-emerald-100 font-bold px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider">
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  Verified
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-500 mt-1 text-[10px] font-bold uppercase tracking-wider">
+              <MapPin className="w-3 h-3 text-slate-400" />
+              <span>{cluster.location}, {cluster.region}</span>
+            </div>
           </div>
         </div>
+        {canPropose && (
+          <Button
+            onClick={handleCreateProposal}
+            className="bg-primary hover:bg-primary/90 font-bold rounded-md h-9 px-4 text-[11px] uppercase tracking-wider gap-2 shadow-sm transition-all active:scale-95"
+          >
+            <FileTextIcon className="w-3.5 h-3.5" />
+            Create Proposal
+          </Button>
+        )}
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 gap-8">
+        <div className="space-y-6">
           <motion.div variants={item}>
             <Tabs defaultValue="overview" className="space-y-6">
               <TabsList className="bg-slate-100 p-1 rounded-md border border-slate-200 h-10">
@@ -181,29 +312,39 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                 </Card>
 
                 <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
-                  <CardHeader className="p-6 pb-4">
-                    <CardTitle className="text-base font-bold tracking-tight text-slate-900">Cluster Representatives</CardTitle>
-                    <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Official contacts managing this cluster.</CardDescription>
+                  <CardHeader className="flex flex-row items-center justify-between p-6 pb-4">
+                    <div>
+                      <CardTitle className="text-base font-bold tracking-tight text-slate-900">Cluster Representatives</CardTitle>
+                      <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Official contacts managing this cluster.</CardDescription>
+                    </div>
+                    <Button size="sm" onClick={handleInviteRep} className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider bg-primary hover:bg-primary/90 text-white">
+                      <UserPlus className="w-3 h-3 mr-1" />
+                      Add Rep
+                    </Button>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {[
-                        { name: 'Robert Chen', role: 'Cluster Representative', phone: '+234 802 345 6789', email: 'robert@cluster.com' },
-                        { name: 'Alice Okafor', role: 'Technical Lead', phone: '+234 803 456 7890', email: 'alice@cluster.com' }
-                      ].map((rep) => (
-                        <div key={rep.email} className="flex items-center justify-between p-4 rounded-md bg-slate-50 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 transition-all group active:scale-[0.99]">
+                      {members.filter(m => (m.role as string) === 'CLUSTER_REP' || (m.role as string) === 'cluster_rep').map((rep) => (
+                        <div key={rep.id} className="flex items-center justify-between p-4 rounded-md bg-slate-50 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 transition-all group active:scale-[0.99]">
                           <div className="flex items-center gap-3">
                             <Avatar className="w-10 h-10 border border-slate-200 shadow-sm rounded-md">
+                              <AvatarImage src={rep.avatar} />
                               <AvatarFallback className="bg-white text-primary font-bold text-xs rounded-md">{rep.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
                               <p className="font-bold text-sm text-slate-900 group-hover:text-primary transition-colors leading-tight">{rep.name}</p>
-                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{rep.role}</p>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Cluster Representative</p>
+                              <p className="text-[10px] text-slate-500">{rep.email}</p>
                             </div>
                           </div>
                           <Button variant="outline" size="sm" className="rounded-md h-8 px-3 border-slate-200 bg-white hover:bg-slate-50 text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 shadow-sm">Contact</Button>
                         </div>
                       ))}
+                      {members.filter(m => (m.role as string) === 'CLUSTER_REP' || (m.role as string) === 'cluster_rep').length === 0 && (
+                        <div className="col-span-1 md:col-span-2 text-center py-8 text-slate-500 text-sm">
+                          No cluster representatives assigned yet
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -216,12 +357,10 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                       <CardTitle className="text-xl font-bold tracking-tight">Member Directory</CardTitle>
                       <CardDescription className="text-sm font-normal">Manage farmers associated with this cluster.</CardDescription>
                     </div>
-                    {canManage && (
-                      <Button onClick={addMember} className="gap-2 h-9 px-4 rounded-md bg-primary hover:bg-primary/90 shadow-sm transition-all text-xs">
-                        <UserPlus className="w-3.5 h-3.5" />
-                        <span>Add Farmer</span>
-                      </Button>
-                    )}
+                    <Button onClick={handleInviteFarmer} className="gap-2 h-9 px-4 rounded-md bg-primary hover:bg-primary/90 shadow-sm transition-all text-xs">
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>Add Farmer</span>
+                    </Button>
                   </CardHeader>
                   <CardContent className="p-6 space-y-6">
                     <div className="relative group">
@@ -235,34 +374,52 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                     </div>
 
                     <div className="space-y-2">
-                      {filteredMembers.map((member) => (
-                        <div key={member.id} className="flex items-center justify-between p-3 rounded-md hover:bg-slate-50 transition-all group border border-transparent hover:border-slate-200">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-10 h-10 border border-slate-200 shadow-sm">
-                              <AvatarImage src={member.avatar} />
-                              <AvatarFallback className="bg-slate-50 text-primary font-bold text-sm">{member.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-bold text-sm group-hover:text-primary transition-colors">{member.name}</p>
-                              <p className="text-xs text-slate-500">{member.email}</p>
+                      {filteredMembers.map((member) => {
+                        const isRep = ((member as any).cluster_role as string) === 'REPRESENTATIVE' || (member.role as string) === 'CLUSTER_REP';
+                        return (
+                          <div key={member.id} className="flex items-center justify-between p-3 rounded-md hover:bg-slate-50 transition-all group border border-transparent hover:border-slate-200">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="w-10 h-10 border border-slate-200 shadow-sm">
+                                <AvatarImage src={member.avatar} />
+                                <AvatarFallback className="bg-slate-50 text-primary font-bold text-sm">{member.name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-bold text-sm group-hover:text-primary transition-colors">{member.name}</p>
+                                <p className="text-xs text-slate-500">{member.email}</p>
+                                {isRep && (
+                                  <Badge variant="secondary" className="text-[9px] font-semibold bg-emerald-50 text-emerald-600 border-emerald-100 mt-1">
+                                    Representative
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-right hidden sm:block">
+                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Joined</p>
+                                <p className="text-xs font-bold">{new Date(member.joinedDate).toLocaleDateString()}</p>
+                              </div>
+                              {!isRep && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all border border-transparent hover:border-slate-200"
+                                  onClick={() => handleMakeRep(member.id)}
+                                >
+                                  Make Rep
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:bg-destructive/10 h-8 w-8 rounded-md opacity-0 group-hover:opacity-100 transition-all border border-transparent hover:border-destructive/20"
+                                onClick={() => handleRemoveMember(member.id)}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-right hidden sm:block">
-                              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Joined</p>
-                              <p className="text-xs font-bold">{new Date(member.joinedDate).toLocaleDateString()}</p>
-                            </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="text-destructive hover:bg-destructive/10 h-8 w-8 rounded-md opacity-0 group-hover:opacity-100 transition-all border border-transparent hover:border-destructive/20"
-                              onClick={() => removeMember(member.id)}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
@@ -277,12 +434,10 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                           <CardTitle className="text-xl font-bold tracking-tight">Land Plots</CardTitle>
                           <CardDescription className="text-sm font-normal">Inventory of available and occupied land.</CardDescription>
                         </div>
-                        {canManage && (
-                          <Button size="sm" className="gap-2 rounded-md h-8 px-3 text-xs">
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>Add Plot</span>
-                          </Button>
-                        )}
+                        <Button size="sm" onClick={() => setShowPlotDialog(true)} className="gap-2 rounded-md h-8 px-3 text-xs bg-primary hover:bg-primary/90 text-white">
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add Plot</span>
+                        </Button>
                       </CardHeader>
                       <CardContent className="p-6 space-y-3">
                         {plots.map((plot) => (
@@ -294,9 +449,15 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                                   <Layers className="w-3.5 h-3.5 text-primary/60" />
                                   <span className="font-medium">{plot.size} Hectares</span>
                                 </div>
+                                {plot.latitude && plot.longitude && (
+                                  <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
+                                    <MapPin className="w-3 h-3 text-primary/60" />
+                                    <span className="font-medium">{Number(plot.latitude).toFixed(4)}, {Number(plot.longitude).toFixed(4)}</span>
+                                  </div>
+                                )}
                               </div>
-                              <Badge 
-                                variant="outline" 
+                              <Badge
+                                variant="outline"
                                 className={cn(
                                   "px-2 py-0.5 rounded-md font-semibold text-[10px] uppercase tracking-wider border",
                                   plot.status === 'AVAILABLE' && "text-emerald-600 bg-emerald-50 border-emerald-100",
@@ -307,20 +468,38 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                                 {plot.status}
                               </Badge>
                             </div>
+                            {plot.latitude && plot.longitude && (
+                              <div className="w-full h-32 rounded-md overflow-hidden border border-slate-200 relative">
+                                <iframe
+                                  width="100%"
+                                  height="100%"
+                                  frameBorder="0"
+                                  style={{ border: 0 }}
+                                  src={`https://maps.google.com/maps?q=${plot.latitude},${plot.longitude}&z=15&output=embed`}
+                                  allowFullScreen
+                                  title="Google Maps"
+                                />
+                              </div>
+                            )}
                             <div className="flex items-center justify-between pt-3 border-t border-slate-200">
-                              <Button variant="ghost" size="sm" className="h-8 px-3 rounded-md text-xs font-semibold hover:bg-white border border-transparent hover:border-slate-200">Edit</Button>
-                              <Button variant="ghost" size="sm" className="h-8 px-3 rounded-md text-xs font-semibold text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20">Delete</Button>
+                              {plot.latitude && plot.longitude && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleViewOnMap(plot)}
+                                  className="h-8 px-3 rounded-md text-xs font-semibold hover:bg-white border border-transparent hover:border-slate-200 gap-2"
+                                >
+                                  <MapPin className="w-3 h-3" />
+                                  View on Map
+                                </Button>
+                              )}
+                              <div className="flex gap-2 ml-auto">
+                                <Button variant="ghost" size="sm" className="h-8 px-3 rounded-md text-xs font-semibold hover:bg-white border border-transparent hover:border-slate-200">Edit</Button>
+                                <Button variant="ghost" size="sm" className="h-8 px-3 rounded-md text-xs font-semibold text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20">Delete</Button>
+                              </div>
                             </div>
                           </div>
                         ))}
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <div className="space-y-6">
-                    <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden h-full flex flex-col">
-                      <CardContent className="p-6 flex-1 flex flex-col min-h-[500px]">
-                        <GeospatialClusterDetail cluster={cluster} />
                       </CardContent>
                     </Card>
                   </div>
@@ -331,6 +510,14 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
         </div>
 
         <div className="space-y-6">
+          <motion.div variants={item}>
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden h-full flex flex-col">
+              <CardContent className="p-6 flex-1 flex flex-col min-h-[500px]">
+               <GeospatialClusterDetail cluster={cluster} plots={plots} />
+              </CardContent>
+            </Card>
+          </motion.div>
+
           <motion.div variants={item}>
             <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
               <CardHeader className="p-6 pb-4">
@@ -404,6 +591,21 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
         </div>
       </div>
     </motion.div>
+
+    <InviteMemberDialog
+      open={showInviteDialog}
+      onOpenChange={setShowInviteDialog}
+      clusterId={cluster.id}
+      defaultRole={inviteRole}
+      onInvited={handleMemberInvited}
+    />
+
+    <PlotMapPicker
+      open={showPlotDialog}
+      onOpenChange={setShowPlotDialog}
+      onSave={handleSavePlot}
+    />
+    </>
   );
 }
 

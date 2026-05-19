@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useRole } from '@/src/contexts/RoleContext';
+import { useAuth } from '@/src/contexts/AuthContext';
 import { UserRole } from '@/src/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,10 +22,15 @@ import { motion, AnimatePresence } from 'motion/react';
 type Step = 'ROLE' | 'DETAILS' | 'SUCCESS';
 
 export function RegisterPage({ onSwitch, onBack }: { onSwitch: () => void, onBack: () => void }) {
-  const { login } = useRole();
+  const { register, login } = useAuth();
   const [step, setStep] = useState<Step>('ROLE');
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const roles: { id: UserRole; title: string; description: string; icon: React.ElementType }[] = [
     { id: 'INVESTOR', title: 'Investor', description: 'Invest in high-yield agricultural projects', icon: TrendingUp },
@@ -36,13 +41,28 @@ export function RegisterPage({ onSwitch, onBack }: { onSwitch: () => void, onBac
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!role) return;
+
     setLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
+    setError(null);
+
+    try {
+      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+      await register(email, password, fullName, role);
       setStep('SUCCESS');
+    } catch {
+      setError('Registration failed. Please check your details and try again.');
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
+  };
+
+  const handleGoToDashboard = async () => {
+    try {
+      await login(email, password);
+    } catch {
+      onSwitch();
+    }
   };
 
   if (step === 'SUCCESS') {
@@ -68,7 +88,7 @@ export function RegisterPage({ onSwitch, onBack }: { onSwitch: () => void, onBac
           </div>
           <Button 
             className="w-full h-10 rounded-md bg-primary hover:bg-primary/90 text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all gap-2" 
-            onClick={() => login(role!)}
+            onClick={handleGoToDashboard}
           >
             <span>Go to Dashboard</span>
             <ArrowRight className="w-4 h-4" />
@@ -160,25 +180,26 @@ export function RegisterPage({ onSwitch, onBack }: { onSwitch: () => void, onBac
             className="space-y-6"
           >
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              {error && <p className="text-xs text-destructive font-medium">{error}</p>}
+              <motion.div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="firstName" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">First Name</Label>
-                  <Input id="firstName" placeholder="John" required className="h-10 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-sm font-medium pl-4" />
+                  <Input id="firstName" placeholder="John" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="h-10 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-sm font-medium pl-4" />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="lastName" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">Last Name</Label>
-                  <Input id="lastName" placeholder="Doe" required className="h-10 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-sm font-medium pl-4" />
+                  <Input id="lastName" placeholder="Doe" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="h-10 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-sm font-medium pl-4" />
                 </div>
-              </div>
+              </motion.div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">Email Address</Label>
-                <Input id="email" type="email" placeholder="john@example.com" required className="h-10 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-sm font-medium pl-4" />
+                <Input id="email" type="email" placeholder="john@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-10 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-sm font-medium pl-4" />
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">Password</Label>
-                <Input id="password" type="password" placeholder="••••••••" required className="h-10 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-sm font-medium pl-4" />
+                <Input id="password" type="password" placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-10 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-sm font-medium pl-4" />
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">

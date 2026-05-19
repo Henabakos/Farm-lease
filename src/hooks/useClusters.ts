@@ -2,21 +2,40 @@ import { useState, useCallback, useEffect } from 'react';
 import { clustersAPI } from '../services/api';
 import { toast } from 'sonner';
 
-export interface Cluster {
+// Server DTO shape (snake_case). The frontend `Cluster` UI type comes from
+// `@/src/types`; map between them with `mapClusterFromApi` from `apiMappers`.
+export interface ClusterDto {
   id: string;
   owner_id: string;
   name: string;
   location: string;
-  area_hectares?: number;
-  description?: string;
-  image_url?: string;
-  status: 'active' | 'inactive' | 'archived';
+  region: string | null;
+  area_hectares: number | null;
+  description: string | null;
+  image_url: string | null;
+  status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+  center_latitude: number | null;
+  center_longitude: number | null;
+  has_verified_survey: boolean;
+  members_count: number;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
 
+function unwrap<T = unknown>(payload: unknown): T[] {
+  if (Array.isArray(payload)) return payload as T[];
+  if (payload && typeof payload === 'object' && Array.isArray((payload as any).data)) {
+    return (payload as any).data as T[];
+  }
+  if (payload && typeof payload === 'object' && Array.isArray((payload as any).items)) {
+    return (payload as any).items as T[];
+  }
+  return [];
+}
+
 export const useClusters = () => {
-  const [clusters, setClusters] = useState<Cluster[]>([]);
+  const [clusters, setClusters] = useState<ClusterDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +44,7 @@ export const useClusters = () => {
       setIsLoading(true);
       setError(null);
       const response = await clustersAPI.getAll(filters);
-      setClusters(response.data);
+      setClusters(unwrap<ClusterDto>(response.data));
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Failed to fetch clusters';
       setError(errorMessage);
@@ -55,7 +74,7 @@ export const useClusters = () => {
     try {
       setIsLoading(true);
       const response = await clustersAPI.create(data);
-      setClusters(prev => [response.data, ...prev]);
+      setClusters(prev => [response.data as ClusterDto, ...prev]);
       toast.success('Cluster created successfully');
       return response.data;
     } catch (err: any) {
@@ -72,7 +91,7 @@ export const useClusters = () => {
     try {
       setIsLoading(true);
       const response = await clustersAPI.update(id, data);
-      setClusters(prev => prev.map(c => c.id === id ? response.data : c));
+      setClusters(prev => prev.map(c => c.id === id ? (response.data as ClusterDto) : c));
       toast.success('Cluster updated successfully');
       return response.data;
     } catch (err: any) {
@@ -101,6 +120,51 @@ export const useClusters = () => {
     }
   }, []);
 
+  const listMembers = useCallback(async (id: string) => {
+    try {
+      const response = await clustersAPI.listMembers(id);
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to load members';
+      toast.error(errorMessage);
+      return [];
+    }
+  }, []);
+
+  const removeMember = useCallback(async (id: string, userId: string) => {
+    try {
+      await clustersAPI.removeMember(id, userId);
+      toast.success('Member removed');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to remove member');
+      throw err;
+    }
+  }, []);
+
+  const joinCluster = useCallback(async (id: string) => {
+    try {
+      const response = await clustersAPI.join(id);
+      toast.success('Joined cluster');
+      return response.data;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to join cluster');
+      throw err;
+    }
+  }, []);
+
+  const verifyCluster = useCallback(async (id: string) => {
+    try {
+      const response = await clustersAPI.verify(id);
+      const updated = response.data as ClusterDto;
+      setClusters(prev => prev.map(c => c.id === id ? updated : c));
+      toast.success('Cluster verified');
+      return updated;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to verify cluster');
+      throw err;
+    }
+  }, []);
+
   useEffect(() => {
     fetchClusters();
   }, [fetchClusters]);
@@ -113,6 +177,10 @@ export const useClusters = () => {
     getCluster,
     createCluster,
     updateCluster,
-    deleteCluster
+    deleteCluster,
+    listMembers,
+    removeMember,
+    joinCluster,
+    verifyCluster,
   };
 };

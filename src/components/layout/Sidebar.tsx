@@ -24,41 +24,35 @@ import { useRole } from '@/src/contexts/RoleContext';
 import { UserRole } from '@/src/types';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useStore, ViewType } from '@/src/store/useStore';
+import { Link, useLocation } from 'react-router-dom';
 
 interface NavItem {
   title: string;
   icon: React.ElementType;
-  view: ViewType;
+  path: string;
   roles: UserRole[];
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { title: 'Dashboard', icon: LayoutDashboard, view: 'DASHBOARD', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
-  { title: 'Proposals', icon: FileText, view: 'PROPOSALS', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
-  { title: 'Agreements', icon: ShieldCheck, view: 'AGREEMENTS', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
-  { title: 'Payments', icon: Wallet, view: 'PAYMENTS', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
-  { title: 'Messages', icon: MessageSquare, view: 'MESSAGES', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
-  { title: 'Meetings', icon: Calendar, view: 'MEETINGS', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
-  { title: 'Analytics', icon: BarChart3, view: 'ANALYTICS', roles: ['INVESTOR', 'ADMIN'] },
-  { title: 'Admin Panel', icon: ShieldAlert, view: 'ADMIN_DASHBOARD', roles: ['ADMIN'] },
-  { title: 'Audit Logs', icon: History, view: 'AUDIT_LOGS', roles: ['ADMIN'] },
-  { title: 'Resources', icon: Briefcase, view: 'RESOURCES', roles: ['FARMER', 'CLUSTER_REP', 'ADMIN', 'INVESTOR'] },
-  { title: 'Clusters', icon: Map, view: 'CLUSTERS', roles: ['CLUSTER_REP', 'ADMIN', 'INVESTOR'] },
+  { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
+  { title: 'Proposals', icon: FileText, path: '/proposals', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
+  { title: 'Agreements', icon: ShieldCheck, path: '/agreements', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
+  { title: 'Payments', icon: Wallet, path: '/payments', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
+  { title: 'Messages', icon: MessageSquare, path: '/messages', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
+  { title: 'Meetings', icon: Calendar, path: '/meetings', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
+  { title: 'Analytics', icon: BarChart3, path: '/analytics', roles: ['INVESTOR', 'ADMIN'] },
+  { title: 'Admin Panel', icon: ShieldAlert, path: '/admin', roles: ['ADMIN'] },
+  { title: 'Audit Logs', icon: History, path: '/audit-logs', roles: ['ADMIN'] },
+  { title: 'Resources', icon: Briefcase, path: '/resources', roles: ['FARMER', 'CLUSTER_REP', 'ADMIN', 'INVESTOR'] },
+  { title: 'Clusters', icon: Map, path: '/clusters', roles: ['CLUSTER_REP', 'ADMIN', 'INVESTOR'] },
 ];
 
-export function Sidebar({ className, onNavigate }: { className?: string, onNavigate?: (view: ViewType) => void }) {
+export function Sidebar({ className }: { className?: string }) {
   const { user, logout } = useRole();
-  const { currentView, setCurrentView, resetNavigation } = useStore();
+  const location = useLocation();
   const [collapsed, setCollapsed] = React.useState(false);
 
   const filteredNavItems = NAV_ITEMS.filter(item => item.roles.includes(user.role));
-
-  const handleNavClick = (view: ViewType) => {
-    resetNavigation();
-    setCurrentView(view);
-    if (onNavigate) onNavigate(view);
-  };
 
   return (
     <aside className={cn(
@@ -66,7 +60,7 @@ export function Sidebar({ className, onNavigate }: { className?: string, onNavig
       collapsed ? "w-20" : "w-64",
       className
     )}>
-      <div className="flex h-16 items-center px-6 border-b border-slate-800 cursor-pointer group" onClick={() => handleNavClick('DASHBOARD')}>
+      <Link to="/dashboard" className="flex h-16 items-center px-6 border-b border-slate-800 cursor-pointer group hover:bg-slate-800 transition-colors">
         <div className="flex items-center gap-3 overflow-hidden">
           <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-300">
             <Sprout className="w-4 h-4 text-white" />
@@ -77,72 +71,68 @@ export function Sidebar({ className, onNavigate }: { className?: string, onNavig
             </span>
           )}
         </div>
-      </div>
+      </Link>
 
       <ScrollArea className="flex-1 py-4">
         <nav className="px-3 space-y-1">
           {filteredNavItems.map((item) => (
-            <Button
-              key={item.title}
-              variant="ghost"
-              onClick={() => handleNavClick(item.view)}
+            <Link
+              key={item.path}
+              to={item.path}
               className={cn(
-                "w-full justify-start gap-3 h-10 px-3 transition-all duration-200 group relative text-slate-400 hover:text-white hover:bg-slate-800 rounded-md",
+                "w-full justify-start gap-3 h-10 px-3 transition-all duration-200 group relative text-slate-400 hover:text-white hover:bg-slate-800 rounded-md inline-flex items-center",
                 collapsed && "justify-center px-0",
-                currentView === item.view ? "bg-slate-800 text-white" : ""
+                location.pathname.startsWith(item.path) ? "bg-slate-800 text-white" : ""
               )}
             >
               <item.icon className={cn(
                 "w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110",
-                currentView === item.view && "scale-110 text-primary"
+                location.pathname.startsWith(item.path) && "scale-110 text-primary"
               )} />
               {!collapsed && (
                 <span className="font-medium tracking-tight text-sm">{item.title}</span>
               )}
-              {currentView === item.view && !collapsed && (
+              {location.pathname.startsWith(item.path) && !collapsed && (
                 <div className="absolute right-2 w-1 h-1 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
               )}
-            </Button>
+            </Link>
           ))}
         </nav>
       </ScrollArea>
 
       <div className="p-3 border-t border-slate-800 space-y-1 bg-slate-950/50">
-        <Button
-          variant="ghost"
-          onClick={() => handleNavClick('PROFILE')}
+        <Link
+          to="/profile"
           className={cn(
-            "w-full justify-start gap-3 h-9 px-3 text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200 rounded-md",
+            "w-full justify-start gap-3 h-9 px-3 text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200 rounded-md inline-flex items-center",
             collapsed && "justify-center px-0",
-            currentView === 'PROFILE' && "bg-slate-800 text-white"
+            location.pathname === '/profile' && "bg-slate-800 text-white"
           )}
         >
           <Users className="w-4 h-4 shrink-0" />
           {!collapsed && <span className="font-medium text-sm">Profile</span>}
-        </Button>
-        <Button
-          variant="ghost"
-          onClick={() => handleNavClick('SETTINGS')}
+        </Link>
+        <Link
+          to="/settings"
           className={cn(
-            "w-full justify-start gap-3 h-9 px-3 text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200 rounded-md",
+            "w-full justify-start gap-3 h-9 px-3 text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200 rounded-md inline-flex items-center",
             collapsed && "justify-center px-0",
-            currentView === 'SETTINGS' && "bg-slate-800 text-white"
+            location.pathname === '/settings' && "bg-slate-800 text-white"
           )}
         >
           <Settings className="w-4 h-4 shrink-0" />
           {!collapsed && <span className="font-medium text-sm">Settings</span>}
-        </Button>
-        <Button
-          variant="ghost"
+        </Link>
+        <button
           onClick={logout}
           className={cn(
-            "w-full justify-start gap-3 h-9 px-3 text-slate-400 hover:text-destructive hover:bg-destructive/10 transition-all duration-200 rounded-md",
+            "w-full justify-start gap-3 h-9 px-3 text-slate-400 hover:text-destructive hover:bg-destructive/10 transition-all duration-200 rounded-md inline-flex items-center",
             collapsed && "justify-center px-0"
           )}
         >
           <LogOut className="w-4 h-4 shrink-0" />
           {!collapsed && <span className="font-medium text-sm">Logout</span>}
-        </Button>
+        </button>
       </div>
 
       <Button

@@ -29,8 +29,11 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useRole } from '@/src/contexts/RoleContext';
+import { usePayments } from '@/src/hooks/usePayments';
+import { mapPaymentFromApi } from '@/src/lib/apiMappers';
+import { Loader2 } from 'lucide-react';
 
-const MOCK_PAYMENTS: Payment[] = [
+const MOCK_PAYMENTS_FALLBACK: Payment[] = [
   {
     id: 'pay1',
     agreementId: 'a1',
@@ -84,9 +87,21 @@ export function PaymentList({
   onReviewPayment: (payment: Payment) => void,
   onViewReceipt?: (payment: Payment) => void
 }) {
-  const { user } = useRole();
+  const { isAdmin } = useRole();
+  const { payments: apiPayments, isLoading } = usePayments();
+  const payments = apiPayments.length > 0
+    ? apiPayments.map((p) => mapPaymentFromApi(p as unknown as Record<string, unknown>))
+    : MOCK_PAYMENTS_FALLBACK;
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  if (isLoading && apiPayments.length === 0) {
+    return (
+      <motion.div className="flex items-center justify-center py-24">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </motion.div>
+    );
+  }
 
   const getStatusBadge = (status: PaymentStatus) => {
     switch (status) {
@@ -101,14 +116,14 @@ export function PaymentList({
     }
   };
 
-  const filteredPayments = MOCK_PAYMENTS.filter(p => {
+  const filteredPayments = payments.filter(p => {
     const matchesSearch = p.agreementTitle.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           p.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const isAdminOrRep = user.role === 'ADMIN' || user.role === 'CLUSTER_REP';
+  const isAdminOrRep = isAdmin;
 
   const container = {
     hidden: { opacity: 0 },

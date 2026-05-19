@@ -26,7 +26,9 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useStore } from '@/src/store/useStore';
+import { useAgreements } from '@/src/hooks/useAgreements';
+import { mapAgreementFromApi } from '@/src/lib/apiMappers';
+import { Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const container = {
@@ -45,9 +47,18 @@ const item = {
 };
 
 export function AgreementList({ onSelectAgreement }: { onSelectAgreement: (agreement: Agreement) => void }) {
-  const { agreements } = useStore();
+  const { agreements: apiAgreements, isLoading } = useAgreements();
+  const agreements = Array.isArray(apiAgreements) ? apiAgreements.map((a) => mapAgreementFromApi(a as unknown as Record<string, unknown>)) : [];
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  if (isLoading && agreements.length === 0) {
+    return (
+      <motion.div className="flex items-center justify-center py-24">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </motion.div>
+    );
+  }
 
   const getStatusBadge = (status: AgreementStatus) => {
     switch (status) {

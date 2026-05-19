@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate, authorize } from '../middleware/index.js';
+import { authMiddleware as authenticate, rbacMiddleware as authorize } from '../middleware/index.js';
 import { supabase } from '../index.js';
 
 const router = express.Router();
@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/boundaries/cluster/:clusterId', authenticate, async (req, res) => {
   try {
     const { clusterId } = req.params;
-    const userId = req.user.id;
+    const userId = req.userId;
 
     // Check if user has access to this cluster
     const { data: cluster, error: clusterError } = await supabase
@@ -22,7 +22,7 @@ router.get('/boundaries/cluster/:clusterId', authenticate, async (req, res) => {
     }
 
     // Check RBAC
-    const hasAccess = cluster.owner_id === userId || req.user.role === 'admin';
+    const hasAccess = cluster.owner_id === userId || req.userRole === 'admin';
     if (!hasAccess) {
       return res.status(403).json({ error: 'No access to this cluster' });
     }
@@ -101,7 +101,7 @@ router.get('/boundaries/:boundaryId', authenticate, async (req, res) => {
 // Create a new boundary (from drawing)
 router.post('/boundaries', authenticate, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.userId;
     const {
       cluster_id,
       name,
@@ -123,7 +123,7 @@ router.post('/boundaries', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Cluster not found' });
     }
 
-    if (cluster.owner_id !== userId && req.user.role !== 'admin') {
+    if (cluster.owner_id !== userId && req.userRole !== 'admin') {
       return res.status(403).json({ error: 'No permission to create boundaries' });
     }
 
@@ -181,7 +181,7 @@ router.post('/boundaries', authenticate, async (req, res) => {
 router.put('/boundaries/:boundaryId', authenticate, async (req, res) => {
   try {
     const { boundaryId } = req.params;
-    const userId = req.user.id;
+    const userId = req.userId;
     const {
       name,
       description,
@@ -209,7 +209,7 @@ router.put('/boundaries/:boundaryId', authenticate, async (req, res) => {
       .eq('id', boundary.cluster_id)
       .single();
 
-    if (cluster.owner_id !== userId && req.user.role !== 'admin') {
+    if (cluster.owner_id !== userId && req.userRole !== 'admin') {
       return res.status(403).json({ error: 'No permission to update this boundary' });
     }
 
@@ -270,10 +270,10 @@ router.put('/boundaries/:boundaryId', authenticate, async (req, res) => {
 router.post('/boundaries/:boundaryId/verify', authenticate, async (req, res) => {
   try {
     const { boundaryId } = req.params;
-    const userId = req.user.id;
+    const userId = req.userId;
     const { verified_notes } = req.body;
 
-    if (req.user.role !== 'admin') {
+    if (req.userRole !== 'admin') {
       return res.status(403).json({ error: 'Only admins can verify boundaries' });
     }
 
@@ -312,7 +312,7 @@ router.post('/boundaries/:boundaryId/verify', authenticate, async (req, res) => 
 router.delete('/boundaries/:boundaryId', authenticate, async (req, res) => {
   try {
     const { boundaryId } = req.params;
-    const userId = req.user.id;
+    const userId = req.userId;
 
     const { data: boundary } = await supabase
       .from('land_boundaries')
@@ -320,7 +320,7 @@ router.delete('/boundaries/:boundaryId', authenticate, async (req, res) => {
       .eq('id', boundaryId)
       .single();
 
-    if (boundary.farm_clusters.owner_id !== userId && req.user.role !== 'admin') {
+    if (boundary.farm_clusters.owner_id !== userId && req.userRole !== 'admin') {
       return res.status(403).json({ error: 'No permission to delete this boundary' });
     }
 
@@ -352,7 +352,7 @@ router.delete('/boundaries/:boundaryId', authenticate, async (req, res) => {
 // Upload survey file
 router.post('/surveys/upload', authenticate, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.userId;
     const {
       boundary_id,
       survey_type,
@@ -373,7 +373,7 @@ router.post('/surveys/upload', authenticate, async (req, res) => {
       .eq('id', boundary_id)
       .single();
 
-    if (boundary.farm_clusters.owner_id !== userId && req.user.role !== 'admin') {
+    if (boundary.farm_clusters.owner_id !== userId && req.userRole !== 'admin') {
       return res.status(403).json({ error: 'No permission to upload surveys' });
     }
 
@@ -442,7 +442,7 @@ router.get('/surveys/:surveyId', authenticate, async (req, res) => {
 router.post('/surveys/:surveyId/verify', authenticate, authorize(['admin']), async (req, res) => {
   try {
     const { surveyId } = req.params;
-    const userId = req.user.id;
+    const userId = req.userId;
     const { verification_notes } = req.body;
 
     const { data: updated, error } = await supabase

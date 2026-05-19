@@ -33,50 +33,52 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
-
-const mockAnalyticsData: AnalyticsData[] = [
-  { month: 'Jan', roi: 12, cost: 5000, yield: 200 },
-  { month: 'Feb', roi: 15, cost: 4800, yield: 220 },
-  { month: 'Mar', roi: 18, cost: 5200, yield: 250 },
-  { month: 'Apr', roi: 22, cost: 5500, yield: 300 },
-  { month: 'May', roi: 25, cost: 5300, yield: 350 },
-  { month: 'Jun', roi: 30, cost: 5800, yield: 420 },
-];
-
-const mockPredictions: Record<string, Prediction> = {
-  'North': { yield: 450, roi: 32, cost: 6000, confidence: 92, risks: ['Early frost', 'Water scarcity'] },
-  'South': { yield: 520, roi: 38, cost: 5500, confidence: 88, risks: ['Pest outbreak', 'High humidity'] },
-  'East': { yield: 380, roi: 28, cost: 6200, confidence: 85, risks: ['Soil acidity', 'Logistics'] },
-  'West': { yield: 410, roi: 30, cost: 5900, confidence: 90, risks: ['Wind damage', 'Market volatility'] },
-};
-
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-};
-
-const item = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0 }
-};
+import { useAnalytics } from '../../hooks/useAnalytics';
 
 export const AnalyticsDashboard: React.FC = () => {
   const [landSize, setLandSize] = useState<number>(10);
   const [budget, setBudget] = useState<number>(50000);
   const [region, setRegion] = useState<string>('North');
   const [isCalculating, setIsCalculating] = useState(false);
+  const { revenueData, isLoading } = useAnalytics();
 
-  const prediction = mockPredictions[region];
+  const analyticsData = revenueData || [
+    { month: 'Jan', roi: 12, cost: 5000, yield: 200 },
+    { month: 'Feb', roi: 15, cost: 4800, yield: 220 },
+    { month: 'Mar', roi: 18, cost: 5200, yield: 250 },
+    { month: 'Apr', roi: 22, cost: 5500, yield: 300 },
+    { month: 'May', roi: 25, cost: 5300, yield: 350 },
+    { month: 'Jun', roi: 30, cost: 5800, yield: 420 },
+  ];
 
   const handleCalculate = () => {
     setIsCalculating(true);
     setTimeout(() => setIsCalculating(false), 1500);
   };
+
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
+  const mockPredictions: Record<string, Prediction> = {
+    'North': { yield: 450, roi: 32, cost: 6000, confidence: 92, risks: ['Early frost', 'Water scarcity'] },
+    'South': { yield: 520, roi: 38, cost: 5500, confidence: 88, risks: ['Pest outbreak', 'High humidity'] },
+    'East': { yield: 380, roi: 28, cost: 6200, confidence: 85, risks: ['Soil acidity', 'Logistics'] },
+    'West': { yield: 410, roi: 30, cost: 5900, confidence: 90, risks: ['Wind damage', 'Market volatility'] },
+  };
+
+  const prediction = mockPredictions[region];
 
   return (
     <motion.div 
@@ -219,7 +221,7 @@ export const AnalyticsDashboard: React.FC = () => {
             </CardHeader>
             <CardContent className="p-5 h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={mockAnalyticsData}>
+                <AreaChart data={analyticsData}>
                   <defs>
                     <linearGradient id="colorRoi" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
@@ -272,28 +274,16 @@ export const AnalyticsDashboard: React.FC = () => {
               <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Monthly operational costs compared to agricultural output.</CardDescription>
             </CardHeader>
             <CardContent className="p-5 h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mockAnalyticsData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="month" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 500 }}
-                    dy={10}
-                  />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 500 }}
-                  />
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={analyticsData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="month" stroke="#64748b" fontSize={12} />
+                  <YAxis stroke="#64748b" fontSize={12} />
                   <Tooltip 
                     contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      borderRadius: '8px', 
-                      border: '1px solid hsl(var(--border))',
-                      boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-                      padding: '8px 12px'
+                      backgroundColor: '#1e293b', 
+                      border: 'none', 
+                      borderRadius: '8px' 
                     }}
                   />
                   <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 500 }} />

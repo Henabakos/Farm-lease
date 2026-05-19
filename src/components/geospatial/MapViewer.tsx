@@ -93,8 +93,8 @@ export function MapViewer({
         const popupContent = `
           <div class="p-2">
             <p class="font-semibold text-sm">${boundary.name}</p>
-            <p class="text-xs text-gray-600">${boundary.area_hectares.toFixed(2)} ha</p>
-            <p class="text-xs text-gray-600">${boundary.area_sqm.toFixed(0)} m²</p>
+            <p class="text-xs text-gray-600">${Number(boundary.area_hectares).toFixed(2)} ha</p>
+            <p class="text-xs text-gray-600">${Number(boundary.area_sqm).toFixed(0)} m²</p>
           </div>
         `;
         polygon.bindPopup(popupContent);
@@ -176,7 +176,7 @@ export function MapViewer({
             <div className="flex-1">
               <p className="font-semibold text-sm">{selectedBoundary.name}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Area: {selectedBoundary.area_hectares.toFixed(2)} ha ({selectedBoundary.area_sqm.toFixed(0)} m²)
+                Area: {Number(selectedBoundary.area_hectares).toFixed(2)} ha ({Number(selectedBoundary.area_sqm).toFixed(0)} m²)
               </p>
               <p className="text-xs text-muted-foreground">
                 Accuracy: {selectedBoundary.accuracy_rating}/5

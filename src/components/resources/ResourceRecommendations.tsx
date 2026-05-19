@@ -1,109 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
-import { 
-  ShieldCheck, 
-  Users, 
-  Wrench, 
-  Star, 
-  Search, 
-  Filter, 
-  ExternalLink, 
-  Mail, 
+import {
+  ShieldCheck,
+  Users,
+  Wrench,
+  Star,
+  Search,
+  Filter,
+  ExternalLink,
+  Mail,
   CheckCircle2,
-  ChevronRight,
   ArrowRight,
   Sparkles,
   MapPin
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Resource, CropType } from '../../types';
 import { useRole } from '../../contexts/RoleContext';
 import { toast } from 'sonner';
-
-const mockResources: Resource[] = [
-  {
-    id: 'r1',
-    title: 'AgriGuard Crop Insurance',
-    category: 'INSURANCE',
-    provider: 'Global Agro Insurance',
-    description: 'Comprehensive coverage against drought, pests, and unexpected weather events. Specifically tailored for large-scale grain production.',
-    priceRange: '$50 - $200 / hectare',
-    rating: 4.8,
-    reviewCount: 124,
-    cropTypes: ['MAIZE', 'SOYBEANS', 'RICE'],
-    imageUrl: 'https://picsum.photos/seed/insurance/400/250',
-    contactEmail: 'support@agriguard.com',
-    websiteUrl: 'https://example.com/agriguard'
-  },
-  {
-    id: 'r2',
-    title: 'Seasonal Harvest Labor Force',
-    category: 'LABOR',
-    provider: 'AgriStaff Solutions',
-    description: 'Vetted and experienced seasonal workers for harvest and planting. Includes on-site management and basic training.',
-    priceRange: '$15 - $25 / day / worker',
-    rating: 4.5,
-    reviewCount: 89,
-    cropTypes: ['COCOA', 'CASSAVA', 'MAIZE'],
-    imageUrl: 'https://picsum.photos/seed/labor/400/250',
-    contactEmail: 'hire@agristaff.com'
-  },
-  {
-    id: 'r3',
-    title: 'Precision Soil Analysis',
-    category: 'SUPPORT',
-    provider: 'TerraTech Labs',
-    description: 'Advanced soil testing and nutrient mapping to optimize fertilizer application and maximize yield potential.',
-    priceRange: '$120 / plot',
-    rating: 4.9,
-    reviewCount: 56,
-    cropTypes: ['MAIZE', 'SOYBEANS', 'COCOA', 'RICE', 'CASSAVA'],
-    imageUrl: 'https://picsum.photos/seed/support/400/250',
-    websiteUrl: 'https://example.com/terratech'
-  },
-  {
-    id: 'r4',
-    title: 'Cocoa Yield Protection',
-    category: 'INSURANCE',
-    provider: 'Heritage Mutual',
-    description: 'Specialized insurance for perennial crops, covering disease outbreaks and market price fluctuations.',
-    priceRange: '$300 - $500 / hectare',
-    rating: 4.7,
-    reviewCount: 42,
-    cropTypes: ['COCOA'],
-    imageUrl: 'https://picsum.photos/seed/cocoa/400/250',
-    contactEmail: 'cocoa@heritage.com'
-  },
-  {
-    id: 'r5',
-    title: 'Tractor Fleet Rental',
-    category: 'SUPPORT',
-    provider: 'Mechanized Africa',
-    description: 'Modern tractor and harvester rentals with maintenance support and GPS tracking for efficient field operations.',
-    priceRange: '$80 / hour',
-    rating: 4.6,
-    reviewCount: 215,
-    cropTypes: ['MAIZE', 'SOYBEANS', 'RICE'],
-    imageUrl: 'https://picsum.photos/seed/tractor/400/250',
-    websiteUrl: 'https://example.com/mechanized'
-  },
-  {
-    id: 'r6',
-    title: 'Organic Fertilizer Supply',
-    category: 'SUPPORT',
-    provider: 'EcoFarm Inputs',
-    description: 'Bulk supply of certified organic fertilizers and bio-pesticides for sustainable farming practices.',
-    priceRange: '$40 / bag',
-    rating: 4.4,
-    reviewCount: 78,
-    cropTypes: ['MAIZE', 'SOYBEANS', 'CASSAVA'],
-    imageUrl: 'https://picsum.photos/seed/fertilizer/400/250',
-    contactEmail: 'sales@ecofarm.com'
-  }
-];
+import { resourcesAPI } from '../../services/api';
+import { BecomeProviderDialog } from './BecomeProviderDialog';
+import { AddResourceDialog } from './AddResourceDialog';
 
 const cropOptions: { label: string; value: CropType | 'ALL' }[] = [
   { label: 'All Crops', value: 'ALL' },
@@ -114,7 +34,7 @@ const cropOptions: { label: string; value: CropType | 'ALL' }[] = [
   { label: 'Cassava', value: 'CASSAVA' },
 ];
 
-const categoryIcons = {
+const categoryIcons: Record<string, any> = {
   INSURANCE: ShieldCheck,
   LABOR: Users,
   SUPPORT: Wrench,
@@ -125,21 +45,53 @@ export const ResourceRecommendations: React.FC = () => {
   const [selectedCrop, setSelectedCrop] = useState<CropType | 'ALL'>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<'ALL' | 'INSURANCE' | 'LABOR' | 'SUPPORT'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [providerDialogOpen, setProviderDialogOpen] = useState(false);
+  const [addResourceDialogOpen, setAddResourceDialogOpen] = useState(false);
 
-  const filteredResources = mockResources.filter(resource => {
+  useEffect(() => {
+    const loadResources = async () => {
+      try {
+        const response = await resourcesAPI.getAll();
+        setResources(response.data || []);
+      } catch (err) {
+        console.error('Failed to load resources:', err);
+        toast.error('Failed to load resources');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadResources();
+  }, []);
+
+  const handleResourceAdded = () => {
+    // Reload resources after adding a new one
+    const loadResources = async () => {
+      try {
+        const response = await resourcesAPI.getAll();
+        setResources(response.data || []);
+      } catch (err) {
+        console.error('Failed to reload resources:', err);
+      }
+    };
+    loadResources();
+  };
+
+  const filteredResources = resources.filter(resource => {
     const matchesCrop = selectedCrop === 'ALL' || resource.cropTypes.includes(selectedCrop as CropType);
     const matchesCategory = selectedCategory === 'ALL' || resource.category === selectedCategory;
-    const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          resource.provider.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCrop && matchesCategory && matchesSearch;
   });
 
-  const recommendedResources = mockResources.filter(resource => {
+  const recommendedResources = resources.filter(resource => {
     if (user.role === 'FARMER' || user.role === 'CLUSTER_REP') {
       if (user.location?.includes('Nigeria')) {
         return resource.provider === 'Mechanized Africa' || resource.provider === 'AgriStaff Solutions';
       }
-      return resource.rating >= 4.8;
+      return Number(resource.rating) >= 4.8;
     }
     return false;
   }).slice(0, 2);
@@ -149,6 +101,10 @@ export const ResourceRecommendations: React.FC = () => {
       description: "They will get back to you within 24 hours.",
     });
   };
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-20">Loading resources...</div>;
+  }
 
   return (
     <div className="space-y-10">
@@ -175,14 +131,20 @@ export const ResourceRecommendations: React.FC = () => {
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
             <span>Vetting Process</span>
           </Button>
-          <Button className="gap-2 h-9 px-4 rounded-md text-xs font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95">
-            <span>Become a Provider</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Button>
+          {user.role === 'ADMIN' ? (
+            <Button className="gap-2 h-9 px-4 rounded-md text-xs font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95" onClick={() => setAddResourceDialogOpen(true)}>
+              <span>Add Resource</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+          ) : (
+            <Button className="gap-2 h-9 px-4 rounded-md text-xs font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95" onClick={() => setProviderDialogOpen(true)}>
+              <span>Become a Provider</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+          )}
         </motion.div>
       </div>
 
-      {/* Recommended for You Section */}
       {(user.role === 'FARMER' || user.role === 'CLUSTER_REP') && recommendedResources.length > 0 && (
         <motion.div 
           className="space-y-6"
@@ -222,7 +184,7 @@ export const ResourceRecommendations: React.FC = () => {
                           </Badge>
                           <div className="flex items-center gap-1 text-amber-500 bg-amber-50 px-2 py-0.5 rounded-md">
                             <Star className="w-3 h-3 fill-current" />
-                            <span className="text-[10px] font-bold">{resource.rating}</span>
+                            <span className="text-[10px] font-bold">{Number(resource.rating).toFixed(1)}</span>
                           </div>
                         </div>
                         <h3 className="font-bold text-base text-slate-900 leading-tight group-hover:text-primary transition-colors">{resource.title}</h3>
@@ -243,7 +205,6 @@ export const ResourceRecommendations: React.FC = () => {
         </motion.div>
       )}
 
-      {/* Filters Bar */}
       <motion.div 
         className="space-y-6"
         initial={{ opacity: 0, y: 20 }}
@@ -305,7 +266,6 @@ export const ResourceRecommendations: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Resources Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredResources.map((resource, idx) => {
             const Icon = categoryIcons[resource.category];
@@ -341,7 +301,7 @@ export const ResourceRecommendations: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-1 text-amber-500 bg-amber-50 px-2 py-0.5 rounded-md shrink-0">
                         <Star className="w-3 h-3 fill-current" />
-                        <span className="text-[10px] font-bold">{resource.rating}</span>
+                        <span className="text-[10px] font-bold">{Number(resource.rating).toFixed(1)}</span>
                       </div>
                     </div>
                   </CardHeader>
@@ -398,6 +358,8 @@ export const ResourceRecommendations: React.FC = () => {
           </motion.div>
         )}
       </motion.div>
+      <BecomeProviderDialog open={providerDialogOpen} onOpenChange={setProviderDialogOpen} />
+      <AddResourceDialog open={addResourceDialogOpen} onOpenChange={setAddResourceDialogOpen} onSuccess={handleResourceAdded} />
     </div>
   );
 };

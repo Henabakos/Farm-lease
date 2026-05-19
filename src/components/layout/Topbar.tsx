@@ -34,14 +34,16 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { NotificationDropdown } from '@/src/components/layout/NotificationDropdown';
 
-import { useStore, ViewType } from '@/src/store/useStore';
+import { useStore } from '@/src/store/useStore';
 
-export function Topbar({ onNavigate }: { onNavigate?: (view: ViewType) => void }) {
+export function Topbar() {
   const { user, setRole, logout } = useRole();
-  const { setCurrentView, resetNavigation } = useStore();
+  const { resetNavigation } = useStore();
+  const navigate = useNavigate();
 
   const roleIcons: Record<UserRole, React.ElementType> = {
     INVESTOR: TrendingUp,
@@ -52,10 +54,9 @@ export function Topbar({ onNavigate }: { onNavigate?: (view: ViewType) => void }
 
   const RoleIcon = roleIcons[user.role];
 
-  const handleNavClick = (view: ViewType) => {
+  const handleNavClick = (path: string) => {
     resetNavigation();
-    setCurrentView(view);
-    if (onNavigate) onNavigate(view);
+    navigate(path);
   };
 
   return (
@@ -97,11 +98,11 @@ export function Topbar({ onNavigate }: { onNavigate?: (view: ViewType) => void }
             <DropdownMenuGroup>
               <DropdownMenuLabel className="text-xs font-bold text-slate-500 uppercase tracking-wider px-3 py-2">My Account</DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-slate-100" />
-              <DropdownMenuItem onClick={() => handleNavClick('PROFILE')} className="text-sm py-2 cursor-pointer">
+              <DropdownMenuItem onClick={() => handleNavClick('/profile')} className="text-sm py-2 cursor-pointer">
                 <User className="mr-2 h-4 w-4 text-slate-400" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-sm py-2 cursor-pointer">
+              <DropdownMenuItem onClick={() => handleNavClick('/settings')} className="text-sm py-2 cursor-pointer">
                 <Settings className="mr-2 h-4 w-4 text-slate-400" />
                 <span>Settings</span>
               </DropdownMenuItem>
@@ -117,19 +118,19 @@ export function Topbar({ onNavigate }: { onNavigate?: (view: ViewType) => void }
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
                   <DropdownMenuSubContent className="rounded-md border-slate-200">
-                    <DropdownMenuItem onClick={() => { setRole('INVESTOR'); handleNavClick('DASHBOARD'); }} className="text-sm py-2 cursor-pointer">
+                    <DropdownMenuItem onClick={() => { setRole('INVESTOR'); handleNavClick('/dashboard'); }} className="text-sm py-2 cursor-pointer">
                       <TrendingUp className="mr-2 h-4 w-4 text-slate-400" />
                       <span>Investor</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setRole('FARMER'); handleNavClick('DASHBOARD'); }} className="text-sm py-2 cursor-pointer">
+                    <DropdownMenuItem onClick={() => { setRole('FARMER'); handleNavClick('/dashboard'); }} className="text-sm py-2 cursor-pointer">
                       <Sprout className="mr-2 h-4 w-4 text-slate-400" />
                       <span>Farmer</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setRole('CLUSTER_REP'); handleNavClick('DASHBOARD'); }} className="text-sm py-2 cursor-pointer">
+                    <DropdownMenuItem onClick={() => { setRole('CLUSTER_REP'); handleNavClick('/dashboard'); }} className="text-sm py-2 cursor-pointer">
                       <Map className="mr-2 h-4 w-4 text-slate-400" />
                       <span>Cluster Rep</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setRole('ADMIN'); handleNavClick('DASHBOARD'); }} className="text-sm py-2 cursor-pointer">
+                    <DropdownMenuItem onClick={() => { setRole('ADMIN'); handleNavClick('/dashboard'); }} className="text-sm py-2 cursor-pointer">
                       <Shield className="mr-2 h-4 w-4 text-slate-400" />
                       <span>Admin</span>
                     </DropdownMenuItem>

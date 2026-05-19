@@ -304,7 +304,7 @@ router.get('/:clusterId/stats', async (req, res) => {
       .eq('is_active', true);
 
     const { data: agreements } = await supabase
-      .from('lease_agreements')
+      .from('agreements')
       .select('id', { count: 'exact' })
       .eq('cluster_id', clusterId)
       .eq('status', 'active');
