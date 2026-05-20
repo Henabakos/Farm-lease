@@ -160,14 +160,6 @@ export async function updateUserVerification(adminUserId, userId, verificationSt
   const updated = await prisma.user.update({
     where: { id: userId },
     data: { verificationStatus },
-    include: {
-      _count: {
-        select: {
-          proposalsAsInvestor: true,
-          clusters: true,
-        },
-      },
-    },
   });
 
   await prisma.auditLog.create({
@@ -201,14 +193,6 @@ export async function updateUserRole(adminUserId, userId, newRole) {
   const updated = await prisma.user.update({
     where: { id: userId },
     data: { role: newRole },
-    include: {
-      _count: {
-        select: {
-          proposalsAsInvestor: true,
-          clusters: true,
-        },
-      },
-    },
   });
 
   await prisma.auditLog.create({
@@ -243,14 +227,6 @@ export async function updateUserActivation(adminUserId, userId, activate) {
   const updated = await prisma.user.update({
     where: { id: userId },
     data: { status: newStatus },
-    include: {
-      _count: {
-        select: {
-          proposalsAsInvestor: true,
-          clusters: true,
-        },
-      },
-    },
   });
 
   await prisma.auditLog.create({
