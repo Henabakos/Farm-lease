@@ -57,7 +57,7 @@ router.get(
 // PATCH /admin/users/:id/status - Update user status
 router.patch(
   '/users/:id/status',
-  validate({ params: { id: 'string' }, body: updateUserStatusSchema }),
+  validate({ body: updateUserStatusSchema }),
   async (req, res, next) => {
     try {
       const { status, reason } = req.body;
@@ -99,7 +99,7 @@ router.get(
 // PATCH /admin/users/:id/verification - Update user verification status
 router.patch(
   '/users/:id/verification',
-  validate({ params: { id: 'string' }, body: updateUserVerificationSchema }),
+  validate({ body: updateUserVerificationSchema }),
   async (req, res, next) => {
     try {
       const { verificationStatus, reason } = req.body;
@@ -114,7 +114,7 @@ router.patch(
 // PATCH /admin/users/:id/role - Update user role
 router.patch(
   '/users/:id/role',
-  validate({ params: { id: 'string' }, body: updateUserRoleSchema }),
+  validate({ body: updateUserRoleSchema }),
   async (req, res, next) => {
     try {
       const { role } = req.body;
@@ -129,7 +129,7 @@ router.patch(
 // PATCH /admin/users/:id/activation - Activate or deactivate user
 router.patch(
   '/users/:id/activation',
-  validate({ params: { id: 'string' }, body: updateUserActivationSchema }),
+  validate({ body: updateUserActivationSchema }),
   async (req, res, next) => {
     try {
       const { activate } = req.body;
