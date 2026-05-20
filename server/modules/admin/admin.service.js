@@ -20,14 +20,6 @@ export async function updateUserStatus(adminUserId, userId, status, reason) {
   const updated = await prisma.user.update({
     where: { id: userId },
     data: { status },
-    include: {
-      _count: {
-        select: {
-          proposalsAsInvestor: true,
-          clusters: true,
-        },
-      },
-    },
   });
 
   // Log the action
