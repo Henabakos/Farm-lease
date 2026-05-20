@@ -26,3 +26,16 @@ export const listAuditLogsSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50),
 });
+
+export const updateUserVerificationSchema = z.object({
+  verificationStatus: z.enum(['VERIFIED', 'REJECTED', 'UNVERIFIED', 'PENDING']),
+  reason: z.string().optional(),
+});
+
+export const updateUserRoleSchema = z.object({
+  role: z.enum(['ADMIN', 'INVESTOR', 'CLUSTER_REP', 'FARMER']),
+});
+
+export const updateUserActivationSchema = z.object({
+  activate: z.boolean(),
+});

@@ -147,7 +147,126 @@ export async function listAuditLogs(filters) {
 }
 
 /**
- * Get system statistics for admin dashboard.
+ * Update user verification status.
+ */
+export async function updateUserVerification(adminUserId, userId, verificationStatus, reason) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new NotFoundError('User not found');
+
+  if (userId === adminUserId) {
+    throw new ForbiddenError('Cannot modify your own verification status');
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { verificationStatus },
+    include: {
+      _count: {
+        select: {
+          proposalsAsInvestor: true,
+          clusters: true,
+        },
+      },
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      action: `USER_${verificationStatus}`,
+      entityType: 'User',
+      entityId: userId,
+      changes: { reason, previousStatus: user.verificationStatus },
+    },
+  });
+
+  return updated;
+}
+
+/**
+ * Update user role.
+ */
+export async function updateUserRole(adminUserId, userId, newRole) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new NotFoundError('User not found');
+
+  if (userId === adminUserId) {
+    throw new ForbiddenError('Cannot modify your own role');
+  }
+
+  if (user.role === newRole) {
+    throw new ForbiddenError('User already has this role');
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { role: newRole },
+    include: {
+      _count: {
+        select: {
+          proposalsAsInvestor: true,
+          clusters: true,
+        },
+      },
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      action: 'USER_ROLE_CHANGED',
+      entityType: 'User',
+      entityId: userId,
+      changes: { previousRole: user.role, newRole },
+    },
+  });
+
+  return updated;
+}
+
+/**
+ * Activate or deactivate a user.
+ */
+export async function updateUserActivation(adminUserId, userId, activate) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new NotFoundError('User not found');
+
+  if (userId === adminUserId) {
+    throw new ForbiddenError('Cannot modify your own activation status');
+  }
+
+  const newStatus = activate ? 'ACTIVE' : 'SUSPENDED';
+  if (user.status === newStatus) {
+    throw new ForbiddenError(`User is already ${newStatus}`);
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { status: newStatus },
+    include: {
+      _count: {
+        select: {
+          proposalsAsInvestor: true,
+          clusters: true,
+        },
+      },
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      action: activate ? 'USER_ACTIVATED' : 'USER_DEACTIVATED',
+      entityType: 'User',
+      entityId: userId,
+      changes: { previousStatus: user.status, newStatus },
+    },
+  });
+
+  return updated;
+}
+
+/**
  */
 export async function getSystemStats() {
   const [

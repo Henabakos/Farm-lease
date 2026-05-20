@@ -71,6 +71,60 @@ export const useAdmin = () => {
     }
   }, []);
 
+  const updateUserVerification = useCallback(async (id: string, verificationStatus: string, reason?: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await adminAPI.updateUserVerification(id, verificationStatus, reason);
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, ...response.data } : u));
+      toast.success('User verification updated successfully');
+      return response.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to update user verification';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const updateUserRole = useCallback(async (id: string, role: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await adminAPI.updateUserRole(id, role);
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, ...response.data } : u));
+      toast.success('User role updated successfully');
+      return response.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to update user role';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const updateUserActivation = useCallback(async (id: string, activate: boolean) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await adminAPI.updateUserActivation(id, activate);
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, ...response.data } : u));
+      toast.success(`User ${activate ? 'activated' : 'deactivated'} successfully`);
+      return response.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to update user activation';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const fetchAuditLogs = useCallback(async (filters?: any) => {
     try {
       setIsLoading(true);
@@ -115,6 +169,9 @@ export const useAdmin = () => {
     fetchAllUsers,
     updateUserStatus,
     approveUser,
+    updateUserVerification,
+    updateUserRole,
+    updateUserActivation,
     fetchAuditLogs,
     fetchStats,
   };

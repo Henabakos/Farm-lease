@@ -10,6 +10,9 @@ import {
   approveUserSchema,
   listUsersSchema,
   listAuditLogsSchema,
+  updateUserVerificationSchema,
+  updateUserRoleSchema,
+  updateUserActivationSchema,
 } from './admin.validators.js';
 import {
   updateUserStatus,
@@ -17,6 +20,9 @@ import {
   listUsers,
   listAuditLogs,
   getSystemStats,
+  updateUserVerification,
+  updateUserRole,
+  updateUserActivation,
 } from './admin.service.js';
 
 const router = express.Router();
@@ -84,6 +90,51 @@ router.get(
     try {
       const result = await listAuditLogs(req.query);
       res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// PATCH /admin/users/:id/verification - Update user verification status
+router.patch(
+  '/users/:id/verification',
+  validate({ params: { id: 'string' }, body: updateUserVerificationSchema }),
+  async (req, res, next) => {
+    try {
+      const { verificationStatus, reason } = req.body;
+      const user = await updateUserVerification(req.user.id, req.params.id, verificationStatus, reason);
+      res.json(user);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// PATCH /admin/users/:id/role - Update user role
+router.patch(
+  '/users/:id/role',
+  validate({ params: { id: 'string' }, body: updateUserRoleSchema }),
+  async (req, res, next) => {
+    try {
+      const { role } = req.body;
+      const user = await updateUserRole(req.user.id, req.params.id, role);
+      res.json(user);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// PATCH /admin/users/:id/activation - Activate or deactivate user
+router.patch(
+  '/users/:id/activation',
+  validate({ params: { id: 'string' }, body: updateUserActivationSchema }),
+  async (req, res, next) => {
+    try {
+      const { activate } = req.body;
+      const user = await updateUserActivation(req.user.id, req.params.id, activate);
+      res.json(user);
     } catch (err) {
       next(err);
     }
