@@ -280,8 +280,6 @@ export const adminAPI = {
     api.patch(`/admin/users/${id}/verification`, { verificationStatus, reason }),
   updateUserRole: (id: string, role: string) =>
     api.patch(`/admin/users/${id}/role`, { role }),
-  updateUserActivation: (id: string, activate: boolean) =>
-    api.patch(`/admin/users/${id}/activation`, { activate }),
   getAuditLogs: (filters?: any) => api.get('/admin/audit-logs', { params: filters }),
   getStats: () => api.get('/admin/stats')
 };

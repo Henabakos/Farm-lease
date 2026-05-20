@@ -12,7 +12,6 @@ import {
   listAuditLogsSchema,
   updateUserVerificationSchema,
   updateUserRoleSchema,
-  updateUserActivationSchema,
 } from './admin.validators.js';
 import {
   updateUserStatus,
@@ -22,7 +21,6 @@ import {
   getSystemStats,
   updateUserVerification,
   updateUserRole,
-  updateUserActivation,
 } from './admin.service.js';
 
 const router = express.Router();
@@ -119,21 +117,6 @@ router.patch(
     try {
       const { role } = req.body;
       const user = await updateUserRole(req.user.id, req.params.id, role);
-      res.json(user);
-    } catch (err) {
-      next(err);
-    }
-  }
-);
-
-// PATCH /admin/users/:id/activation - Activate or deactivate user
-router.patch(
-  '/users/:id/activation',
-  validate({ body: updateUserActivationSchema }),
-  async (req, res, next) => {
-    try {
-      const { activate } = req.body;
-      const user = await updateUserActivation(req.user.id, req.params.id, activate);
       res.json(user);
     } catch (err) {
       next(err);

@@ -201,40 +201,7 @@ export async function updateUserRole(adminUserId, userId, newRole) {
 }
 
 /**
- * Activate or deactivate a user.
- */
-export async function updateUserActivation(adminUserId, userId, activate) {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw new NotFoundError('User not found');
-
-  if (userId === adminUserId) {
-    throw new ForbiddenError('Cannot modify your own activation status');
-  }
-
-  const newStatus = activate ? 'ACTIVE' : 'SUSPENDED';
-  if (user.status === newStatus) {
-    throw new ForbiddenError(`User is already ${newStatus}`);
-  }
-
-  const updated = await prisma.user.update({
-    where: { id: userId },
-    data: { status: newStatus },
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      userId: adminUserId,
-      action: activate ? 'USER_ACTIVATED' : 'USER_DEACTIVATED',
-      entityType: 'User',
-      entityId: userId,
-      changes: { previousStatus: user.status, newStatus },
-    },
-  });
-
-  return updated;
-}
-
-/**
+ * Get system statistics for admin dashboard.
  */
 export async function getSystemStats() {
   const [

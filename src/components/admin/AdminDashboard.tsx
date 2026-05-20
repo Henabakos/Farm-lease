@@ -502,39 +502,13 @@ export const AdminDashboard: React.FC = () => {
                                                                         <XCircle className="w-4 h-4 mr-2" />
                                                                         Suspend...
                                                                     </DropdownMenuItem>
-                                                                    <DropdownMenuItem
-                                                                        onClick={() =>
-                                                                            openActionDialog(
-                                                                                user,
-                                                                                "deactivate",
-                                                                            )
-                                                                        }
-                                                                        className="text-amber-700 focus:text-amber-700 focus:bg-amber-50"
-                                                                    >
-                                                                        <Lock className="w-4 h-4 mr-2" />
-                                                                        Deactivate...
-                                                                    </DropdownMenuItem>
                                                                     <DropdownMenuSeparator />
                                                                 </>
                                                             )}
 
                                                             {user.status ===
                                                                 "SUSPENDED" && (
-                                                                <>
-                                                                    <DropdownMenuItem
-                                                                        onClick={() =>
-                                                                            openActionDialog(
-                                                                                user,
-                                                                                "activate",
-                                                                            )
-                                                                        }
-                                                                        className="text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50"
-                                                                    >
-                                                                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                                                                        Activate
-                                                                    </DropdownMenuItem>
-                                                                    <DropdownMenuSeparator />
-                                                                </>
+                                                                <DropdownMenuSeparator />
                                                             )}
 
                                                             {user.verificationStatus ===

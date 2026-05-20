@@ -107,24 +107,6 @@ export const useAdmin = () => {
     }
   }, []);
 
-  const updateUserActivation = useCallback(async (id: string, activate: boolean) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await adminAPI.updateUserActivation(id, activate);
-      setUsers(prev => prev.map(u => u.id === id ? { ...u, ...response.data } : u));
-      toast.success(`User ${activate ? 'activated' : 'deactivated'} successfully`);
-      return response.data;
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 'Failed to update user activation';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   const fetchAuditLogs = useCallback(async (filters?: any) => {
     try {
       setIsLoading(true);
@@ -171,7 +153,6 @@ export const useAdmin = () => {
     approveUser,
     updateUserVerification,
     updateUserRole,
-    updateUserActivation,
     fetchAuditLogs,
     fetchStats,
   };

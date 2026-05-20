@@ -35,7 +35,3 @@ export const updateUserVerificationSchema = z.object({
 export const updateUserRoleSchema = z.object({
   role: z.enum(['ADMIN', 'INVESTOR', 'CLUSTER_REP', 'FARMER']),
 });
-
-export const updateUserActivationSchema = z.object({
-  activate: z.boolean(),
-});

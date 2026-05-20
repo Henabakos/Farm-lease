@@ -28,9 +28,7 @@ interface UserActionsDialogProps {
   actionType:
     | 'suspend'
     | 'verify'
-    | 'changeRole'
-    | 'activate'
-    | 'deactivate';
+    | 'changeRole';
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
@@ -47,7 +45,6 @@ export const UserActionsDialog: React.FC<UserActionsDialogProps> = ({
     updateUserStatus,
     updateUserVerification,
     updateUserRole,
-    updateUserActivation,
     isLoading,
   } = useAdmin();
 
@@ -71,14 +68,6 @@ export const UserActionsDialog: React.FC<UserActionsDialogProps> = ({
             return;
           }
           await updateUserStatus(user.id, 'SUSPENDED', reason);
-          break;
-
-        case 'activate':
-          await updateUserActivation(user.id, true);
-          break;
-
-        case 'deactivate':
-          await updateUserActivation(user.id, false);
           break;
 
         case 'verify':
@@ -125,10 +114,6 @@ export const UserActionsDialog: React.FC<UserActionsDialogProps> = ({
     switch (actionType) {
       case 'suspend':
         return 'Suspend User';
-      case 'activate':
-        return 'Activate User';
-      case 'deactivate':
-        return 'Deactivate User';
       case 'verify':
         return 'Update Verification Status';
       case 'changeRole':
@@ -142,10 +127,6 @@ export const UserActionsDialog: React.FC<UserActionsDialogProps> = ({
     switch (actionType) {
       case 'suspend':
         return `Suspend ${user?.fullName || user?.email}. They will not be able to access the system.`;
-      case 'activate':
-        return `Activate ${user?.fullName || user?.email}. They will regain access to the system.`;
-      case 'deactivate':
-        return `Deactivate ${user?.fullName || user?.email}. They will not be able to access the system.`;
       case 'verify':
         return `Update verification status for ${user?.fullName || user?.email}.`;
       case 'changeRole':
@@ -282,17 +263,6 @@ export const UserActionsDialog: React.FC<UserActionsDialogProps> = ({
                   Current role: <span className="font-semibold">{user?.role}</span>
                 </p>
               )}
-            </div>
-          )}
-
-          {/* Activation Confirmation */}
-          {(actionType === 'activate' || actionType === 'deactivate') && (
-            <div className="p-3 rounded-md bg-slate-50 border border-slate-200">
-              <p className="text-xs text-slate-600">
-                {actionType === 'activate'
-                  ? 'This user will be able to log in and access the system again.'
-                  : 'This user will not be able to log in or access the system.'}
-              </p>
             </div>
           )}
         </form>
