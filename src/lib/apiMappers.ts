@@ -35,18 +35,31 @@ export function apiRoleToUi(role: ApiRole | string): UserRole {
 
 export function mapClusterFromApi(row: Record<string, unknown>): Cluster {
   const metadata = (row.metadata as Record<string, unknown>) || {};
+  const isVerified = Boolean(row.has_verified_survey ?? metadata.is_verified ?? false);
+  const rawVerification = String(metadata.verification_status ?? row.verification_status ?? '').toUpperCase();
+  const verificationStatus =
+    isVerified || rawVerification === 'VERIFIED'
+      ? 'VERIFIED'
+      : rawVerification === 'PENDING'
+        ? 'PENDING'
+        : 'UNVERIFIED';
   return {
     id: String(row.id),
     name: String(row.name),
     location: String(row.location),
-    region: String(metadata.region || row.location || 'Unknown'),
+    region: String(row.region ?? metadata.region ?? row.location ?? 'Unknown'),
     memberCount: Number(metadata.member_count ?? row.members_count ?? 0),
-    isVerified: Boolean(row.has_verified_survey ?? metadata.is_verified ?? false),
+    isVerified: verificationStatus === 'VERIFIED',
+    verificationStatus,
     size: Number(row.area_hectares ?? 0),
     description: row.description ? String(row.description) : undefined,
     establishedDate: String(row.created_at ?? new Date().toISOString()),
     centerLatitude: row.center_latitude != null ? Number(row.center_latitude) : undefined,
     centerLongitude: row.center_longitude != null ? Number(row.center_longitude) : undefined,
+    status: row.status ? (String(row.status) as Cluster['status']) : 'ACTIVE',
+    ownerId: row.owner_id ? String(row.owner_id) : undefined,
+    imageUrl: row.image_url ? String(row.image_url) : undefined,
+    updatedAt: row.updated_at ? String(row.updated_at) : undefined,
   };
 }
 

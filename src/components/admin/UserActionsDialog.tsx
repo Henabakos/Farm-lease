@@ -1,16 +1,14 @@
-import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
     Select,
     SelectContent,
@@ -18,10 +16,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, AlertCircle } from "lucide-react";
-import { useAdmin } from "../../hooks/useAdmin";
+import { Textarea } from "@/components/ui/textarea";
+import { AlertCircle, Loader2 } from "lucide-react";
+import React, { useState } from "react";
 import { toast } from "sonner";
+import { useAdmin } from "../../hooks/useAdmin";
 
 interface UserActionsDialogProps {
     user: any;
@@ -149,7 +148,7 @@ export const UserActionsDialog: React.FC<UserActionsDialogProps> = ({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[480px] rounded-lg border-slate-200">
+            <DialogContent className="sm:max-w-120 rounded-lg border-slate-200">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         {actionType === "suspend" && (

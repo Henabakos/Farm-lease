@@ -153,7 +153,10 @@ export const clustersAPI = {
     api.post(`/clusters/${id}/members/invite`, { email, role }),
   updateMemberRole: (id: string, userId: string, role: string) =>
     api.patch(`/clusters/${id}/members/${userId}/role`, { role }),
-  verify: (id: string) => api.post(`/clusters/${id}/verify`)
+  assignRepresentative: (id: string, userId: string) =>
+    api.patch(`/clusters/${id}/representative`, { userId }),
+  verify: (id: string) => api.post(`/clusters/${id}/verify`),
+  unverify: (id: string) => api.post(`/clusters/${id}/unverify`)
 };
 
 // Plots API

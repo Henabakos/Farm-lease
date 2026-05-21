@@ -1,50 +1,36 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-    CardDescription,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 import {
     Dialog,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogFooter,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { adminAPI, usersAPI } from "@/src/services/api";
 import {
+    AlertCircle,
     ArrowLeft,
+    CheckCircle2,
     Edit2,
+    Key,
+    RefreshCw,
     Save,
     X,
-    AlertCircle,
-    CheckCircle2,
-    Key,
-    Copy,
-    RefreshCw,
 } from "lucide-react";
-import { useAdmin } from "../../hooks/useAdmin";
-import { usersAPI, adminAPI } from "@/src/services/api";
-import { UserActionsDialog } from "./UserActionsDialog";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
+import { useAdmin } from "../../hooks/useAdmin";
+import { UserActionsDialog } from "./UserActionsDialog";
 
 function normalizeUserProfile(data: any) {
     if (!data) return null;
@@ -325,7 +311,7 @@ export const UserDetailPage: React.FC = () => {
                     <div className="lg:col-span-1">
                         <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
                             <CardContent className="p-6">
-                                <div className="w-20 h-20 mx-auto mb-4 rounded-lg bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-white font-bold text-2xl">
+                                <div className="w-20 h-20 mx-auto mb-4 rounded-lg bg-linear-to-br from-primary to-primary/50 flex items-center justify-center text-white font-bold text-2xl">
                                     {user.fullName?.charAt(0) ||
                                         user.email?.charAt(0) ||
                                         "U"}
@@ -691,7 +677,7 @@ export const UserDetailPage: React.FC = () => {
                 open={passwordResetOpen}
                 onOpenChange={setPasswordResetOpen}
             >
-                <DialogContent className="sm:max-w-[480px] rounded-lg border-slate-200">
+                <DialogContent className="sm:max-w-120 rounded-lg border-slate-200">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Key className="w-4 h-4 text-primary" />

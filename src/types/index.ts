@@ -1,5 +1,9 @@
 export type UserRole = 'INVESTOR' | 'FARMER' | 'CLUSTER_REP' | 'ADMIN';
 
+export type ClusterStatus = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+
+export type ClusterVerificationStatus = 'VERIFIED' | 'UNVERIFIED' | 'PENDING';
+
 export interface Cluster {
   id: string;
   name: string;
@@ -7,11 +11,16 @@ export interface Cluster {
   region: string;
   memberCount: number;
   isVerified: boolean;
+  verificationStatus: ClusterVerificationStatus;
   size: number; // in hectares
   description?: string;
   establishedDate: string;
   centerLatitude?: number;
   centerLongitude?: number;
+  status?: ClusterStatus;
+  ownerId?: string;
+  imageUrl?: string;
+  updatedAt?: string;
 }
 
 export interface Plot {

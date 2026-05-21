@@ -30,8 +30,10 @@ import {
     Lock,
     MapPin,
     MoreVertical,
+    Plus,
     Search,
     Shield,
+    Trash2,
     UserPlus,
     Users,
     Wallet,
@@ -43,7 +45,12 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAdmin } from "../../hooks/useAdmin";
 import { Payment } from "../../types";
+import { CreateClusterDialog } from "../clusters/CreateClusterDialog";
 import { AdminAIPanel } from "./AdminAIPanel";
+import {
+    ClusterActionType,
+    ClusterActionsDialog,
+} from "./ClusterActionsDialog";
 import { UserActionsDialog } from "./UserActionsDialog";
 
 const container = {
@@ -72,7 +79,12 @@ export const AdminDashboard: React.FC = () => {
         fetchAllUsers,
         fetchAuditLogs,
     } = useAdmin();
-    const { clusters: apiClusters, verifyCluster } = useClusters();
+    const {
+        clusters: apiClusters,
+        verifyCluster,
+        fetchClusters,
+        isLoading: clustersLoading,
+    } = useClusters();
     const [payments, setPayments] = useState<Payment[]>([]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -81,14 +93,12 @@ export const AdminDashboard: React.FC = () => {
     >("USERS");
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [actionType, setActionType] = useState<
-        | "suspend"
-        | "unsuspend"
-        | "verify"
-        | "changeRole"
-        | "activate"
-        | "deactivate"
-        | null
+        "suspend" | "unsuspend" | "verify" | "changeRole" | null
     >(null);
+    const [selectedCluster, setSelectedCluster] = useState<any>(null);
+    const [clusterActionType, setClusterActionType] =
+        useState<ClusterActionType | null>(null);
+    const [createClusterOpen, setCreateClusterOpen] = useState(false);
 
     const filteredUsers = Array.isArray(users)
         ? users.filter(
@@ -107,7 +117,18 @@ export const AdminDashboard: React.FC = () => {
           )
         : [];
 
-    const pendingClusters = clusters.filter((c) => !c.isVerified);
+    const filteredClusters = clusters.filter(
+        (cluster) =>
+            cluster.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            cluster.location
+                ?.toLowerCase()
+                .includes(searchTerm.toLowerCase()) ||
+            cluster.region?.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+
+    const pendingClusters = clusters.filter(
+        (c) => c.verificationStatus !== "VERIFIED",
+    );
     const pendingPayments = payments.filter((p) => p.status === "SUBMITTED");
 
     // Fetch payments on mount
@@ -125,13 +146,7 @@ export const AdminDashboard: React.FC = () => {
 
     const openActionDialog = (
         user: any,
-        type:
-            | "suspend"
-            | "unsuspend"
-            | "verify"
-            | "changeRole"
-            | "activate"
-            | "deactivate",
+        type: "suspend" | "unsuspend" | "verify" | "changeRole",
     ) => {
         setSelectedUser(user);
         setActionType(type);
@@ -144,6 +159,36 @@ export const AdminDashboard: React.FC = () => {
 
     const handleUserRowClick = (userId: string) => {
         navigate(`/admin/users/${userId}`);
+    };
+
+    const handleClusterRowClick = (clusterId: string) => {
+        navigate(`/admin/clusters/${clusterId}`);
+    };
+
+    const openClusterActionDialog = (
+        cluster: (typeof clusters)[0],
+        type: ClusterActionType,
+    ) => {
+        setSelectedCluster(cluster);
+        setClusterActionType(type);
+    };
+
+    const closeClusterActionDialog = () => {
+        setSelectedCluster(null);
+        setClusterActionType(null);
+    };
+
+    const getClusterStatusBadgeColor = (status?: string) => {
+        switch (status) {
+            case "ACTIVE":
+                return "bg-emerald-50 text-emerald-700 border-emerald-200";
+            case "INACTIVE":
+                return "bg-amber-50 text-amber-700 border-amber-200";
+            case "ARCHIVED":
+                return "bg-red-50 text-red-700 border-red-200";
+            default:
+                return "bg-slate-50 text-slate-600 border-slate-200";
+        }
     };
 
     const getStatusBadgeColor = (status: string) => {
@@ -225,7 +270,6 @@ export const AdminDashboard: React.FC = () => {
     const handleVerifyCluster = async (id: string) => {
         try {
             await verifyCluster(id);
-            toast.success("Cluster verified successfully");
         } catch (err) {
             console.error("Failed to verify cluster", err);
         }
@@ -401,7 +445,11 @@ export const AdminDashboard: React.FC = () => {
                                             {filteredUsers.map((user) => (
                                                 <div
                                                     key={user.id}
-                                                    onClick={() => handleUserRowClick(user.id)}
+                                                    onClick={() =>
+                                                        handleUserRowClick(
+                                                            user.id,
+                                                        )
+                                                    }
                                                     className="flex items-center justify-between p-4 rounded-md bg-slate-50 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 transition-all group cursor-pointer"
                                                 >
                                                     <div className="flex items-center gap-3 flex-1">
@@ -471,7 +519,9 @@ export const AdminDashboard: React.FC = () => {
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="h-8 w-8 rounded-md hover:bg-white border border-transparent hover:border-slate-200 ml-2"
-                                                                onClick={(e) => e.stopPropagation()}
+                                                                onClick={(e) =>
+                                                                    e.stopPropagation()
+                                                                }
                                                             >
                                                                 <MoreVertical className="w-4 h-4" />
                                                             </Button>
@@ -592,55 +642,250 @@ export const AdminDashboard: React.FC = () => {
                                         </div>
                                     )}
                                     {activeTab === "CLUSTERS" && (
-                                        <div className="space-y-3">
-                                            {clusters.map((cluster) => (
-                                                <div
-                                                    key={cluster.id}
-                                                    className="flex items-center justify-between p-4 rounded-md bg-slate-50 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 transition-all group"
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                    {filteredClusters.length}{" "}
+                                                    cluster
+                                                    {filteredClusters.length !==
+                                                    1
+                                                        ? "s"
+                                                        : ""}
+                                                </p>
+                                                <Button
+                                                    size="sm"
+                                                    className="gap-1.5 h-8 rounded-md bg-primary hover:bg-primary/90 font-bold text-[10px] uppercase tracking-wider px-3"
+                                                    onClick={() =>
+                                                        setCreateClusterOpen(
+                                                            true,
+                                                        )
+                                                    }
                                                 >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform">
-                                                            <MapPin className="w-5 h-5" />
-                                                        </div>
-                                                        <div>
-                                                            <h4 className="font-bold text-sm text-slate-900 tracking-tight">
-                                                                {cluster.name}
-                                                            </h4>
-                                                            <p className="text-[11px] text-slate-500 font-medium">
-                                                                {
-                                                                    cluster.location
-                                                                }
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        {cluster.isVerified ? (
-                                                            <Badge className="bg-emerald-50 text-emerald-600 border border-emerald-100 font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider">
-                                                                Verified
-                                                            </Badge>
-                                                        ) : (
-                                                            <Button
-                                                                size="sm"
-                                                                className="bg-emerald-600 hover:bg-emerald-700 font-bold rounded-md h-8 text-[10px] uppercase tracking-wider px-3"
+                                                    <Plus className="w-3.5 h-3.5" />
+                                                    New Cluster
+                                                </Button>
+                                            </div>
+                                            {clustersLoading &&
+                                            filteredClusters.length === 0 ? (
+                                                <p className="text-sm text-slate-500 py-8 text-center">
+                                                    Loading clusters...
+                                                </p>
+                                            ) : filteredClusters.length ===
+                                              0 ? (
+                                                <p className="text-sm text-slate-500 py-8 text-center">
+                                                    No clusters match your
+                                                    search.
+                                                </p>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {filteredClusters.map(
+                                                        (cluster) => (
+                                                            <div
+                                                                key={cluster.id}
                                                                 onClick={() =>
-                                                                    handleVerifyCluster(
+                                                                    handleClusterRowClick(
                                                                         cluster.id,
                                                                     )
                                                                 }
+                                                                className="flex items-center justify-between p-4 rounded-md bg-slate-50 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 transition-all group cursor-pointer"
                                                             >
-                                                                Verify Now
-                                                            </Button>
-                                                        )}
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="rounded-md h-8 w-8 hover:bg-white hover:text-primary border border-transparent hover:border-slate-200"
-                                                        >
-                                                            <ChevronRight className="w-4 h-4" />
-                                                        </Button>
-                                                    </div>
+                                                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                    <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform shrink-0">
+                                                                        <MapPin className="w-5 h-5" />
+                                                                    </div>
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <h4 className="font-bold text-sm text-slate-900 tracking-tight truncate">
+                                                                            {
+                                                                                cluster.name
+                                                                            }
+                                                                        </h4>
+                                                                        <p className="text-[11px] text-slate-500 font-medium truncate">
+                                                                            {
+                                                                                cluster.location
+                                                                            }
+                                                                            {cluster.region
+                                                                                ? ` · ${cluster.region}`
+                                                                                : ""}
+                                                                        </p>
+                                                                        <div className="flex flex-wrap gap-1.5 mt-1.5 md:hidden">
+                                                                            <Badge
+                                                                                variant="outline"
+                                                                                className={cn(
+                                                                                    "font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider",
+                                                                                    getClusterStatusBadgeColor(
+                                                                                        cluster.status,
+                                                                                    ),
+                                                                                )}
+                                                                            >
+                                                                                {cluster.status ||
+                                                                                    "ACTIVE"}
+                                                                            </Badge>
+                                                                            <Badge
+                                                                                variant="outline"
+                                                                                className={cn(
+                                                                                    "font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider",
+                                                                                    getVerificationBadgeColor(
+                                                                                        cluster.verificationStatus,
+                                                                                    ),
+                                                                                )}
+                                                                            >
+                                                                                {cluster.verificationStatus}
+                                                                            </Badge>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="hidden md:flex items-center gap-2 shrink-0">
+                                                                    <Badge
+                                                                        variant="outline"
+                                                                        className={cn(
+                                                                            "font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider",
+                                                                            getClusterStatusBadgeColor(
+                                                                                cluster.status,
+                                                                            ),
+                                                                        )}
+                                                                    >
+                                                                        {cluster.status ||
+                                                                            "ACTIVE"}
+                                                                    </Badge>
+                                                                    <Badge
+                                                                        variant="outline"
+                                                                        className={cn(
+                                                                            "font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider",
+                                                                            getVerificationBadgeColor(
+                                                                                cluster.verificationStatus,
+                                                                            ),
+                                                                        )}
+                                                                    >
+                                                                        {cluster.verificationStatus}
+                                                                    </Badge>
+                                                                    <Badge
+                                                                        variant="outline"
+                                                                        className="font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider bg-slate-50 text-slate-600 border-slate-200"
+                                                                    >
+                                                                        {
+                                                                            cluster.memberCount
+                                                                        }{" "}
+                                                                        members
+                                                                    </Badge>
+                                                                </div>
+
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8 rounded-md hover:bg-white border border-transparent hover:border-slate-200 ml-2 shrink-0"
+                                                                            onClick={(
+                                                                                e,
+                                                                            ) =>
+                                                                                e.stopPropagation()
+                                                                            }
+                                                                        >
+                                                                            <MoreVertical className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent
+                                                                        align="end"
+                                                                        className="w-48"
+                                                                    >
+                                                                            <DropdownMenuItem
+                                                                                onClick={(
+                                                                                    e,
+                                                                                ) => {
+                                                                                    e.stopPropagation();
+                                                                                    handleClusterRowClick(
+                                                                                        cluster.id,
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                <ChevronRight className="w-4 h-4 mr-2" />
+                                                                                View Details
+                                                                            </DropdownMenuItem>
+                                                                            <DropdownMenuSeparator />
+
+                                                                            {(cluster.verificationStatus ===
+                                                                                "UNVERIFIED" ||
+                                                                                cluster.verificationStatus ===
+                                                                                    "PENDING") && (
+                                                                                <DropdownMenuItem
+                                                                                    onClick={(
+                                                                                        e,
+                                                                                    ) => {
+                                                                                        e.stopPropagation();
+                                                                                        openClusterActionDialog(
+                                                                                            cluster,
+                                                                                            "verify",
+                                                                                        );
+                                                                                    }}
+                                                                                    className="text-blue-700 focus:text-blue-700 focus:bg-blue-50"
+                                                                                >
+                                                                                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                                                    Verify...
+                                                                                </DropdownMenuItem>
+                                                                            )}
+
+                                                                            {cluster.verificationStatus ===
+                                                                                "VERIFIED" && (
+                                                                                <DropdownMenuItem
+                                                                                    onClick={(
+                                                                                        e,
+                                                                                    ) => {
+                                                                                        e.stopPropagation();
+                                                                                        openClusterActionDialog(
+                                                                                            cluster,
+                                                                                            "unverify",
+                                                                                        );
+                                                                                    }}
+                                                                                    className="text-amber-700 focus:text-amber-700 focus:bg-amber-50"
+                                                                                >
+                                                                                    <XCircle className="w-4 h-4 mr-2" />
+                                                                                    Unverify...
+                                                                                </DropdownMenuItem>
+                                                                            )}
+
+                                                                            {cluster.verificationStatus !==
+                                                                                "UNVERIFIED" && (
+                                                                                <DropdownMenuSeparator />
+                                                                            )}
+
+                                                                            <DropdownMenuItem
+                                                                                onClick={(
+                                                                                    e,
+                                                                                ) => {
+                                                                                    e.stopPropagation();
+                                                                                    openClusterActionDialog(
+                                                                                        cluster,
+                                                                                        "changeStatus",
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                <Shield className="w-4 h-4 mr-2" />
+                                                                                Change Status...
+                                                                            </DropdownMenuItem>
+                                                                            <DropdownMenuSeparator />
+                                                                            <DropdownMenuItem
+                                                                                onClick={(
+                                                                                    e,
+                                                                                ) => {
+                                                                                    e.stopPropagation();
+                                                                                    openClusterActionDialog(
+                                                                                        cluster,
+                                                                                        "archive",
+                                                                                    );
+                                                                                }}
+                                                                                className="text-red-700 focus:text-red-700 focus:bg-red-50"
+                                                                            >
+                                                                                <Trash2 className="w-4 h-4 mr-2" />
+                                                                                Archive...
+                                                                            </DropdownMenuItem>
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            </div>
+                                                        ),
+                                                    )}
                                                 </div>
-                                            ))}
+                                            )}
                                         </div>
                                     )}
                                     {activeTab === "CONTRACTS" && (
@@ -895,6 +1140,27 @@ export const AdminDashboard: React.FC = () => {
                     }}
                 />
             )}
+
+            {selectedCluster && clusterActionType && (
+                <ClusterActionsDialog
+                    cluster={selectedCluster}
+                    actionType={clusterActionType}
+                    open={!!selectedCluster && !!clusterActionType}
+                    onOpenChange={(open) => {
+                        if (!open) closeClusterActionDialog();
+                    }}
+                    onSuccess={() => {
+                        closeClusterActionDialog();
+                        fetchClusters();
+                    }}
+                />
+            )}
+
+            <CreateClusterDialog
+                open={createClusterOpen}
+                onOpenChange={setCreateClusterOpen}
+                onCreated={() => fetchClusters()}
+            />
         </motion.div>
     );
 };

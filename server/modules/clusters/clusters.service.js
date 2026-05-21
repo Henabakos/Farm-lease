@@ -153,6 +153,12 @@ export async function update(id, patch, viewer) {
     throw new ForbiddenError('Only the cluster owner or admin can edit');
   }
   const data = pickCreate(patch);
+  if (patch.status !== undefined) {
+    if (!isAdmin(viewer)) {
+      throw new ForbiddenError('Only admins can change cluster status');
+    }
+    data.status = patch.status;
+  }
   // Drop undefined keys so we don't clobber existing values with `undefined`.
   for (const k of Object.keys(data)) if (data[k] === undefined) delete data[k];
   const updated = await prisma.cluster.update({ where: { id }, data });
@@ -244,11 +250,11 @@ export async function inviteMember(clusterId, email, role, viewer) {
   // Log audit
   await prisma.auditLog.create({
     data: {
-      action: 'CLUSTER_MEMBER_INVITED',
       userId: viewer.id,
+      action: 'CLUSTER_MEMBER_INVITED',
       entityType: 'CLUSTER',
       entityId: clusterId,
-      details: { invitedUserId: targetUser.id, invitedEmail: targetUser.email, role },
+      changes: { invitedUserId: targetUser.id, invitedEmail: targetUser.email, role },
     },
   });
 
@@ -289,11 +295,11 @@ export async function updateMemberRole(clusterId, userId, role, viewer) {
   // Log audit
   await prisma.auditLog.create({
     data: {
-      action: 'CLUSTER_MEMBER_ROLE_UPDATED',
       userId: viewer.id,
+      action: 'CLUSTER_MEMBER_ROLE_UPDATED',
       entityType: 'CLUSTER',
       entityId: clusterId,
-      details: { targetUserId: userId, newRole: role },
+      changes: { targetUserId: userId, newRole: role },
     },
   });
 
@@ -301,6 +307,58 @@ export async function updateMemberRole(clusterId, userId, role, viewer) {
     message: 'Member role updated successfully',
     role: updated.role,
   };
+}
+
+/**
+ * Assign an existing member as the cluster representative (owner).
+ * Demotes any other REPRESENTATIVE memberships to FARMER.
+ */
+export async function assignRepresentative(clusterId, userId, viewer) {
+  const cluster = await loadOrThrow(clusterId);
+  if (cluster.ownerId !== viewer.id && !isAdmin(viewer)) {
+    throw new ForbiddenError('Only the cluster owner or admin can assign a representative');
+  }
+
+  const membership = await prisma.clusterMembership.findUnique({
+    where: { userId_clusterId: { userId, clusterId } },
+  });
+  if (!membership || !membership.isActive) {
+    throw new NotFoundError('User is not an active member of this cluster');
+  }
+  if (userId === cluster.ownerId) {
+    return { message: 'User is already the cluster representative', ownerId: userId };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.cluster.update({
+      where: { id: clusterId },
+      data: { ownerId: userId },
+    });
+    await tx.clusterMembership.updateMany({
+      where: {
+        clusterId,
+        isActive: true,
+        role: 'REPRESENTATIVE',
+        userId: { not: userId },
+      },
+      data: { role: 'FARMER' },
+    });
+    await tx.clusterMembership.update({
+      where: { userId_clusterId: { userId, clusterId } },
+      data: { role: 'REPRESENTATIVE' },
+    });
+    await tx.auditLog.create({
+      data: {
+        userId: viewer.id,
+        action: 'CLUSTER_REPRESENTATIVE_ASSIGNED',
+        entityType: 'CLUSTER',
+        entityId: clusterId,
+        changes: { representativeUserId: userId, previousOwnerId: cluster.ownerId },
+      },
+    });
+  });
+
+  return getById(clusterId, viewer);
 }
 
 /**
@@ -335,6 +393,39 @@ export async function adminVerify(clusterId, viewer) {
     data: {
       userId: viewer.id,
       action: 'CLUSTER_VERIFIED',
+      entityType: 'Cluster',
+      entityId: clusterId,
+    },
+  });
+  return getById(clusterId, viewer);
+}
+
+export async function adminUnverify(clusterId, viewer) {
+  if (!isAdmin(viewer)) throw new ForbiddenError('Only admins can unverify clusters');
+  const cluster = await loadOrThrow(clusterId);
+  const latestBoundary = await prisma.landBoundary.findFirst({
+    where: { clusterId },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (latestBoundary) {
+    await prisma.landBoundary.update({
+      where: { id: latestBoundary.id },
+      data: {
+        verificationStatus: 'UNVERIFIED',
+        verifiedById: null,
+        verifiedAt: null,
+      },
+    });
+  }
+  const md = { ...(cluster.metadata || {}) };
+  delete md.is_verified;
+  delete md.verified_by;
+  delete md.verified_at;
+  await prisma.cluster.update({ where: { id: clusterId }, data: { metadata: md } });
+  await prisma.auditLog.create({
+    data: {
+      userId: viewer.id,
+      action: 'CLUSTER_UNVERIFIED',
       entityType: 'Cluster',
       entityId: clusterId,
     },
