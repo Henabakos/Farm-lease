@@ -12,6 +12,7 @@ import {
   listAuditLogsSchema,
   updateUserVerificationSchema,
   updateUserRoleSchema,
+  unsuspendSchema,
 } from './admin.validators.js';
 import {
   updateUserStatus,
@@ -21,6 +22,7 @@ import {
   getSystemStats,
   updateUserVerification,
   updateUserRole,
+  unsuspendUser,
 } from './admin.service.js';
 
 const router = express.Router();
@@ -117,6 +119,21 @@ router.patch(
     try {
       const { role } = req.body;
       const user = await updateUserRole(req.user.id, req.params.id, role);
+      res.json(user);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// PATCH /admin/users/:id/unsuspend - Unsuspend a suspended user
+router.patch(
+  '/users/:id/unsuspend',
+  validate({ body: unsuspendSchema }),
+  async (req, res, next) => {
+    try {
+      const { reason } = req.body;
+      const user = await unsuspendUser(req.user.id, req.params.id, reason);
       res.json(user);
     } catch (err) {
       next(err);

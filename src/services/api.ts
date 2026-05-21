@@ -280,6 +280,8 @@ export const adminAPI = {
     api.patch(`/admin/users/${id}/verification`, { verificationStatus, reason }),
   updateUserRole: (id: string, role: string) =>
     api.patch(`/admin/users/${id}/role`, { role }),
+  unsuspendUser: (id: string, reason?: string) =>
+    api.patch(`/admin/users/${id}/unsuspend`, { reason }),
   getAuditLogs: (filters?: any) => api.get('/admin/audit-logs', { params: filters }),
   getStats: () => api.get('/admin/stats')
 };

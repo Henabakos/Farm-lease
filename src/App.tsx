@@ -24,6 +24,7 @@ import { MeetingScheduler } from '@/src/components/meetings/MeetingScheduler';
 import { AnalyticsDashboard } from '@/src/components/analytics/AnalyticsDashboard';
 import { AIChatbot } from '@/src/components/ai/AIChatbot';
 import { AdminDashboard } from '@/src/components/admin/AdminDashboard';
+import { UserDetailPage } from '@/src/components/admin/UserDetailPage';
 import { AuditLogs } from '@/src/components/admin/AuditLogs';
 import { SettingsPage } from '@/src/components/profile/SettingsPage';
 import { ResourceRecommendations } from '@/src/components/resources/ResourceRecommendations';
@@ -112,6 +113,7 @@ function AppContent() {
         <Route path="/meetings" element={<MeetingScheduler />} />
         <Route path="/analytics" element={<AnalyticsDashboard />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/users/:id" element={<UserDetailPage />} />
         <Route path="/audit-logs" element={<AuditLogs />} />
         <Route path="/resources" element={<ResourceRecommendations />} />
         <Route path="/settings" element={<SettingsPage />} />

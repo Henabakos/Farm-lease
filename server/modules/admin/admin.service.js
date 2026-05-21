@@ -201,6 +201,39 @@ export async function updateUserRole(adminUserId, userId, newRole) {
 }
 
 /**
+ * Unsuspend a suspended user.
+ */
+export async function unsuspendUser(adminUserId, userId, reason) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new NotFoundError('User not found');
+
+  if (userId === adminUserId) {
+    throw new ForbiddenError('Cannot modify your own status');
+  }
+
+  if (user.status !== 'SUSPENDED') {
+    throw new ForbiddenError('User is not suspended');
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { status: 'ACTIVE' },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      action: 'USER_UNSUSPENDED',
+      entityType: 'User',
+      entityId: userId,
+      changes: { reason, previousStatus: user.status },
+    },
+  });
+
+  return updated;
+}
+
+/**
  * Get system statistics for admin dashboard.
  */
 export async function getSystemStats() {

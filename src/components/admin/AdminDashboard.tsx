@@ -1,44 +1,12 @@
-import React, { useState, useEffect } from "react";
-import {
-    Users,
-    ShieldCheck,
-    Wallet,
-    Activity,
-    Search,
-    Filter,
-    MoreVertical,
-    CheckCircle2,
-    XCircle,
-    Clock,
-    ArrowUpRight,
-    UserPlus,
-    MapPin,
-    FileText,
-    Shield,
-    BarChart3,
-    Lock,
-    ChevronRight,
-    BrainCircuit,
-    LayoutDashboard,
-    FileSignature,
-    History,
-} from "lucide-react";
-import { AdminAIPanel } from "./AdminAIPanel";
-import { UserActionsDialog } from "./UserActionsDialog";
-import { useAdmin } from "../../hooks/useAdmin";
-import { useClusters } from "@/src/hooks/useClusters";
-import { paymentsAPI } from "@/src/services/api";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
     Card,
     CardContent,
+    CardDescription,
     CardHeader,
     CardTitle,
-    CardDescription,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -46,11 +14,36 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Cluster, Payment, UserRole } from "../../types";
-import { apiRoleToUi, mapClusterFromApi } from "@/src/lib/apiMappers";
-import { toast } from "sonner";
-import { motion, AnimatePresence } from "motion/react";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { useClusters } from "@/src/hooks/useClusters";
+import { mapClusterFromApi } from "@/src/lib/apiMappers";
+import { paymentsAPI } from "@/src/services/api";
+import {
+    Activity,
+    BrainCircuit,
+    CheckCircle2,
+    ChevronRight,
+    FileSignature,
+    FileText,
+    Lock,
+    MapPin,
+    MoreVertical,
+    Search,
+    Shield,
+    UserPlus,
+    Users,
+    Wallet,
+    XCircle,
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { useAdmin } from "../../hooks/useAdmin";
+import { Payment } from "../../types";
+import { AdminAIPanel } from "./AdminAIPanel";
+import { UserActionsDialog } from "./UserActionsDialog";
 
 const container = {
     hidden: { opacity: 0 },
@@ -86,7 +79,13 @@ export const AdminDashboard: React.FC = () => {
     >("USERS");
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [actionType, setActionType] = useState<
-        "suspend" | "verify" | "changeRole" | "activate" | "deactivate" | null
+        | "suspend"
+        | "unsuspend"
+        | "verify"
+        | "changeRole"
+        | "activate"
+        | "deactivate"
+        | null
     >(null);
 
     const filteredUsers = Array.isArray(users)
@@ -124,7 +123,13 @@ export const AdminDashboard: React.FC = () => {
 
     const openActionDialog = (
         user: any,
-        type: "suspend" | "verify" | "changeRole" | "activate" | "deactivate",
+        type:
+            | "suspend"
+            | "unsuspend"
+            | "verify"
+            | "changeRole"
+            | "activate"
+            | "deactivate",
     ) => {
         setSelectedUser(user);
         setActionType(type);
@@ -454,9 +459,7 @@ export const AdminDashboard: React.FC = () => {
                                                     </div>
 
                                                     <DropdownMenu>
-                                                        <DropdownMenuTrigger
-                                                            asChild
-                                                        >
+                                                        <DropdownMenuTrigger>
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
@@ -508,7 +511,21 @@ export const AdminDashboard: React.FC = () => {
 
                                                             {user.status ===
                                                                 "SUSPENDED" && (
-                                                                <DropdownMenuSeparator />
+                                                                <>
+                                                                    <DropdownMenuItem
+                                                                        onClick={() =>
+                                                                            openActionDialog(
+                                                                                user,
+                                                                                "unsuspend",
+                                                                            )
+                                                                        }
+                                                                        className="text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50"
+                                                                    >
+                                                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                                        Unsuspend...
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuSeparator />
+                                                                </>
                                                             )}
 
                                                             {user.verificationStatus ===

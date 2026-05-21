@@ -35,3 +35,7 @@ export const updateUserVerificationSchema = z.object({
 export const updateUserRoleSchema = z.object({
   role: z.enum(['ADMIN', 'INVESTOR', 'CLUSTER_REP', 'FARMER']),
 });
+
+export const unsuspendSchema = z.object({
+  reason: z.string().optional(),
+});

@@ -107,6 +107,24 @@ export const useAdmin = () => {
     }
   }, []);
 
+  const unsuspendUser = useCallback(async (id: string, reason?: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await adminAPI.unsuspendUser(id, reason);
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, ...response.data } : u));
+      toast.success('User unsuspended successfully');
+      return response.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to unsuspend user';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const fetchAuditLogs = useCallback(async (filters?: any) => {
     try {
       setIsLoading(true);
@@ -153,6 +171,7 @@ export const useAdmin = () => {
     approveUser,
     updateUserVerification,
     updateUserRole,
+    unsuspendUser,
     fetchAuditLogs,
     fetchStats,
   };
