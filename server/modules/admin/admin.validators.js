@@ -39,3 +39,7 @@ export const updateUserRoleSchema = z.object({
 export const unsuspendSchema = z.object({
   reason: z.string().optional(),
 });
+
+export const resetPasswordSchema = z.object({
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+});

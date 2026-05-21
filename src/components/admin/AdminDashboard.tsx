@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAdmin } from "../../hooks/useAdmin";
 import { Payment } from "../../types";
@@ -61,6 +62,7 @@ const item = {
 };
 
 export const AdminDashboard: React.FC = () => {
+    const navigate = useNavigate();
     const {
         users,
         stats,
@@ -138,6 +140,10 @@ export const AdminDashboard: React.FC = () => {
     const closeActionDialog = () => {
         setSelectedUser(null);
         setActionType(null);
+    };
+
+    const handleUserRowClick = (userId: string) => {
+        navigate(`/admin/users/${userId}`);
     };
 
     const getStatusBadgeColor = (status: string) => {
@@ -395,7 +401,8 @@ export const AdminDashboard: React.FC = () => {
                                             {filteredUsers.map((user) => (
                                                 <div
                                                     key={user.id}
-                                                    className="flex items-center justify-between p-4 rounded-md bg-slate-50 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 transition-all group"
+                                                    onClick={() => handleUserRowClick(user.id)}
+                                                    className="flex items-center justify-between p-4 rounded-md bg-slate-50 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 transition-all group cursor-pointer"
                                                 >
                                                     <div className="flex items-center gap-3 flex-1">
                                                         <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-primary font-bold group-hover:scale-105 transition-transform">
@@ -464,6 +471,7 @@ export const AdminDashboard: React.FC = () => {
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="h-8 w-8 rounded-md hover:bg-white border border-transparent hover:border-slate-200 ml-2"
+                                                                onClick={(e) => e.stopPropagation()}
                                                             >
                                                                 <MoreVertical className="w-4 h-4" />
                                                             </Button>

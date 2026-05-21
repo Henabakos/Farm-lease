@@ -4,6 +4,7 @@
 import { prisma } from '../../db/prisma.js';
 import { NotFoundError, ForbiddenError } from '../../shared/errors.js';
 import { paginate } from '../../shared/pagination.js';
+import { hashPassword } from '../../utils/crypto.js';
 
 /**
  * Update user status (approve, suspend, delete).
@@ -227,6 +228,37 @@ export async function unsuspendUser(adminUserId, userId, reason) {
       entityType: 'User',
       entityId: userId,
       changes: { reason, previousStatus: user.status },
+    },
+  });
+
+  return updated;
+}
+
+/**
+ * Reset user password.
+ */
+export async function resetUserPassword(adminUserId, userId, newPassword) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new NotFoundError('User not found');
+
+  if (userId === adminUserId) {
+    throw new ForbiddenError('Cannot reset your own password');
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      action: 'USER_PASSWORD_RESET',
+      entityType: 'User',
+      entityId: userId,
+      changes: { note: 'Password reset by admin' },
     },
   });
 

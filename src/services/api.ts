@@ -282,6 +282,8 @@ export const adminAPI = {
     api.patch(`/admin/users/${id}/role`, { role }),
   unsuspendUser: (id: string, reason?: string) =>
     api.patch(`/admin/users/${id}/unsuspend`, { reason }),
+  resetUserPassword: (id: string, password: string) =>
+    api.patch(`/admin/users/${id}/password`, { password }),
   getAuditLogs: (filters?: any) => api.get('/admin/audit-logs', { params: filters }),
   getStats: () => api.get('/admin/stats')
 };

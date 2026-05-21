@@ -13,6 +13,7 @@ import {
   updateUserVerificationSchema,
   updateUserRoleSchema,
   unsuspendSchema,
+  resetPasswordSchema,
 } from './admin.validators.js';
 import {
   updateUserStatus,
@@ -23,6 +24,7 @@ import {
   updateUserVerification,
   updateUserRole,
   unsuspendUser,
+  resetUserPassword,
 } from './admin.service.js';
 
 const router = express.Router();
@@ -134,6 +136,21 @@ router.patch(
     try {
       const { reason } = req.body;
       const user = await unsuspendUser(req.user.id, req.params.id, reason);
+      res.json(user);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// PATCH /admin/users/:id/password - Reset user password
+router.patch(
+  '/users/:id/password',
+  validate({ body: resetPasswordSchema }),
+  async (req, res, next) => {
+    try {
+      const { password } = req.body;
+      const user = await resetUserPassword(req.user.id, req.params.id, password);
       res.json(user);
     } catch (err) {
       next(err);
