@@ -15,11 +15,26 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useClusters } from "@/src/hooks/useClusters";
 import { mapClusterFromApi } from "@/src/lib/apiMappers";
-import { paymentsAPI } from "@/src/services/api";
+import { authAPI, paymentsAPI } from "@/src/services/api";
 import {
     Activity,
     BrainCircuit,
@@ -99,6 +114,14 @@ export const AdminDashboard: React.FC = () => {
     const [clusterActionType, setClusterActionType] =
         useState<ClusterActionType | null>(null);
     const [createClusterOpen, setCreateClusterOpen] = useState(false);
+    const [createUserOpen, setCreateUserOpen] = useState(false);
+    const [isCreatingUser, setIsCreatingUser] = useState(false);
+    const [newUserForm, setNewUserForm] = useState({
+        fullName: "",
+        email: "",
+        password: "",
+        role: "FARMER",
+    });
 
     const filteredUsers = Array.isArray(users)
         ? users.filter(
@@ -289,6 +312,81 @@ export const AdminDashboard: React.FC = () => {
         }
     };
 
+    const handleCreateUser = async () => {
+        const fullName = newUserForm.fullName.trim();
+        const email = newUserForm.email.trim().toLowerCase();
+        const password = newUserForm.password;
+        const hasLetterAndDigit =
+            /[A-Za-z]/.test(password) && /\d/.test(password);
+
+        if (!fullName || !email || !password) {
+            toast.error("Please fill all required fields");
+            return;
+        }
+
+        if (fullName.length < 2) {
+            toast.error("Full name must be at least 2 characters");
+            return;
+        }
+
+        if (!/^\S+@\S+\.\S+$/.test(email)) {
+            toast.error("Please enter a valid email address");
+            return;
+        }
+
+        if (password.length < 8 || password.length > 128) {
+            toast.error("Password must be 8-128 characters");
+            return;
+        }
+
+        if (!hasLetterAndDigit) {
+            toast.error("Password must contain both letters and digits");
+            return;
+        }
+
+        if (newUserForm.role === "ADMIN") {
+            toast.error(
+                "Admin role cannot be created via self-register endpoint",
+            );
+            return;
+        }
+
+        try {
+            setIsCreatingUser(true);
+            await authAPI.register({
+                fullName,
+                email,
+                password,
+                role: newUserForm.role,
+            });
+            toast.success("User created successfully");
+            setCreateUserOpen(false);
+            setNewUserForm({
+                fullName: "",
+                email: "",
+                password: "",
+                role: "FARMER",
+            });
+            fetchAllUsers();
+        } catch (err: any) {
+            const details = err?.response?.data?.details;
+            const detailMessage = Array.isArray(details)
+                ? details
+                      .map((d: any) => d?.message)
+                      .filter(Boolean)
+                      .join("; ")
+                : null;
+            const message =
+                detailMessage ||
+                err?.response?.data?.error ||
+                err?.response?.data?.message ||
+                "Failed to create user";
+            toast.error(message);
+        } finally {
+            setIsCreatingUser(false);
+        }
+    };
+
     return (
         <motion.div
             variants={container}
@@ -442,6 +540,24 @@ export const AdminDashboard: React.FC = () => {
                                 >
                                     {activeTab === "USERS" && (
                                         <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                    {filteredUsers.length} user
+                                                    {filteredUsers.length !== 1
+                                                        ? "s"
+                                                        : ""}
+                                                </p>
+                                                <Button
+                                                    size="sm"
+                                                    className="gap-1.5 h-8 rounded-md bg-primary hover:bg-primary/90 font-bold text-[10px] uppercase tracking-wider px-3"
+                                                    onClick={() =>
+                                                        setCreateUserOpen(true)
+                                                    }
+                                                >
+                                                    <Plus className="w-3.5 h-3.5" />
+                                                    New User
+                                                </Button>
+                                            </div>
                                             {filteredUsers.map((user) => (
                                                 <div
                                                     key={user.id}
@@ -729,7 +845,9 @@ export const AdminDashboard: React.FC = () => {
                                                                                     ),
                                                                                 )}
                                                                             >
-                                                                                {cluster.verificationStatus}
+                                                                                {
+                                                                                    cluster.verificationStatus
+                                                                                }
                                                                             </Badge>
                                                                         </div>
                                                                     </div>
@@ -757,7 +875,9 @@ export const AdminDashboard: React.FC = () => {
                                                                             ),
                                                                         )}
                                                                     >
-                                                                        {cluster.verificationStatus}
+                                                                        {
+                                                                            cluster.verificationStatus
+                                                                        }
                                                                     </Badge>
                                                                     <Badge
                                                                         variant="outline"
@@ -789,66 +909,26 @@ export const AdminDashboard: React.FC = () => {
                                                                         align="end"
                                                                         className="w-48"
                                                                     >
-                                                                            <DropdownMenuItem
-                                                                                onClick={(
-                                                                                    e,
-                                                                                ) => {
-                                                                                    e.stopPropagation();
-                                                                                    handleClusterRowClick(
-                                                                                        cluster.id,
-                                                                                    );
-                                                                                }}
-                                                                            >
-                                                                                <ChevronRight className="w-4 h-4 mr-2" />
-                                                                                View Details
-                                                                            </DropdownMenuItem>
-                                                                            <DropdownMenuSeparator />
+                                                                        <DropdownMenuItem
+                                                                            onClick={(
+                                                                                e,
+                                                                            ) => {
+                                                                                e.stopPropagation();
+                                                                                handleClusterRowClick(
+                                                                                    cluster.id,
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            <ChevronRight className="w-4 h-4 mr-2" />
+                                                                            View
+                                                                            Details
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuSeparator />
 
-                                                                            {(cluster.verificationStatus ===
-                                                                                "UNVERIFIED" ||
-                                                                                cluster.verificationStatus ===
-                                                                                    "PENDING") && (
-                                                                                <DropdownMenuItem
-                                                                                    onClick={(
-                                                                                        e,
-                                                                                    ) => {
-                                                                                        e.stopPropagation();
-                                                                                        openClusterActionDialog(
-                                                                                            cluster,
-                                                                                            "verify",
-                                                                                        );
-                                                                                    }}
-                                                                                    className="text-blue-700 focus:text-blue-700 focus:bg-blue-50"
-                                                                                >
-                                                                                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                                                                                    Verify...
-                                                                                </DropdownMenuItem>
-                                                                            )}
-
-                                                                            {cluster.verificationStatus ===
-                                                                                "VERIFIED" && (
-                                                                                <DropdownMenuItem
-                                                                                    onClick={(
-                                                                                        e,
-                                                                                    ) => {
-                                                                                        e.stopPropagation();
-                                                                                        openClusterActionDialog(
-                                                                                            cluster,
-                                                                                            "unverify",
-                                                                                        );
-                                                                                    }}
-                                                                                    className="text-amber-700 focus:text-amber-700 focus:bg-amber-50"
-                                                                                >
-                                                                                    <XCircle className="w-4 h-4 mr-2" />
-                                                                                    Unverify...
-                                                                                </DropdownMenuItem>
-                                                                            )}
-
-                                                                            {cluster.verificationStatus !==
-                                                                                "UNVERIFIED" && (
-                                                                                <DropdownMenuSeparator />
-                                                                            )}
-
+                                                                        {(cluster.verificationStatus ===
+                                                                            "UNVERIFIED" ||
+                                                                            cluster.verificationStatus ===
+                                                                                "PENDING") && (
                                                                             <DropdownMenuItem
                                                                                 onClick={(
                                                                                     e,
@@ -856,14 +936,18 @@ export const AdminDashboard: React.FC = () => {
                                                                                     e.stopPropagation();
                                                                                     openClusterActionDialog(
                                                                                         cluster,
-                                                                                        "changeStatus",
+                                                                                        "verify",
                                                                                     );
                                                                                 }}
+                                                                                className="text-blue-700 focus:text-blue-700 focus:bg-blue-50"
                                                                             >
-                                                                                <Shield className="w-4 h-4 mr-2" />
-                                                                                Change Status...
+                                                                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                                                Verify...
                                                                             </DropdownMenuItem>
-                                                                            <DropdownMenuSeparator />
+                                                                        )}
+
+                                                                        {cluster.verificationStatus ===
+                                                                            "VERIFIED" && (
                                                                             <DropdownMenuItem
                                                                                 onClick={(
                                                                                     e,
@@ -871,14 +955,52 @@ export const AdminDashboard: React.FC = () => {
                                                                                     e.stopPropagation();
                                                                                     openClusterActionDialog(
                                                                                         cluster,
-                                                                                        "archive",
+                                                                                        "unverify",
                                                                                     );
                                                                                 }}
-                                                                                className="text-red-700 focus:text-red-700 focus:bg-red-50"
+                                                                                className="text-amber-700 focus:text-amber-700 focus:bg-amber-50"
                                                                             >
-                                                                                <Trash2 className="w-4 h-4 mr-2" />
-                                                                                Archive...
+                                                                                <XCircle className="w-4 h-4 mr-2" />
+                                                                                Unverify...
                                                                             </DropdownMenuItem>
+                                                                        )}
+
+                                                                        {cluster.verificationStatus !==
+                                                                            "UNVERIFIED" && (
+                                                                            <DropdownMenuSeparator />
+                                                                        )}
+
+                                                                        <DropdownMenuItem
+                                                                            onClick={(
+                                                                                e,
+                                                                            ) => {
+                                                                                e.stopPropagation();
+                                                                                openClusterActionDialog(
+                                                                                    cluster,
+                                                                                    "changeStatus",
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            <Shield className="w-4 h-4 mr-2" />
+                                                                            Change
+                                                                            Status...
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuSeparator />
+                                                                        <DropdownMenuItem
+                                                                            onClick={(
+                                                                                e,
+                                                                            ) => {
+                                                                                e.stopPropagation();
+                                                                                openClusterActionDialog(
+                                                                                    cluster,
+                                                                                    "archive",
+                                                                                );
+                                                                            }}
+                                                                            className="text-red-700 focus:text-red-700 focus:bg-red-50"
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4 mr-2" />
+                                                                            Archive...
+                                                                        </DropdownMenuItem>
                                                                     </DropdownMenuContent>
                                                                 </DropdownMenu>
                                                             </div>
@@ -1161,6 +1283,90 @@ export const AdminDashboard: React.FC = () => {
                 onOpenChange={setCreateClusterOpen}
                 onCreated={() => fetchClusters()}
             />
+
+            <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Create User</DialogTitle>
+                        <DialogDescription>
+                            Register a new user account as admin.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-3">
+                        <Input
+                            placeholder="Full name"
+                            value={newUserForm.fullName}
+                            onChange={(e) =>
+                                setNewUserForm((prev) => ({
+                                    ...prev,
+                                    fullName: e.target.value,
+                                }))
+                            }
+                        />
+                        <Input
+                            type="email"
+                            placeholder="Email address"
+                            value={newUserForm.email}
+                            onChange={(e) =>
+                                setNewUserForm((prev) => ({
+                                    ...prev,
+                                    email: e.target.value,
+                                }))
+                            }
+                        />
+                        <Input
+                            type="password"
+                            placeholder="Password"
+                            value={newUserForm.password}
+                            onChange={(e) =>
+                                setNewUserForm((prev) => ({
+                                    ...prev,
+                                    password: e.target.value,
+                                }))
+                            }
+                        />
+                        <Select
+                            value={newUserForm.role}
+                            onValueChange={(value) =>
+                                setNewUserForm((prev) => ({
+                                    ...prev,
+                                    role: value ?? prev.role,
+                                }))
+                            }
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="FARMER">Farmer</SelectItem>
+                                <SelectItem value="INVESTOR">
+                                    Investor
+                                </SelectItem>
+                                <SelectItem value="CLUSTER_REP">
+                                    Cluster Rep
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setCreateUserOpen(false)}
+                            disabled={isCreatingUser}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleCreateUser}
+                            disabled={isCreatingUser}
+                        >
+                            {isCreatingUser ? "Creating..." : "Create User"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </motion.div>
     );
 };
