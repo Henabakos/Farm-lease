@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/src/store/useStore';
+import { usePayments } from '@/src/hooks/usePayments';
 import { toast } from 'sonner';
 
 export function PaymentSubmit({ 
@@ -33,6 +34,7 @@ export function PaymentSubmit({
   onSubmit: (id: string, receiptUrl: string, notes: string) => void
 }) {
   const { updatePayment } = useStore();
+  const { processPayment } = usePayments();
   const [receipt, setReceipt] = useState<{ name: string; size: string } | null>(null);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,12 +49,19 @@ export function PaymentSubmit({
     setReceipt(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!receipt) return;
     
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      const payload = {
+        storage_key: receipt.name,
+        file_name: receipt.name,
+        mime_type: 'application/pdf',
+        file_size: 1200000
+      };
+      await processPayment(payment.id, payload as any);
       updatePayment(payment.id, { 
         status: 'SUBMITTED', 
         receiptUrl: receipt.name,
@@ -60,8 +69,9 @@ export function PaymentSubmit({
       });
       onSubmit(payment.id, receipt.name, notes);
       setIsSubmitting(false);
-      toast.success('Payment submitted for review');
-    }, 1500);
+    } catch (err) {
+      setIsSubmitting(false);
+    }
   };
 
   return (

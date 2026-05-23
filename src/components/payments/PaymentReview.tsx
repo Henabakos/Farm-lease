@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/src/store/useStore';
+import { usePayments } from '@/src/hooks/usePayments';
 import { toast } from 'sonner';
 
 export function PaymentReview({ 
@@ -40,30 +41,35 @@ export function PaymentReview({
   onReject: (id: string, reason: string) => void
 }) {
   const { verifyPayment, updatePayment } = useStore();
+  const { verifyPayment: apiVerifyPayment } = usePayments();
   const [rejectReason, setRejectReason] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     setIsVerifying(true);
-    setTimeout(() => {
+    try {
+      await apiVerifyPayment(payment.id, { decision: 'APPROVED' });
       verifyPayment(payment.id);
       onVerify(payment.id);
       setIsVerifying(false);
-      toast.success('Payment verified successfully');
-    }, 1500);
+    } catch (err) {
+      setIsVerifying(false);
+    }
   };
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!rejectReason.trim()) return;
     setIsRejecting(true);
-    setTimeout(() => {
+    try {
+      await apiVerifyPayment(payment.id, { decision: 'REJECTED', reviewer_notes: rejectReason });
       updatePayment(payment.id, { status: 'REJECTED', notes: rejectReason });
       onReject(payment.id, rejectReason);
       setIsRejecting(false);
-      toast.success('Payment rejected');
-    }, 1500);
+    } catch (err) {
+      setIsRejecting(false);
+    }
   };
 
   return (
