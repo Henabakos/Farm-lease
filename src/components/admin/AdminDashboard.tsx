@@ -66,6 +66,7 @@ import { toast } from "sonner";
 import { useAdmin } from "../../hooks/useAdmin";
 import { Payment } from "../../types";
 import { CreateClusterDialog } from "../clusters/CreateClusterDialog";
+import { ContractTemplatesPanel } from "./contracts/ContractTemplatesPanel";
 import { AdminAIPanel } from "./AdminAIPanel";
 import {
     ClusterActionType,
@@ -1251,26 +1252,7 @@ export const AdminDashboard: React.FC = () => {
                                         </div>
                                     )}
                                     {activeTab === "CONTRACTS" && (
-                                        <div className="space-y-4">
-                                            <Card className="p-6 border-slate-200">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <h3 className="font-bold flex items-center gap-2">
-                                                        <FileSignature className="w-4 h-4" />
-                                                        Contract Templates
-                                                    </h3>
-                                                    <Button
-                                                        size="sm"
-                                                        className="bg-primary hover:bg-primary/90"
-                                                    >
-                                                        Create Template
-                                                    </Button>
-                                                </div>
-                                                <p className="text-slate-500 text-sm">
-                                                    Contract template management
-                                                    interface coming soon.
-                                                </p>
-                                            </Card>
-                                        </div>
+                                        <ContractTemplatesPanel />
                                     )}
                                     {activeTab === "PAYMENTS" && (
                                         <div className="space-y-6">
