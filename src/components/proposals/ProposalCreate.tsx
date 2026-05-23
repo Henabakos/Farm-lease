@@ -29,6 +29,7 @@ interface TargetOption {
   id: string;
   label: string;
   subtitle?: string;
+  verified?: boolean;
 }
 
 export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSubmit?: () => void }) {
@@ -79,10 +80,12 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
           const res = await clustersAPI.getAll({});
           const rows = Array.isArray(res.data) ? res.data : res.data?.data ?? res.data?.items ?? [];
           if (!cancelled) {
-            setTargets(rows.map((c: any) => ({
+            const verifiedRows = rows.filter((c: any) => Boolean(c.has_verified_survey || c.isVerified));
+            setTargets(verifiedRows.map((c: any) => ({
               id: c.id,
               label: c.name,
               subtitle: c.location ?? undefined,
+              verified: true,
             })));
           }
         } else {
@@ -97,7 +100,7 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
           }
         }
       } catch {
-        if (!cancelled) toast.error(`Failed to load ${targetType === 'CLUSTER' ? 'clusters' : 'farmers'}`);
+        if (!cancelled) toast.error(`Failed to load ${targetType === 'CLUSTER' ? 'verified clusters' : 'farmers'}`);
       } finally {
         if (!cancelled) setIsLoadingTargets(false);
       }
@@ -159,20 +162,20 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
           interestRate: formData.interestRate ? Number(formData.interestRate) : undefined,
           repaymentPeriod: formData.repaymentPeriod || undefined,
           collateral: formData.collateral || undefined,
-          documents: docs.map((d) => ({
-            storage_key: d.storage_key,
-            file_name: d.file_name,
-            mime_type: d.mime_type,
-            file_size: d.file_size,
-          })),
         },
+        documents: docs.map((d) => ({
+          storage_key: d.storage_key,
+          file_name: d.file_name,
+          mime_type: d.mime_type,
+          file_size: d.file_size,
+        })),
       };
       if (targetType === 'CLUSTER') payload.clusterId = formData.targetId;
       else payload.targetUserId = formData.targetId;
 
       const created = await createProposal(payload);
       if (publish) {
-        await publishProposal(created.id);
+        await publishProposal(created.id, created.version);
       }
       onSubmit?.();
       onBack();
@@ -258,9 +261,16 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="targetId" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">
-                      Select Target
-                    </Label>
+                    <div className="flex items-center justify-between gap-2 ml-1">
+                      <Label htmlFor="targetId" className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        Select Target
+                      </Label>
+                      {targetType === 'CLUSTER' && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-md px-2 py-0.5">
+                          Verified clusters only
+                        </span>
+                      )}
+                    </div>
                     <Select
                       value={formData.targetId}
                       onValueChange={(val) => setFormData({ ...formData, targetId: val })}
@@ -270,12 +280,21 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
                       </SelectTrigger>
                       <SelectContent className="rounded-md border-slate-200">
                         {targets.length === 0 && !isLoadingTargets ? (
-                          <div className="px-3 py-2 text-xs text-slate-400">No options available</div>
+                          <div className="px-3 py-2 text-xs text-slate-400">
+                            {targetType === 'CLUSTER' ? 'No verified clusters available' : 'No options available'}
+                          </div>
                         ) : (
                           targets.map((t) => (
                             <SelectItem key={t.id} value={t.id} className="text-xs font-medium">
-                              {t.label}
-                              {t.subtitle && <span className="text-slate-400 ml-2">— {t.subtitle}</span>}
+                              <span className="flex items-center gap-2 min-w-0">
+                                <span className="truncate">{t.label}</span>
+                                {t.verified && (
+                                  <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5 shrink-0">
+                                    Verified
+                                  </span>
+                                )}
+                              </span>
+                              {t.subtitle && <span className="text-slate-400 ml-2 truncate">— {t.subtitle}</span>}
                             </SelectItem>
                           ))
                         )}
@@ -292,7 +311,7 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
                     id="description"
                     name="description"
                     placeholder="Describe the purpose and goals of this funding..."
-                    className="min-h-[100px] bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium p-3 resize-none"
+                    className="min-h-25 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium p-3 resize-none"
                     required
                     value={formData.description}
                     onChange={handleInputChange}
@@ -495,7 +514,7 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
                 className="w-full h-10 gap-2 text-[11px] font-bold uppercase tracking-wider rounded-md bg-primary hover:bg-primary/90 shadow-sm transition-all active:scale-95"
               >
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                Submit & Publish
+                Submit Proposal
               </Button>
               <Button
                 type="button"
@@ -521,7 +540,7 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
               <CardContent className="p-4 flex gap-3">
                 <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                  Drafts are private. Published proposals notify the target and can be negotiated, accepted, or rejected.
+                  Drafts are private. Submitted proposals notify the target and can be negotiated, accepted, or rejected.
                 </p>
               </CardContent>
             </Card>
