@@ -6,6 +6,7 @@
 //   NEGOTIATING → NEGOTIATING      (further counters)
 //   any         → ACCEPTED         (proposal.accept by the counterparty)
 //   any         → REJECTED         (proposal.reject by the counterparty)
+//   any         → WITHDRAWN        (proposal.withdraw by the author)
 //   any         → EXPIRED          (system, when expiresAt elapses)
 //
 // Each transition writes a row into `ProposalHistory` for audit and emits a
@@ -28,7 +29,13 @@ import { isAdmin } from '../../shared/scope.js';
 import { paginate, paginated } from '../../shared/pagination.js';
 import { recordOutbox } from '../../events/bus.js';
 
-const TERMINAL_STATUSES = new Set(['ACCEPTED', 'REJECTED', 'EXPIRED']);
+const TERMINAL_STATUSES = new Set(['ACCEPTED', 'REJECTED', 'WITHDRAWN', 'EXPIRED']);
+
+function addMonths(date, months) {
+  const next = new Date(date);
+  next.setMonth(next.getMonth() + months);
+  return next;
+}
 
 function toDto(p) {
   if (!p) return null;
@@ -48,6 +55,15 @@ function toDto(p) {
     roi: p.roi != null ? Number(p.roi) : null,
     location: p.location ?? null,
     terms: p.terms ?? {},
+    version: p.version ?? 0,
+    documents: (p.documents ?? []).map((d) => ({
+      id: d.id,
+      storage_key: d.storageKey,
+      file_name: d.fileName,
+      mime_type: d.mimeType,
+      file_size: d.fileSize,
+      created_at: d.createdAt?.toISOString?.() ?? d.createdAt,
+    })),
     status: p.status.toLowerCase(), // frontend mapper expects lowercase tokens
     expires_at: p.expiresAt?.toISOString?.() ?? p.expiresAt ?? null,
     created_at: p.createdAt?.toISOString?.() ?? p.createdAt,
@@ -69,6 +85,7 @@ function pickInput(body) {
     roi: body.roi,
     location: body.location,
     terms: body.terms ?? {},
+    documents: body.documents ?? body.terms?.documents ?? [],
     expiresAt: body.expiresAt ?? body.expires_at ?? null,
   };
 }
@@ -110,7 +127,7 @@ async function canRead(proposal, viewer) {
 async function loadOrThrow(id, opts = {}) {
   const p = await prisma.proposal.findUnique({
     where: { id },
-    include: { cluster: { select: { id: true, name: true, ownerId: true } }, targetUser: { select: { id: true, fullName: true } }, ...(opts.include ?? {}) },
+    include: { cluster: { select: { id: true, name: true, ownerId: true } }, targetUser: { select: { id: true, fullName: true } }, documents: true, ...(opts.include ?? {}) },
   });
   if (!p) throw new NotFoundError('Proposal not found');
   return p;
@@ -120,6 +137,83 @@ async function appendHistory(tx, { proposalId, actorId, action, details }) {
   await tx.proposalHistory.create({
     data: { proposalId, actorId, action, details: details ?? null },
   });
+}
+
+async function updateWithVersion(tx, proposalId, expectedVersion, data) {
+  const result = await tx.proposal.updateMany({
+    where: { id: proposalId, version: expectedVersion },
+    data: { ...data, version: { increment: 1 } },
+  });
+  if (result.count === 0) {
+    throw new ConflictError('Proposal was updated by another user. Please refresh and try again.');
+  }
+}
+
+function resolveExpectedVersion(proposal, body) {
+  const incoming = body?.expectedVersion ?? body?.version;
+  return incoming ?? proposal.version ?? 0;
+}
+
+async function autoDraftAgreement(tx, proposal) {
+  if (!proposal.clusterId && !proposal.targetUserId) return null;
+
+  const existing = await tx.agreement.findUnique({
+    where: { proposalId: proposal.id },
+    select: { id: true },
+  });
+  if (existing) return existing;
+
+  const terms = proposal.terms && typeof proposal.terms === 'object' ? proposal.terms : {};
+  const startDate = terms.startDate ? new Date(terms.startDate) : new Date();
+  const leaseMonths = proposal.leaseTermMonths ?? Number(terms.durationMonths ?? terms.leaseTermMonths ?? 12);
+  const endDate = terms.endDate ? new Date(terms.endDate) : addMonths(startDate, leaseMonths);
+  const totalAmount = proposal.proposedAmount;
+  const installmentAmount =
+    terms.installmentAmount ??
+    (leaseMonths > 0 ? Number(proposal.proposedAmount) / leaseMonths : Number(proposal.proposedAmount));
+
+  const agreement = await tx.agreement.create({
+    data: {
+      proposalId: proposal.id,
+      clusterId: proposal.clusterId,
+      title: `${proposal.title} Agreement`,
+      startDate,
+      endDate,
+      totalAmount,
+      installmentAmount,
+      paymentFrequency: terms.paymentFrequency ?? 'monthly',
+      currency: proposal.currency ?? 'USD',
+      terms,
+      status: 'DRAFT',
+    },
+  });
+
+  const clauses = [
+    {
+      title: 'Lease Scope',
+      body: proposal.description || 'The parties agree to the agricultural lease terms captured in this agreement.',
+      ordering: 0,
+      isEditable: true,
+    },
+    {
+      title: 'Payment Verification',
+      body: 'The agreement becomes active only after required signatures and payment receipt verification.',
+      ordering: 1,
+      isEditable: false,
+    },
+  ];
+  await tx.agreementClause.createMany({
+    data: clauses.map((c) => ({ ...c, agreementId: agreement.id })),
+  });
+
+  await recordOutbox(tx, {
+    eventType: 'agreement.drafted',
+    aggregateType: 'Agreement',
+    aggregateId: agreement.id,
+    payload: { agreementId: agreement.id, proposalId: proposal.id },
+  });
+
+  return agreement;
 }
 
 // ---------------------------------------------------------------- CRUD
@@ -145,7 +239,7 @@ export async function list(query, viewer) {
   const [rows, total] = await Promise.all([
     prisma.proposal.findMany({
       where,
-      include: { cluster: { select: { id: true, name: true } }, targetUser: { select: { id: true, fullName: true } } },
+      include: { cluster: { select: { id: true, name: true } }, targetUser: { select: { id: true, fullName: true } }, documents: true },
       orderBy: { createdAt: 'desc' },
       ...paginate({ page, pageSize }),
     }),
@@ -171,14 +265,27 @@ export async function create(body, viewer) {
   }
 
   const proposal = await prisma.$transaction(async (tx) => {
+    const { documents, ...proposalData } = data;
     const created = await tx.proposal.create({
-      data: { ...data, investorId: viewer.id, status: 'DRAFT' },
+      data: { ...proposalData, investorId: viewer.id, status: 'DRAFT' },
     });
+    const docs = Array.isArray(documents) ? documents : [];
+    if (docs.length > 0) {
+      await tx.proposalDocument.createMany({
+        data: docs.map((doc) => ({
+          proposalId: created.id,
+          storageKey: doc.storage_key ?? doc.storageKey,
+          fileName: doc.file_name ?? doc.fileName ?? 'proposal-document',
+          mimeType: doc.mime_type ?? doc.mimeType ?? 'application/octet-stream',
+          fileSize: doc.file_size ?? doc.fileSize ?? 0,
+        })),
+      });
+    }
     await appendHistory(tx, {
       proposalId: created.id,
       actorId: viewer.id,
       action: 'CREATED',
-      details: { proposedAmount: data.proposedAmount },
+      details: { proposedAmount: data.proposedAmount, documents: docs.length },
     });
     await recordOutbox(tx, {
       eventType: 'proposal.created',
@@ -201,26 +308,28 @@ export async function update(id, body, viewer) {
   }
   const data = pickInput(body);
   for (const k of Object.keys(data)) if (data[k] === undefined) delete data[k];
+  const expectedVersion = resolveExpectedVersion(p, body);
 
   const updated = await prisma.$transaction(async (tx) => {
-    const u = await tx.proposal.update({ where: { id }, data });
+    await updateWithVersion(tx, id, expectedVersion, data);
     await appendHistory(tx, { proposalId: id, actorId: viewer.id, action: 'UPDATED', details: data });
-    return u;
+    return id;
   });
-  return toDto(await loadOrThrow(updated.id));
+  return toDto(await loadOrThrow(updated));
 }
 
 // ---------------------------------------------------------------- FSM
-export async function publish(id, viewer) {
+export async function publish(id, viewer, body = {}) {
   const p = await loadOrThrow(id);
   if (p.investorId !== viewer.id && !isAdmin(viewer)) throw new ForbiddenError();
   if (p.status !== 'DRAFT') throw new ConflictError(`Cannot publish from ${p.status}`);
+  const expectedVersion = resolveExpectedVersion(p, body);
 
   await prisma.$transaction(async (tx) => {
-    await tx.proposal.update({ where: { id }, data: { status: 'PUBLISHED' } });
+    await updateWithVersion(tx, id, expectedVersion, { status: 'PUBLISHED' });
     await appendHistory(tx, { proposalId: id, actorId: viewer.id, action: 'PUBLISHED' });
     await recordOutbox(tx, {
-      eventType: 'proposal.published',
+      eventType: 'proposal.submitted',
       aggregateType: 'Proposal',
       aggregateId: id,
       payload: { proposalId: id, targetType: p.targetType, clusterId: p.clusterId, targetUserId: p.targetUserId },
@@ -229,7 +338,31 @@ export async function publish(id, viewer) {
   return toDto(await loadOrThrow(id));
 }
 
-export async function accept(id, viewer) {
+export async function review(id, viewer, body = {}) {
+  const p = await loadOrThrow(id);
+  const counterparty = await counterpartyOf(p);
+  if (viewer.id !== counterparty && !isAdmin(viewer)) {
+    throw new ForbiddenError('Only the counterparty can review');
+  }
+  if (TERMINAL_STATUSES.has(p.status) || p.status === 'DRAFT') {
+    throw new ConflictError(`Cannot review from ${p.status}`);
+  }
+  const expectedVersion = resolveExpectedVersion(p, body);
+
+  await prisma.$transaction(async (tx) => {
+    await updateWithVersion(tx, id, expectedVersion, { reviewedAt: new Date() });
+    await appendHistory(tx, { proposalId: id, actorId: viewer.id, action: 'REVIEWED' });
+    await recordOutbox(tx, {
+      eventType: 'proposal.reviewed',
+      aggregateType: 'Proposal',
+      aggregateId: id,
+      payload: { proposalId: id, reviewedBy: viewer.id, investorId: p.investorId },
+    });
+  });
+  return toDto(await loadOrThrow(id));
+}
+
+export async function accept(id, viewer, body = {}) {
   const p = await loadOrThrow(id);
   const counterparty = await counterpartyOf(p);
   if (viewer.id !== counterparty && !isAdmin(viewer)) {
@@ -238,9 +371,11 @@ export async function accept(id, viewer) {
   if (TERMINAL_STATUSES.has(p.status) || p.status === 'DRAFT') {
     throw new ConflictError(`Cannot accept from ${p.status}`);
   }
+  const expectedVersion = resolveExpectedVersion(p, body);
   await prisma.$transaction(async (tx) => {
-    await tx.proposal.update({ where: { id }, data: { status: 'ACCEPTED' } });
+    await updateWithVersion(tx, id, expectedVersion, { status: 'ACCEPTED' });
     await appendHistory(tx, { proposalId: id, actorId: viewer.id, action: 'ACCEPTED' });
+    await autoDraftAgreement(tx, p);
     await recordOutbox(tx, {
       eventType: 'proposal.accepted',
       aggregateType: 'Proposal',
@@ -251,16 +386,18 @@ export async function accept(id, viewer) {
   return toDto(await loadOrThrow(id));
 }
 
-export async function reject(id, { reason }, viewer) {
+export async function reject(id, body, viewer) {
   const p = await loadOrThrow(id);
   const counterparty = await counterpartyOf(p);
   if (viewer.id !== counterparty && !isAdmin(viewer)) {
     throw new ForbiddenError('Only the counterparty can reject');
   }
   if (TERMINAL_STATUSES.has(p.status)) throw new ConflictError(`Cannot reject from ${p.status}`);
+  const expectedVersion = resolveExpectedVersion(p, body);
+  const reason = body?.reason;
 
   await prisma.$transaction(async (tx) => {
-    await tx.proposal.update({ where: { id }, data: { status: 'REJECTED' } });
+    await updateWithVersion(tx, id, expectedVersion, { status: 'REJECTED' });
     await appendHistory(tx, { proposalId: id, actorId: viewer.id, action: 'REJECTED', details: { reason } });
     await recordOutbox(tx, {
       eventType: 'proposal.rejected',
@@ -278,7 +415,8 @@ export async function negotiate(id, body, viewer) {
   if (TERMINAL_STATUSES.has(p.status) || p.status === 'DRAFT') {
     throw new ConflictError(`Cannot negotiate from ${p.status}`);
   }
-  const proposedAmount = body.proposedAmount ?? body.proposed_amount;
+  const expectedVersion = resolveExpectedVersion(p, body);
+  const proposedAmount = body.proposedAmount ?? body.proposed_amount ?? p.proposedAmount;
   const proposedTerms = body.proposedTerms ?? {};
 
   const negotiation = await prisma.$transaction(async (tx) => {
@@ -292,7 +430,7 @@ export async function negotiate(id, body, viewer) {
         status: 'OPEN',
       },
     });
-    await tx.proposal.update({ where: { id }, data: { status: 'NEGOTIATING' } });
+    await updateWithVersion(tx, id, expectedVersion, { status: 'NEGOTIATING' });
     await appendHistory(tx, {
       proposalId: id,
       actorId: viewer.id,
@@ -316,6 +454,60 @@ export async function negotiate(id, body, viewer) {
     message: negotiation.message,
     created_at: negotiation.createdAt.toISOString(),
   };
+}
+
+export async function withdraw(id, body, viewer) {
+  const p = await loadOrThrow(id);
+  if (p.investorId !== viewer.id && !isAdmin(viewer)) {
+    throw new ForbiddenError('Only the proposal author can withdraw');
+  }
+  if (TERMINAL_STATUSES.has(p.status)) {
+    throw new ConflictError(`Cannot withdraw from ${p.status}`);
+  }
+  const expectedVersion = resolveExpectedVersion(p, body);
+  const reason = body?.reason;
+
+  await prisma.$transaction(async (tx) => {
+    await updateWithVersion(tx, id, expectedVersion, { status: 'WITHDRAWN' });
+    await appendHistory(tx, { proposalId: id, actorId: viewer.id, action: 'WITHDRAWN', details: { reason } });
+    await recordOutbox(tx, {
+      eventType: 'proposal.withdrawn',
+      aggregateType: 'Proposal',
+      aggregateId: id,
+      payload: {
+        proposalId: id,
+        withdrawnBy: viewer.id,
+        reason,
+        targetType: p.targetType,
+        clusterId: p.clusterId,
+        targetUserId: p.targetUserId,
+      },
+    });
+  });
+  return toDto(await loadOrThrow(id));
+}
+
+export async function negotiations(id, viewer) {
+  const p = await loadOrThrow(id);
+  if (!(await canRead(p, viewer))) throw new ForbiddenError();
+  const rows = await prisma.negotiation.findMany({
+    where: { proposalId: id },
+    orderBy: { createdAt: 'asc' },
+    include: { initiator: { select: { id: true, fullName: true, role: true } } },
+  });
+  return rows.map((n) => ({
+    id: n.id,
+    proposal_id: n.proposalId,
+    initiator_id: n.initiatorId,
+    initiator_name: n.initiator?.fullName ?? null,
+    initiator_role: n.initiator?.role ?? null,
+    proposed_amount: Number(n.proposedAmount),
+    proposed_terms: n.proposedTerms,
+    message: n.message,
+    status: n.status,
+    created_at: n.createdAt.toISOString(),
+    updated_at: n.updatedAt.toISOString(),
+  }));
 }
 
 export async function history(id, viewer) {
