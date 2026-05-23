@@ -67,7 +67,7 @@ function AppContent() {
   }, [location.pathname, setCurrentView]);
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-background via-background to-muted/30">
+      <div className="flex items-center justify-center h-screen bg-linear-to-br from-background via-background to-muted/30">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           <p className="text-muted-foreground">Loading...</p>
@@ -100,10 +100,10 @@ function AppContent() {
         <Route path="/clusters/:id" element={selectedCluster ? <ClusterDetail cluster={selectedCluster} onBack={() => { setSelectedCluster(null); navigate('/clusters'); }} /> : <Navigate to="/clusters" />} />
         <Route path="/proposals" element={<ProposalList onSelectProposal={(p) => { setSelectedProposal(p); navigate(`/proposals/${p.id}`); }} onCreateProposal={() => navigate('/proposals/create')} />} />
         <Route path="/proposals/create" element={<ProposalCreate onBack={() => navigate('/proposals')} onSubmit={() => navigate('/proposals')} />} />
-        <Route path="/proposals/:id" element={selectedProposal ? <ProposalDetail proposal={selectedProposal} onBack={() => { setSelectedProposal(null); navigate('/proposals'); }} onNegotiate={() => navigate(`/proposals/${selectedProposal.id}/negotiate`)} /> : <Navigate to="/proposals" />} />
+        <Route path="/proposals/:id" element={selectedProposal ? <ProposalDetail proposal={selectedProposal} onBack={() => { setSelectedProposal(null); navigate('/proposals'); }} onNegotiate={() => navigate(`/proposals/${selectedProposal.id}/negotiate`)} onUpdateProposal={(updated) => setSelectedProposal({ ...selectedProposal, ...updated })} /> : <Navigate to="/proposals" />} />
         <Route path="/proposals/:id/negotiate" element={selectedProposal ? <NegotiationView proposal={selectedProposal} onBack={() => navigate(`/proposals/${selectedProposal.id}`)} onUpdateProposal={(updated) => setSelectedProposal({ ...selectedProposal, ...updated })} /> : <Navigate to="/proposals" />} />
         <Route path="/agreements" element={<AgreementList onSelectAgreement={(a) => { setSelectedAgreement(a); navigate(`/agreements/${a.id}`); }} />} />
-        <Route path="/agreements/:id" element={selectedAgreement ? <AgreementDetail agreement={selectedAgreement} onBack={() => { setSelectedAgreement(null); navigate('/agreements'); }} onSign={(id) => setSelectedAgreement({ ...selectedAgreement, status: 'SIGNED', signedAt: new Date().toISOString() })} /> : <Navigate to="/agreements" />} />
+        <Route path="/agreements/:id" element={selectedAgreement ? <AgreementDetail agreement={selectedAgreement} onBack={() => { setSelectedAgreement(null); navigate('/agreements'); }} onSign={(updated) => setSelectedAgreement(updated)} onUpdateAgreement={(updated) => setSelectedAgreement(updated)} /> : <Navigate to="/agreements" />} />
         <Route path="/payments" element={<PaymentList onSelectPayment={(p) => { setSelectedPayment(p); navigate(`/payments/${p.id}`); }} onSubmitPayment={(p) => navigate(`/payments/${p.id}/submit`)} onReviewPayment={(p) => navigate(`/payments/${p.id}/review`)} />} />
         <Route path="/payments/:id/submit" element={selectedPayment ? <PaymentSubmit payment={selectedPayment} onBack={() => navigate('/payments')} onSubmit={(id, receiptUrl, notes) => { setSelectedPayment({ ...selectedPayment, status: 'SUBMITTED', receiptUrl, notes, submittedAt: new Date().toISOString() }); navigate('/payments'); }} /> : <Navigate to="/payments" />} />
         <Route path="/payments/:id/review" element={selectedPayment ? <PaymentReview payment={selectedPayment} onBack={() => navigate('/payments')} onVerify={(id) => { setSelectedPayment({ ...selectedPayment, status: 'VERIFIED', verifiedAt: new Date().toISOString() }); navigate('/payments'); }} onReject={(id, reason) => { setSelectedPayment({ ...selectedPayment, status: 'REJECTED', notes: reason }); navigate('/payments'); }} /> : <Navigate to="/payments" />} />
@@ -162,7 +162,7 @@ function ReceiptModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] rounded-lg border-slate-200 shadow-lg p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-150 rounded-lg border-slate-200 shadow-lg p-0 overflow-hidden">
         <DialogHeader className="p-6 bg-slate-50 border-b border-slate-100">
           <div className="flex items-center justify-between">
             <div>
