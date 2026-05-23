@@ -41,41 +41,36 @@ export type ProposalStatus =
     | "NEGOTIATING";
 
 export interface Proposal {
-    id: string;
-    title: string;
-    targetType: "FARMER" | "CLUSTER";
-    targetId: string;
-    targetName: string;
-    description: string;
-    budget: number;
-    amount: number; // Added to match component usage
-    location: string; // Added to match component usage
-    roi: number; // Added to match component usage
-    timeline: string;
-    status: ProposalStatus;
-    // Raw backend FSM state — distinguishes draft from published from negotiating,
-    // unlike the simplified UI `status` field. Used to decide which actions
-    // (publish, accept, negotiate, ...) are valid in the current state.
-    apiStatus?:
-        | "draft"
-        | "published"
-        | "negotiating"
-        | "accepted"
-        | "rejected"
-        | "expired";
-    createdAt: string;
-    documents: { name: string; size: string; type: string }[];
-    terms: {
-        interestRate: number;
-        repaymentPeriod: string;
-        collateral?: string;
-    };
-    history: {
-        date: string;
-        action: string;
-        user: string;
-        details?: string;
-    }[];
+  id: string;
+  title: string;
+  targetType: 'FARMER' | 'CLUSTER';
+  targetId: string;
+  targetName: string;
+  description: string;
+  budget: number;
+  amount: number; // Added to match component usage
+  location: string; // Added to match component usage
+  roi: number; // Added to match component usage
+  timeline: string;
+  status: ProposalStatus;
+  version?: number;
+  // Raw backend FSM state — distinguishes draft from published from negotiating,
+  // unlike the simplified UI `status` field. Used to decide which actions
+  // (publish, accept, negotiate, ...) are valid in the current state.
+  apiStatus?: 'draft' | 'published' | 'negotiating' | 'accepted' | 'rejected' | 'withdrawn' | 'expired';
+  createdAt: string;
+  documents: { name: string; size: string; type: string }[];
+  terms: {
+    interestRate: number;
+    repaymentPeriod: string;
+    collateral?: string;
+  };
+  history: {
+    date: string;
+    action: string;
+    user: string;
+    details?: string;
+  }[];
 }
 
 export interface Message {
@@ -89,7 +84,15 @@ export interface Message {
     attachments?: { name: string; type: string; size: string }[];
 }
 
-export type AgreementStatus = "PENDING" | "SIGNED" | "REJECTED";
+export type AgreementStatus = 'PENDING' | 'SIGNED' | 'REJECTED';
+export type AgreementWorkflowStatus = 'DRAFT' | 'PENDING_SIGNATURES' | 'ACTIVE' | 'COMPLETED' | 'TERMINATED' | 'DISPUTED';
+
+export interface AgreementSignature {
+  id: string;
+  signerId: string;
+  method: 'DRAWN' | 'TYPED' | 'UPLOADED';
+  signedAt: string;
+}
 
 export interface Clause {
     id: string;
@@ -99,23 +102,25 @@ export interface Clause {
 }
 
 export interface Agreement {
-    id: string;
-    proposalId: string;
-    farmerId?: string; // Added to match component usage
-    clusterId?: string; // Added to match component usage
-    title: string;
-    investorName: string;
-    targetName: string;
-    amount: number;
-    status: AgreementStatus;
-    createdAt: string;
-    signedAt?: string;
-    clauses: Clause[];
-    terms: {
-        interestRate: number;
-        repaymentPeriod: string;
-        collateral?: string;
-    };
+  id: string;
+  proposalId: string;
+  farmerId?: string; // Added to match component usage
+  clusterId?: string; // Added to match component usage
+  title: string;
+  investorName: string;
+  targetName: string;
+  amount: number;
+  status: AgreementStatus;
+  apiStatus?: AgreementWorkflowStatus;
+  createdAt: string;
+  signedAt?: string;
+  clauses: Clause[];
+  signatures?: AgreementSignature[];
+  terms: {
+    interestRate: number;
+    repaymentPeriod: string;
+    collateral?: string;
+  };
 }
 
 export type PaymentStatus =

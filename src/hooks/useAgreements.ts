@@ -107,6 +107,47 @@ export const useAgreements = () => {
     }
   }, []);
 
+  const signAgreement = useCallback(async (id: string, data: { method?: 'TYPED' | 'DRAWN'; signature_data?: string }) => {
+    try {
+      setIsLoading(true);
+      const response = await agreementsAPI.sign(id, data);
+      setAgreements(prev => prev.map(a => a.id === id ? response.data : a));
+      toast.success('Agreement signed successfully');
+      return response.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to sign agreement';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const downloadAgreement = useCallback(async (id: string, title: string) => {
+    try {
+      setIsLoading(true);
+      const response = await agreementsAPI.download(id);
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `agreement-${title.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Agreement PDF downloaded successfully');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to download agreement';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchAgreements();
   }, [fetchAgreements]);
@@ -119,6 +160,8 @@ export const useAgreements = () => {
     getAgreement,
     createAgreement,
     updateAgreement,
-    terminateAgreement
+    terminateAgreement,
+    signAgreement,
+    downloadAgreement
   };
 };
