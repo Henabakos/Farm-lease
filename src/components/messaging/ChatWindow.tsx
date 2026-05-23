@@ -95,7 +95,7 @@ export function ChatWindow({
   const handleAttach = () => fileInputRef.current?.click();
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
+    const files = Array.from(e.currentTarget.files ?? []) as File[];
     const accepted: File[] = [];
     for (const f of files) {
       if (f.size > ATTACHMENT_LIMIT_BYTES) {
