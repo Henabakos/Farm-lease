@@ -278,3 +278,37 @@ export function mapClusterToApi(data: Partial<Cluster>) {
         },
     };
 }
+
+export function mapAuditLogFromApi(row: Record<string, unknown>) {
+    const user = row.user as Record<string, unknown> | undefined;
+    const changes = row.changes as Record<string, unknown> | undefined;
+
+    // Format changes into a human-readable summary
+    let details = '';
+    if (changes && typeof changes === 'object') {
+        const entries = Object.entries(changes);
+        if (entries.length > 0) {
+            details = entries
+                .map(([key, value]) => {
+                    if (typeof value === 'object' && value !== null) {
+                        return `${key}: ${JSON.stringify(value)}`;
+                    }
+                    return `${key}: ${String(value)}`;
+                })
+                .join(', ');
+        }
+    }
+
+    return {
+        id: String(row.id),
+        userId: user?.id ? String(user.id) : row.userId ? String(row.userId) : '',
+        userName: user?.fullName ? String(user.fullName) : 'System',
+        userRole: user?.role ? apiRoleToUi(String(user.role)) : 'ADMIN',
+        action: String(row.action),
+        targetType: row.entityType ? String(row.entityType) : undefined,
+        targetId: row.entityId ? String(row.entityId) : undefined,
+        timestamp: String(row.createdAt),
+        details: details || undefined,
+        ipAddress: row.ipAddress ? String(row.ipAddress) : undefined,
+    };
+}

@@ -23,8 +23,26 @@ export const listAuditLogsSchema = z.object({
   userId: z.string().uuid().optional(),
   action: z.string().optional(),
   entityType: z.string().optional(),
+  role: z.enum(['ADMIN', 'INVESTOR', 'CLUSTER_REP', 'FARMER']).optional(),
+  search: z.string().trim().min(1).optional(),
+  createdAfter: z.coerce.date().optional(),
+  createdBefore: z.coerce.date().optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50),
+});
+
+export const exportAuditLogsSchema = z.object({
+  userId: z.string().uuid().optional(),
+  action: z.string().optional(),
+  entityType: z.string().optional(),
+  role: z.enum(['ADMIN', 'INVESTOR', 'CLUSTER_REP', 'FARMER']).optional(),
+  search: z.string().trim().min(1).optional(),
+  createdAfter: z.coerce.date().optional(),
+  createdBefore: z.coerce.date().optional(),
+});
+
+export const clearAuditLogsSchema = z.object({
+  beforeDate: z.coerce.date(),
 });
 
 export const updateUserVerificationSchema = z.object({

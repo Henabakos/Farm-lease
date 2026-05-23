@@ -288,5 +288,7 @@ export const adminAPI = {
   resetUserPassword: (id: string, password: string) =>
     api.patch(`/admin/users/${id}/password`, { password }),
   getAuditLogs: (filters?: any) => api.get('/admin/audit-logs', { params: filters }),
+  exportAuditLogs: (filters?: any) => api.get('/admin/audit-logs/export', { params: filters, responseType: 'blob' }),
+  clearAuditLogs: (beforeDate: string) => api.delete('/admin/audit-logs', { data: { beforeDate } }),
   getStats: () => api.get('/admin/stats')
 };

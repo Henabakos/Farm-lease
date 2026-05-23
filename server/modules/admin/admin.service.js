@@ -108,16 +108,35 @@ export async function listUsers(filters) {
 }
 
 /**
+ * Build where clause for audit log queries.
+ */
+function buildAuditWhere(filters) {
+  const { userId, action, entityType, role, search, createdAfter, createdBefore } = filters;
+  const where = {};
+
+  if (userId) where.userId = userId;
+  if (action) where.action = action;
+  if (entityType) where.entityType = entityType;
+  if (role) where.user = { role };
+  if (createdAfter || createdBefore) {
+    where.createdAt = {};
+    if (createdAfter) where.createdAt.gte = createdAfter;
+    if (createdBefore) where.createdAt.lte = createdBefore;
+  }
+  if (search) {
+    // Only search by action - user field filtering not supported in where clause
+    where.action = { contains: search, mode: 'insensitive' };
+  }
+
+  return where;
+}
+
+/**
  * List audit logs with filtering.
  */
 export async function listAuditLogs(filters) {
-  const { userId, action, entityType, page, limit } = filters;
-
-  const where = {
-    ...(userId && { userId }),
-    ...(action && { action }),
-    ...(entityType && { entityType }),
-  };
+  const { page, limit } = filters;
+  const where = buildAuditWhere(filters);
 
   const [total, items] = await Promise.all([
     prisma.auditLog.count({ where }),
@@ -125,11 +144,11 @@ export async function listAuditLogs(filters) {
       where,
       include: {
         user: {
-          select: { id: true, email: true, fullName: true },
+          select: { id: true, email: true, fullName: true, role: true },
         },
       },
       orderBy: { createdAt: 'desc' },
-      ...paginate({ page, limit }),
+      ...paginate({ page, pageSize: limit }),
     }),
   ]);
 
@@ -137,6 +156,84 @@ export async function listAuditLogs(filters) {
     items,
     pagination: { page, limit, total, pages: Math.ceil(total / limit) },
   };
+}
+
+/**
+ * Export audit logs as CSV.
+ */
+export async function* exportAuditLogsCsv(filters) {
+  const where = buildAuditWhere(filters);
+  const MAX_ROWS = 10000;
+
+  // Header row
+  yield 'id,createdAt,userId,userEmail,userFullName,userRole,action,entityType,entityId,ipAddress,userAgent,changes\n';
+
+  let cursor = null;
+  let count = 0;
+
+  while (count < MAX_ROWS) {
+    const items = await prisma.auditLog.findMany({
+      where,
+      include: {
+        user: {
+          select: { id: true, email: true, fullName: true, role: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+      skip: cursor ? 1 : 0,
+      cursor: cursor ? { id: cursor } : undefined,
+    });
+
+    if (items.length === 0) break;
+
+    for (const log of items) {
+      if (count >= MAX_ROWS) break;
+
+      const row = [
+        log.id,
+        log.createdAt.toISOString(),
+        log.user?.id ?? '',
+        escapeCsv(log.user?.email ?? ''),
+        escapeCsv(log.user?.fullName ?? ''),
+        log.user?.role ?? '',
+        escapeCsv(log.action),
+        escapeCsv(log.entityType ?? ''),
+        log.entityId ?? '',
+        log.ipAddress ?? '',
+        escapeCsv(log.userAgent ?? ''),
+        escapeCsv(log.changes ? JSON.stringify(log.changes) : ''),
+      ].join(',');
+
+      yield row + '\n';
+      count++;
+      cursor = log.id;
+    }
+  }
+}
+
+/**
+ * Clear audit logs before a specific date.
+ */
+export async function clearAuditLogs({ beforeDate }) {
+  const result = await prisma.auditLog.deleteMany({
+    where: {
+      createdAt: {
+        lt: beforeDate,
+      },
+    },
+  });
+
+  return { deleted: result.count };
+}
+
+function escapeCsv(value) {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
 }
 
 /**

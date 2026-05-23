@@ -10,6 +10,8 @@ import {
   approveUserSchema,
   listUsersSchema,
   listAuditLogsSchema,
+  exportAuditLogsSchema,
+  clearAuditLogsSchema,
   updateUserVerificationSchema,
   updateUserRoleSchema,
   unsuspendSchema,
@@ -20,6 +22,8 @@ import {
   approveUser,
   listUsers,
   listAuditLogs,
+  exportAuditLogsCsv,
+  clearAuditLogs,
   getSystemStats,
   updateUserVerification,
   updateUserRole,
@@ -91,6 +95,42 @@ router.get(
   async (req, res, next) => {
     try {
       const result = await listAuditLogs(req.query);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// GET /admin/audit-logs/export - Export audit logs as CSV
+router.get(
+  '/audit-logs/export',
+  validate({ query: exportAuditLogsSchema }),
+  async (req, res, next) => {
+    try {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="audit-logs-${new Date().toISOString().split('T')[0]}.csv"`
+      );
+
+      for await (const chunk of exportAuditLogsCsv(req.query)) {
+        res.write(chunk);
+      }
+      res.end();
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// DELETE /admin/audit-logs - Clear audit logs before a date
+router.delete(
+  '/audit-logs',
+  validate({ body: clearAuditLogsSchema }),
+  async (req, res, next) => {
+    try {
+      const result = await clearAuditLogs(req.body);
       res.json(result);
     } catch (err) {
       next(err);

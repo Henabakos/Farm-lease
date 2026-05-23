@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { adminAPI } from '../services/api';
 import { toast } from 'sonner';
+import { mapAuditLogFromApi } from '../lib/apiMappers';
 
 function unwrapItems<T = unknown>(payload: unknown): T[] {
   if (Array.isArray(payload)) return payload as T[];
@@ -16,6 +17,7 @@ function unwrapItems<T = unknown>(payload: unknown): T[] {
 export const useAdmin = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditLogsPagination, setAuditLogsPagination] = useState<{ page: number; limit: number; total: number; pages: number } | null>(null);
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +132,9 @@ export const useAdmin = () => {
       setIsLoading(true);
       setError(null);
       const response = await adminAPI.getAuditLogs(filters);
-      setAuditLogs(unwrapItems(response.data));
+      const items = unwrapItems(response.data);
+      setAuditLogs(items.map(mapAuditLogFromApi));
+      setAuditLogsPagination(response.data?.pagination || null);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Failed to fetch audit logs';
       setError(errorMessage);
@@ -139,6 +143,38 @@ export const useAdmin = () => {
       setIsLoading(false);
     }
   }, []);
+
+  const exportAuditLogsCsv = useCallback(async (filters?: any) => {
+    try {
+      const response = await adminAPI.exportAuditLogs(filters);
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/csv' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `audit-logs-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Audit logs exported successfully');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to export audit logs';
+      toast.error(errorMessage);
+      throw err;
+    }
+  }, []);
+
+  const clearAuditLogs = useCallback(async (beforeDate: string) => {
+    try {
+      const response = await adminAPI.clearAuditLogs(beforeDate);
+      toast.success(`Cleared ${response.data.deleted} audit logs`);
+      // Refresh the audit logs
+      fetchAuditLogs({ page: 1, limit: 10 });
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to clear audit logs';
+      toast.error(errorMessage);
+      throw err;
+    }
+  }, [fetchAuditLogs]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -163,6 +199,7 @@ export const useAdmin = () => {
   return {
     users,
     auditLogs,
+    auditLogsPagination,
     stats,
     isLoading,
     error,
@@ -173,6 +210,8 @@ export const useAdmin = () => {
     updateUserRole,
     unsuspendUser,
     fetchAuditLogs,
+    exportAuditLogsCsv,
+    clearAuditLogs,
     fetchStats,
   };
 };
