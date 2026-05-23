@@ -36,7 +36,7 @@ function toDto(a) {
     currency: a.currency,
     terms: a.terms ?? {},
     document_url: a.pdfStorageKey ?? null,
-    owner_name: a.cluster?.owner?.fullName ?? null,
+    owner_name: a.cluster?.owner?.fullName ?? a.proposal?.targetUser?.fullName ?? null,
     tenant_name: a.proposal?.investor?.fullName ?? null,
     signed_at: a.activatedAt?.toISOString?.() ?? a.activatedAt ?? null,
     completed_at: a.completedAt?.toISOString?.() ?? a.completedAt ?? null,
@@ -63,7 +63,7 @@ async function loadOrThrow(id) {
     include: {
       clauses: { orderBy: { ordering: 'asc' } },
       signatures: true,
-      proposal: { include: { investor: { select: { fullName: true } } } },
+      proposal: { include: { investor: { select: { fullName: true } }, targetUser: { select: { fullName: true } } } },
       cluster: { include: { owner: { select: { fullName: true } } } },
     },
   });
@@ -87,6 +87,7 @@ async function canRead(a, viewer) {
   const signers = await expectedSigners(a);
   if (signers.has(viewer.id)) return true;
   // Cluster members may read too.
+  if (!a.clusterId) return false;
   const m = await prisma.clusterMembership.findUnique({
     where: { userId_clusterId: { userId: viewer.id, clusterId: a.clusterId } },
     select: { isActive: true },
@@ -118,7 +119,7 @@ export async function list(query, viewer) {
       include: {
         clauses: { orderBy: { ordering: 'asc' } },
         signatures: true,
-        proposal: { include: { investor: { select: { fullName: true } } } },
+        proposal: { include: { investor: { select: { fullName: true } }, targetUser: { select: { fullName: true } } } },
         cluster: { include: { owner: { select: { fullName: true } } } },
       },
       orderBy: { createdAt: 'desc' },
@@ -142,11 +143,15 @@ export async function create(body, viewer) {
   if (proposal.status !== 'ACCEPTED') {
     throw new ConflictError('Agreement can only be created from an ACCEPTED proposal');
   }
-  if (!proposal.clusterId) throw new ValidationError('Proposal must be cluster-scoped');
+  if (!proposal.clusterId && !proposal.targetUserId) {
+    throw new ValidationError('Proposal must target a cluster or farmer');
+  }
 
-  // Only the proposal author or the cluster owner (or admin) can draft.
-  const cluster = await prisma.cluster.findUnique({ where: { id: proposal.clusterId } });
-  if (![proposal.investorId, cluster?.ownerId].includes(viewer.id) && !isAdmin(viewer)) {
+  const cluster = proposal.clusterId
+    ? await prisma.cluster.findUnique({ where: { id: proposal.clusterId } })
+    : null;
+  const counterpartyId = proposal.targetType === 'FARMER' ? proposal.targetUserId : cluster?.ownerId;
+  if (![proposal.investorId, counterpartyId].includes(viewer.id) && !isAdmin(viewer)) {
     throw new ForbiddenError();
   }
 
@@ -168,7 +173,7 @@ export async function create(body, viewer) {
         paymentFrequency: body.payment_frequency ?? 'monthly',
         currency: body.currency ?? proposal.currency ?? 'USD',
         terms: body.terms ?? {},
-        status: 'PENDING_SIGNATURES',
+        status: 'DRAFT',
       },
     });
     // Snapshot clauses if provided inline.
@@ -220,16 +225,16 @@ export async function sign(id, body, viewer) {
     });
     const sigCount = await tx.signature.count({ where: { agreementId: id } });
     const isComplete = sigCount >= signers.size;
-    const newStatus = isComplete ? 'ACTIVE' : 'PENDING_SIGNATURES';
+    const newStatus = isComplete ? 'PENDING_SIGNATURES' : 'DRAFT';
     const updatedAgreement = await tx.agreement.update({
       where: { id },
       data: {
         status: newStatus,
-        activatedAt: isComplete ? new Date() : null,
+        activatedAt: null,
       },
     });
     await recordOutbox(tx, {
-      eventType: isComplete ? 'agreement.activated' : 'agreement.signed_by',
+      eventType: isComplete ? 'agreement.fully_signed' : 'agreement.signed_by',
       aggregateType: 'Agreement',
       aggregateId: id,
       payload: { agreementId: id, signerId: viewer.id, status: newStatus },
@@ -263,7 +268,7 @@ export async function terminate(id, body, viewer) {
 
 export async function update(id, body, viewer) {
   const a = await loadOrThrow(id);
-  if (a.status !== 'DRAFT') throw new ConflictError('Only DRAFT agreements can be edited');
+  if (!['DRAFT', 'PENDING_SIGNATURES'].includes(a.status)) throw new ConflictError('Only draft agreements can be edited');
   const signers = await expectedSigners(a);
   if (!signers.has(viewer.id) && !isAdmin(viewer)) throw new ForbiddenError();
   const data = {};
@@ -274,6 +279,119 @@ export async function update(id, body, viewer) {
   if (body.installment_amount != null) data.installmentAmount = body.installment_amount;
   if (body.payment_frequency)    data.paymentFrequency = body.payment_frequency;
   if (body.terms) data.terms = body.terms;
-  await prisma.agreement.update({ where: { id }, data });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.agreement.update({ where: { id }, data });
+
+    const revisionNumber = (await tx.agreementRevision.count({ where: { agreementId: id } })) + 1;
+    await tx.agreementRevision.create({
+      data: {
+        agreementId: id,
+        revisionNumber,
+        body: JSON.stringify({
+          title: body.title ?? null,
+          start_date: body.start_date ?? null,
+          end_date: body.end_date ?? null,
+          total_amount: body.total_amount ?? null,
+          installment_amount: body.installment_amount ?? null,
+          payment_frequency: body.payment_frequency ?? null,
+          terms: body.terms ?? null,
+          clauses: body.clauses ?? null,
+        }),
+        changedById: viewer.id,
+      },
+    });
+
+    if (Array.isArray(body.clauses)) {
+      await tx.agreementClause.deleteMany({ where: { agreementId: id } });
+      if (body.clauses.length > 0) {
+        await tx.agreementClause.createMany({
+          data: body.clauses.map((c, i) => ({
+            agreementId: id,
+            title: c.title,
+            body: c.body,
+            isEditable: Boolean(c.isEditable),
+            ordering: i,
+          })),
+        });
+      }
+    }
+
+    await tx.signature.deleteMany({ where: { agreementId: id } });
+    await tx.agreement.update({
+      where: { id },
+      data: { status: 'DRAFT', activatedAt: null },
+    });
+
+    await recordOutbox(tx, {
+      eventType: 'agreement.updated',
+      aggregateType: 'Agreement',
+      aggregateId: id,
+      payload: { agreementId: id, updatedBy: viewer.id },
+    });
+  });
   return toDto(await loadOrThrow(id));
+}
+
+export function generatePdfBuffer(agreement) {
+  const content = `%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.275 841.889] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 2000 >>
+stream
+BT
+/F1 16 Tf
+70 760 Td
+(FARM LEASE AGREEMENT) Tj
+/F1 12 Tf
+0 -40 Td
+(Agreement Title: ${agreement.title}) Tj
+0 -20 Td
+(Agreement ID: ${agreement.id}) Tj
+0 -20 Td
+(Status: ${agreement.status.toUpperCase()}) Tj
+0 -35 Td
+(Tenant: ${agreement.tenant_name || 'N/A'}) Tj
+0 -20 Td
+(Landowner: ${agreement.owner_name || 'N/A'}) Tj
+0 -20 Td
+(Lease Term: ${agreement.start_date} to ${agreement.end_date}) Tj
+0 -20 Td
+(Total Amount: ${agreement.total_amount} ${agreement.currency}) Tj
+0 -20 Td
+(Installment: ${agreement.monthly_amount || 'N/A'} - Frequency: ${agreement.payment_frequency}) Tj
+0 -40 Td
+(Terms & Clauses:) Tj
+${(agreement.clauses || []).slice(0, 10).map((c) => `0 -15 Td\n(- ${c.title || 'Clause'}: ${String(c.content || '').slice(0, 50)}) Tj`).join('\n')}
+0 -40 Td
+(Signatures & Verification:) Tj
+${(agreement.signatures || []).map((s) => `0 -20 Td\n(- Signer: ${s.signer_id} - Method: ${s.method} - Signed At: ${s.signed_at}) Tj`).join('\n')}
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000244 00000 n 
+0000002294 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+2379
+%%EOF`;
+  return Buffer.from(content, 'utf-8');
 }
