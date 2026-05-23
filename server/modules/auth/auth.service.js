@@ -251,6 +251,39 @@ export async function resetPassword({ token, password }) {
   return { message: 'Password reset successful. Please log in again.' };
 }
 
+// ----------------------------------------------------------------------------
+// changePassword
+// ----------------------------------------------------------------------------
+export async function changePassword({ userId, currentPassword, newPassword }) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new NotFoundError('User not found');
+
+  const ok = await verifyPassword(user.passwordHash, currentPassword);
+  if (!ok) throw new UnauthorizedError('Current password is incorrect', 'INVALID_PASSWORD');
+
+  const passwordHash = await hashPassword(newPassword);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+    // Revoke all active sessions for security
+    await tx.session.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    await recordOutbox(tx, {
+      eventType: 'user.password_changed',
+      aggregateType: 'User',
+      aggregateId: userId,
+      payload: { userId },
+    });
+  });
+
+  return { message: 'Password changed successfully. Please log in again.' };
+}
+
 // Re-export for the admin module to revoke sessions on suspension etc.
 export { revokeAllSessions };
 

@@ -12,11 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useRole } from '@/src/contexts/RoleContext';
+import { usersAPI } from '@/src/services/api';
 import { Loader2, Camera } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { toast } from 'sonner';
 
 export function EditProfileModal({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
-  const { user } = useRole();
+  const { user, refreshProfile } = useRole();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: user.name,
@@ -26,14 +28,41 @@ export function EditProfileModal({ open, onOpenChange }: { open: boolean, onOpen
     location: user.location || '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
+      const payload: any = {};
+      if (formData.name !== user.name && formData.name.length >= 2) payload.fullName = formData.name;
+      if (formData.phone !== user.phone) {
+        // Only include phone if it's at least 5 characters or empty
+        if (formData.phone.length >= 5 || formData.phone.length === 0) {
+          payload.phone = formData.phone || null;
+        }
+      }
+      if (formData.location !== user.location) payload.location = formData.location || null;
+      if (formData.bio !== user.bio) payload.bio = formData.bio || null;
+
+      if (Object.keys(payload).length === 0) {
+        toast.info('No changes to save');
+        onOpenChange(false);
+        return;
+      }
+
+      await usersAPI.updateProfile(user.id, payload);
+      toast.success('Profile updated successfully');
+      
+      // Refresh user data via RoleContext
+      await refreshProfile();
+      
       onOpenChange(false);
-    }, 1000);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to update profile';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

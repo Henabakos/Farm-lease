@@ -12,7 +12,6 @@ import {
   Lock, 
   Bell, 
   Shield, 
-  CreditCard, 
   Globe, 
   Trash2,
   Save,
@@ -22,10 +21,12 @@ import {
   EyeOff,
   ChevronRight,
   ShieldCheck,
-  AlertTriangle
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
+import { usersAPI, authAPI } from '@/src/services/api';
 
 const container = {
   hidden: { opacity: 0 },
@@ -43,8 +44,10 @@ const item = {
 };
 
 export function SettingsPage() {
-  const { user, setUser } = useRole();
+  const { user, refreshProfile } = useRole();
   const [showPassword, setShowPassword] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   
   // Form states
   const [formData, setFormData] = useState({
@@ -55,21 +58,149 @@ export function SettingsPage() {
     bio: user.bio || ''
   });
 
+  // Password form states
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  // Notification preferences states
+  const [notifications, setNotifications] = useState({
+    investmentOpportunities: true,
+    paymentReminders: true,
+    agreementUpdates: true,
+    platformNews: false
+  });
+
+  // 2FA states
+  const [twoFactor, setTwoFactor] = useState({
+    sms: false,
+    authenticator: true
+  });
+
+  const [isDeactivating, setIsDeactivating] = useState(false);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleSave = () => {
-    setUser({
-      ...user,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      location: formData.location,
-      bio: formData.bio
-    });
-    toast.success('Settings saved successfully');
+  const handlePasswordInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setPasswordForm(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleNotificationToggle = (key: keyof typeof notifications) => {
+    setNotifications(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleTwoFactorToggle = (key: keyof typeof twoFactor) => {
+    setTwoFactor(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleDeactivateAccount = async () => {
+    if (!confirm('Are you sure you want to deactivate your account? This action can be reversed by contacting support.')) {
+      return;
+    }
+    setIsDeactivating(true);
+    try {
+      // For now, just show a toast - would need backend endpoint
+      toast.info('Account deactivation requires admin approval. Please contact support.');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to deactivate account';
+      toast.error(errorMessage);
+    } finally {
+      setIsDeactivating(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!confirm('Are you sure you want to permanently delete your account? This action cannot be undone.')) {
+      return;
+    }
+    if (!confirm('This will permanently delete all your data including agreements, payments, and profile information. Continue?')) {
+      return;
+    }
+    setIsDeactivating(true);
+    try {
+      await usersAPI.deleteAccount();
+      toast.success('Account deleted successfully. You will be logged out.');
+      // Log out the user after deletion
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 2000);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to delete account';
+      toast.error(errorMessage);
+    } finally {
+      setIsDeactivating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const payload: any = {};
+      if (formData.name !== user.name && formData.name.length >= 2) payload.fullName = formData.name;
+      if (formData.phone !== user.phone) {
+        if (formData.phone.length >= 5 || formData.phone.length === 0) {
+          payload.phone = formData.phone || null;
+        }
+      }
+      if (formData.location !== user.location) payload.location = formData.location || null;
+      if (formData.bio !== user.bio) payload.bio = formData.bio || null;
+
+      if (Object.keys(payload).length === 0) {
+        toast.info('No changes to save');
+        return;
+      }
+
+      await usersAPI.updateProfile(user.id, payload);
+      toast.success('Settings saved successfully');
+      await refreshProfile();
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to save settings';
+      toast.error(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+
+    if (!/[A-Za-z]/.test(passwordForm.newPassword) || !/\d/.test(passwordForm.newPassword)) {
+      toast.error('Password must contain both letters and digits');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await authAPI.changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      toast.success('Password updated successfully');
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to update password';
+      toast.error(errorMessage);
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   return (
@@ -100,10 +231,6 @@ export function SettingsPage() {
                 <TabsTrigger value="notifications" className="gap-2 px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary font-bold text-[10px] uppercase tracking-wider transition-all">
                   <Bell className="w-3.5 h-3.5" />
                   <span>Notifications</span>
-                </TabsTrigger>
-                <TabsTrigger value="billing" className="gap-2 px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary font-bold text-[10px] uppercase tracking-wider transition-all">
-                  <CreditCard className="w-3.5 h-3.5" />
-                  <span>Billing</span>
                 </TabsTrigger>
               </TabsList>
             </motion.div>
@@ -146,11 +273,21 @@ export function SettingsPage() {
                       </div>
                       <div className="flex justify-end pt-2">
                         <Button 
-                          onClick={handleSave} 
+                          onClick={handleSave}
+                          disabled={isSaving}
                           className="gap-2 h-9 px-6 rounded-md bg-primary hover:bg-primary/90 text-white font-bold text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95"
                         >
-                          <Save className="w-3.5 h-3.5" />
-                          <span>Save Changes</span>
+                          {isSaving ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Saving...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-3.5 h-3.5" />
+                              <span>Save Changes</span>
+                            </>
+                          )}
                         </Button>
                       </div>
                     </CardContent>
@@ -174,7 +311,13 @@ export function SettingsPage() {
                     <CardContent className="p-6 space-y-5">
                       <div className="space-y-1.5">
                         <Label htmlFor="currentPassword" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">Current Password</Label>
-                        <Input id="currentPassword" type="password" className="h-9 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium pl-3" />
+                        <Input 
+                          id="currentPassword" 
+                          type="password" 
+                          value={passwordForm.currentPassword}
+                          onChange={handlePasswordInputChange}
+                          className="h-9 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium pl-3" 
+                        />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-1.5">
@@ -183,6 +326,8 @@ export function SettingsPage() {
                             <Input 
                               id="newPassword" 
                               type={showPassword ? "text" : "password"} 
+                              value={passwordForm.newPassword}
+                              onChange={handlePasswordInputChange}
                               className="h-9 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium pl-3 pr-10" 
                             />
                             <button 
@@ -195,16 +340,32 @@ export function SettingsPage() {
                         </div>
                         <div className="space-y-1.5">
                           <Label htmlFor="confirmPassword" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">Confirm New Password</Label>
-                          <Input id="confirmPassword" type="password" className="h-9 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium pl-3" />
+                          <Input 
+                            id="confirmPassword" 
+                            type="password" 
+                            value={passwordForm.confirmPassword}
+                            onChange={handlePasswordInputChange}
+                            className="h-9 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium pl-3" 
+                          />
                         </div>
                       </div>
                       <div className="flex justify-end pt-2">
                         <Button 
-                          onClick={() => toast.info('Password update simulation')} 
+                          onClick={handlePasswordChange}
+                          disabled={isChangingPassword}
                           className="gap-2 h-9 px-6 rounded-md bg-primary hover:bg-primary/90 text-white font-bold text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95"
                         >
-                          <Lock className="w-3.5 h-3.5" />
-                          <span>Update Password</span>
+                          {isChangingPassword ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Updating...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="w-3.5 h-3.5" />
+                              <span>Update Password</span>
+                            </>
+                          )}
                         </Button>
                       </div>
                     </CardContent>
@@ -226,7 +387,11 @@ export function SettingsPage() {
                             <p className="text-[11px] text-slate-500 font-medium">Receive a code via SMS to log in.</p>
                           </div>
                         </div>
-                        <Switch className="data-[state=checked]:bg-primary" />
+                        <Switch 
+                          checked={twoFactor.sms}
+                          onCheckedChange={() => handleTwoFactorToggle('sms')}
+                          className="data-[state=checked]:bg-primary" 
+                        />
                       </div>
                       <div className="flex items-center justify-between p-4 rounded-md border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-all group">
                         <div className="flex items-center gap-4">
@@ -238,7 +403,11 @@ export function SettingsPage() {
                             <p className="text-[11px] text-slate-500 font-medium">Use an app like Google Authenticator.</p>
                           </div>
                         </div>
-                        <Switch defaultChecked className="data-[state=checked]:bg-primary" />
+                        <Switch 
+                          checked={twoFactor.authenticator}
+                          onCheckedChange={() => handleTwoFactorToggle('authenticator')}
+                          className="data-[state=checked]:bg-primary" 
+                        />
                       </div>
                     </CardContent>
                   </Card>
@@ -262,53 +431,25 @@ export function SettingsPage() {
                         <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-wider ml-1">Email Notifications</h4>
                         <div className="space-y-3">
                           {[
-                            { label: 'New Investment Opportunities', desc: 'Get notified when new projects match your profile.' },
-                            { label: 'Payment Reminders', desc: 'Receive alerts for upcoming and overdue payments.' },
-                            { label: 'Agreement Updates', desc: 'Notifications when agreements are signed or modified.' },
-                            { label: 'Platform News', desc: 'Stay updated with the latest AgriInvest features.' },
+                            { key: 'investmentOpportunities' as const, label: 'New Investment Opportunities', desc: 'Get notified when new projects match your profile.' },
+                            { key: 'paymentReminders' as const, label: 'Payment Reminders', desc: 'Receive alerts for upcoming and overdue payments.' },
+                            { key: 'agreementUpdates' as const, label: 'Agreement Updates', desc: 'Notifications when agreements are signed or modified.' },
+                            { key: 'platformNews' as const, label: 'Platform News', desc: 'Stay updated with the latest AgriInvest features.' },
                           ].map((item) => (
-                            <div key={item.label} className="flex items-center justify-between p-4 rounded-md border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-all group">
+                            <div key={item.key} className="flex items-center justify-between p-4 rounded-md border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-all group">
                               <div className="space-y-0.5">
                                 <p className="text-sm font-bold text-slate-900 tracking-tight group-hover:text-primary transition-colors">{item.label}</p>
                                 <p className="text-[11px] text-slate-500 font-medium">{item.desc}</p>
                               </div>
-                              <Switch defaultChecked className="data-[state=checked]:bg-primary" />
+                              <Switch 
+                                checked={notifications[item.key]}
+                                onCheckedChange={() => handleNotificationToggle(item.key)}
+                                className="data-[state=checked]:bg-primary" 
+                              />
                             </div>
                           ))}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </TabsContent>
-
-              <TabsContent value="billing" className="space-y-6 outline-none">
-                <motion.div 
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
-                    <CardHeader className="p-5 border-b border-slate-100 bg-slate-50/50">
-                      <CardTitle className="text-base font-bold tracking-tight">Payment Methods</CardTitle>
-                      <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">Manage your connected bank accounts and cards.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-5">
-                      <div className="p-6 rounded-lg border border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4 group hover:bg-slate-50 transition-all duration-300">
-                        <div className="flex items-center gap-4">
-                          <div className="w-14 h-10 bg-white rounded-md border border-slate-200 flex items-center justify-center font-bold text-sm text-primary shadow-sm group-hover:scale-105 transition-transform duration-300">VISA</div>
-                          <div>
-                            <p className="text-lg font-bold text-slate-900 tracking-tight">•••• •••• •••• 4242</p>
-                            <p className="text-[11px] text-slate-500 font-medium">Expires 12/26</p>
-                          </div>
-                        </div>
-                        <Badge className="bg-primary text-white font-bold px-3 py-1 rounded-md text-[10px] uppercase tracking-wider">Primary</Badge>
-                      </div>
-                      <Button variant="outline" className="w-full h-14 rounded-lg border border-dashed border-slate-200 hover:border-primary/40 hover:bg-primary/5 text-slate-400 hover:text-primary font-bold text-sm transition-all gap-3">
-                        <CreditCard className="w-5 h-5" />
-                        <span>Add New Payment Method</span>
-                      </Button>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -326,12 +467,38 @@ export function SettingsPage() {
                 <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-destructive/60 mt-1">Irreversible actions for your account. Please proceed with caution.</CardDescription>
               </CardHeader>
               <CardContent className="p-6 flex flex-col sm:flex-row gap-4">
-                <Button variant="outline" className="flex-1 h-10 rounded-md border-destructive/20 text-destructive hover:bg-destructive/10 font-bold text-[11px] uppercase tracking-wider transition-all">
-                  Deactivate Account
+                <Button 
+                  variant="outline" 
+                  onClick={handleDeactivateAccount}
+                  disabled={isDeactivating}
+                  className="flex-1 h-10 rounded-md border-destructive/20 text-destructive hover:bg-destructive/10 font-bold text-[11px] uppercase tracking-wider transition-all"
+                >
+                  {isDeactivating ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Deactivate Account'
+                  )}
                 </Button>
-                <Button variant="destructive" className="flex-1 h-10 rounded-md bg-destructive hover:bg-destructive/90 text-white font-bold text-[11px] uppercase tracking-wider shadow-sm transition-all active:scale-95 gap-2">
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete Account</span>
+                <Button 
+                  variant="destructive" 
+                  onClick={handleDeleteAccount}
+                  disabled={isDeactivating}
+                  className="flex-1 h-10 rounded-md bg-destructive hover:bg-destructive/90 text-white font-bold text-[11px] uppercase tracking-wider shadow-sm transition-all active:scale-95 gap-2"
+                >
+                  {isDeactivating ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete Account</span>
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>

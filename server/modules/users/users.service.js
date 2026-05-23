@@ -90,3 +90,11 @@ export async function verify({ targetId, viewer }) {
     });
     return toUserDto(updated);
 }
+
+export async function deleteAccount({ userId }) {
+    const updated = await prisma.user.update({
+        where: { id: userId },
+        data: { status: "DELETED" },
+    });
+    return toUserDto(updated);
+}

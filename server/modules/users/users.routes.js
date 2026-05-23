@@ -47,4 +47,11 @@ router.post(
   ),
 );
 
+router.delete(
+  '/me',
+  asyncHandler(async (req, res) =>
+    res.json(await service.deleteAccount({ userId: req.user.id })),
+  ),
+);
+
 export default router;

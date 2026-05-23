@@ -125,7 +125,9 @@ export const authAPI = {
     api.post('/auth/logout', refreshToken ? { refresh_token: refreshToken } : {}),
   refresh: (refreshToken: string) =>
     api.post('/auth/refresh', { refresh_token: refreshToken }),
-  getCurrentUser: () => api.get('/auth/me')
+  getCurrentUser: () => api.get('/auth/me'),
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    api.post('/auth/change-password', data)
 };
 
 // Users API
@@ -134,7 +136,8 @@ export const usersAPI = {
   updateProfile: (id: string, data: any) => api.put(`/users/${id}`, data),
   searchUsers: (query?: string, role?: string) =>
     api.get('/users', { params: { q: query, role } }),
-  verifyUser: (id: string) => api.post(`/users/${id}/verify`)
+  verifyUser: (id: string) => api.post(`/users/${id}/verify`),
+  deleteAccount: () => api.delete('/users/me')
 };
 
 // Clusters API
