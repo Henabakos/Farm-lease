@@ -40,10 +40,11 @@ export interface Proposal {
   roi: number; // Added to match component usage
   timeline: string;
   status: ProposalStatus;
+  version?: number;
   // Raw backend FSM state — distinguishes draft from published from negotiating,
   // unlike the simplified UI `status` field. Used to decide which actions
   // (publish, accept, negotiate, ...) are valid in the current state.
-  apiStatus?: 'draft' | 'published' | 'negotiating' | 'accepted' | 'rejected' | 'expired';
+  apiStatus?: 'draft' | 'published' | 'negotiating' | 'accepted' | 'rejected' | 'withdrawn' | 'expired';
   createdAt: string;
   documents: { name: string; size: string; type: string }[];
   terms: {
@@ -71,6 +72,14 @@ export interface Message {
 }
 
 export type AgreementStatus = 'PENDING' | 'SIGNED' | 'REJECTED';
+export type AgreementWorkflowStatus = 'DRAFT' | 'PENDING_SIGNATURES' | 'ACTIVE' | 'COMPLETED' | 'TERMINATED' | 'DISPUTED';
+
+export interface AgreementSignature {
+  id: string;
+  signerId: string;
+  method: 'DRAWN' | 'TYPED' | 'UPLOADED';
+  signedAt: string;
+}
 
 export interface Clause {
   id: string;
@@ -89,9 +98,11 @@ export interface Agreement {
   targetName: string;
   amount: number;
   status: AgreementStatus;
+  apiStatus?: AgreementWorkflowStatus;
   createdAt: string;
   signedAt?: string;
   clauses: Clause[];
+  signatures?: AgreementSignature[];
   terms: {
     interestRate: number;
     repaymentPeriod: string;

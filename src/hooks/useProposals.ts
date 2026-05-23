@@ -19,7 +19,8 @@ export interface ProposalDto {
   roi?: number | null;
   location?: string | null;
   terms: Record<string, any>;
-  status: 'draft' | 'published' | 'negotiating' | 'accepted' | 'rejected' | 'expired';
+  status: 'draft' | 'published' | 'negotiating' | 'accepted' | 'rejected' | 'withdrawn' | 'expired';
+  version?: number;
   expires_at?: string | null;
   created_at: string;
   updated_at: string;
@@ -31,6 +32,20 @@ export interface ProposalHistoryEntry {
   action: string;
   details: any;
   created_at: string;
+}
+
+export interface NegotiationEntry {
+  id: string;
+  proposal_id: string;
+  initiator_id: string;
+  initiator_name?: string | null;
+  initiator_role?: string | null;
+  proposed_amount: number;
+  proposed_terms: Record<string, any>;
+  message?: string | null;
+  status: 'OPEN' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN';
+  created_at: string;
+  updated_at: string;
 }
 
 function unwrap<T>(data: any): T[] {
@@ -70,6 +85,11 @@ export const useProposals = () => {
     return Array.isArray(response.data) ? (response.data as ProposalHistoryEntry[]) : [];
   }, []);
 
+  const getNegotiations = useCallback(async (id: string): Promise<NegotiationEntry[]> => {
+    const response = await proposalsAPI.getNegotiations(id);
+    return Array.isArray(response.data) ? (response.data as NegotiationEntry[]) : [];
+  }, []);
+
   const createProposal = useCallback(async (data: any): Promise<ProposalDto> => {
     try {
       setIsLoading(true);
@@ -88,20 +108,20 @@ export const useProposals = () => {
     }
   }, []);
 
-  const updateProposal = useCallback(async (id: string, data: any): Promise<ProposalDto> => {
-    const response = await proposalsAPI.update(id, data);
+  const updateProposal = useCallback(async (id: string, data: any, expectedVersion?: number): Promise<ProposalDto> => {
+    const response = await proposalsAPI.update(id, data, expectedVersion);
     const updated = response.data as ProposalDto;
     setProposals((prev) => prev.map((p) => (p.id === id ? updated : p)));
     toast.success('Proposal updated');
     return updated;
   }, []);
 
-  const publishProposal = useCallback(async (id: string): Promise<ProposalDto> => {
+  const publishProposal = useCallback(async (id: string, expectedVersion?: number): Promise<ProposalDto> => {
     try {
-      const response = await proposalsAPI.publish(id);
+      const response = await proposalsAPI.publish(id, expectedVersion);
       const updated = response.data as ProposalDto;
       setProposals((prev) => prev.map((p) => (p.id === id ? updated : p)));
-      toast.success('Proposal published');
+      toast.success('Proposal submitted');
       return updated;
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to publish');
@@ -109,9 +129,22 @@ export const useProposals = () => {
     }
   }, []);
 
-  const acceptProposal = useCallback(async (id: string): Promise<ProposalDto> => {
+  const reviewProposal = useCallback(async (id: string, expectedVersion?: number): Promise<ProposalDto> => {
     try {
-      const response = await proposalsAPI.accept(id);
+      const response = await proposalsAPI.review(id, expectedVersion);
+      const updated = response.data as ProposalDto;
+      setProposals((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      toast.success('Proposal reviewed');
+      return updated;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to review proposal');
+      throw err;
+    }
+  }, []);
+
+  const acceptProposal = useCallback(async (id: string, expectedVersion?: number): Promise<ProposalDto> => {
+    try {
+      const response = await proposalsAPI.accept(id, expectedVersion);
       const updated = response.data as ProposalDto;
       setProposals((prev) => prev.map((p) => (p.id === id ? updated : p)));
       toast.success('Proposal accepted');
@@ -122,9 +155,9 @@ export const useProposals = () => {
     }
   }, []);
 
-  const rejectProposal = useCallback(async (id: string, reason?: string): Promise<ProposalDto> => {
+  const rejectProposal = useCallback(async (id: string, reason?: string, expectedVersion?: number): Promise<ProposalDto> => {
     try {
-      const response = await proposalsAPI.reject(id, reason);
+      const response = await proposalsAPI.reject(id, reason, expectedVersion);
       const updated = response.data as ProposalDto;
       setProposals((prev) => prev.map((p) => (p.id === id ? updated : p)));
       toast.success('Proposal rejected');
@@ -135,15 +168,28 @@ export const useProposals = () => {
     }
   }, []);
 
+  const withdrawProposal = useCallback(async (id: string, reason?: string, expectedVersion?: number): Promise<ProposalDto> => {
+    try {
+      const response = await proposalsAPI.withdraw(id, reason, expectedVersion);
+      const updated = response.data as ProposalDto;
+      setProposals((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      toast.success('Proposal withdrawn');
+      return updated;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to withdraw proposal');
+      throw err;
+    }
+  }, []);
+
   const negotiateProposal = useCallback(
-    async (id: string, data: { proposedAmount: number; proposedTerms?: any; message?: string }) => {
+    async (id: string, data: { proposedAmount?: number; proposedTerms?: any; message?: string }, expectedVersion?: number): Promise<ProposalDto> => {
       try {
-        const response = await proposalsAPI.negotiate(id, data);
+        const response = await proposalsAPI.negotiate(id, { ...data, expectedVersion });
         toast.success('Counter-offer sent');
         // Refresh the proposal so its status becomes 'negotiating'.
         const refreshed = await proposalsAPI.getById(id);
         setProposals((prev) => prev.map((p) => (p.id === id ? (refreshed.data as ProposalDto) : p)));
-        return response.data;
+        return refreshed.data as ProposalDto;
       } catch (err: any) {
         toast.error(err.response?.data?.error || 'Failed to send counter-offer');
         throw err;
@@ -163,11 +209,14 @@ export const useProposals = () => {
     fetchProposals,
     getProposal,
     getHistory,
+    getNegotiations,
     createProposal,
     updateProposal,
     publishProposal,
+    reviewProposal,
     acceptProposal,
     rejectProposal,
+    withdrawProposal,
     negotiateProposal,
   };
 };
