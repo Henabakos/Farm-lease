@@ -83,6 +83,125 @@ async function upsertCluster({
     return cluster;
 }
 
+async function upsertProposal({
+    investorId,
+    clusterId,
+    title,
+    description,
+    proposedAmount,
+    leaseTermMonths,
+    roi,
+    location,
+    targetUserId,
+}) {
+    const existing = await prisma.proposal.findFirst({ where: { title } });
+    if (existing) {
+        console.log(`  • exists  : ${title} (proposal)`);
+        return existing;
+    }
+    const proposal = await prisma.proposal.create({
+        data: {
+            investorId,
+            targetType: targetUserId ? "FARMER" : "CLUSTER",
+            clusterId,
+            targetUserId,
+            title,
+            description,
+            proposedAmount,
+            leaseTermMonths,
+            roi,
+            location,
+            terms: {
+                seed: true,
+                source: "seed.js",
+            },
+            status: "PUBLISHED",
+        },
+    });
+    console.log(`  • created : ${title} (proposal)`);
+    return proposal;
+}
+
+async function upsertAgreement({
+    proposalId,
+    clusterId,
+    title,
+    startDate,
+    endDate,
+    totalAmount,
+    installmentAmount,
+    currency = "USD",
+    status = "ACTIVE",
+}) {
+    const existing = await prisma.agreement.findUnique({
+        where: { proposalId },
+    });
+    if (existing) {
+        console.log(`  • exists  : ${title} (agreement)`);
+        return existing;
+    }
+    const agreement = await prisma.agreement.create({
+        data: {
+            proposalId,
+            clusterId,
+            title,
+            status,
+            startDate,
+            endDate,
+            totalAmount,
+            installmentAmount,
+            currency,
+            terms: {
+                seed: true,
+                source: "seed.js",
+            },
+        },
+    });
+    console.log(`  • created : ${title} (agreement)`);
+    return agreement;
+}
+
+async function upsertPayment({
+    agreementId,
+    payerId,
+    receiverId,
+    amount,
+    type,
+    status,
+    dueDate,
+    paidAt,
+    notes,
+    currency = "USD",
+}) {
+    const existing = await prisma.payment.findFirst({
+        where: { agreementId, amount, type, notes },
+    });
+    if (existing) {
+        console.log(`  • exists  : ${notes} (payment)`);
+        return existing;
+    }
+    const payment = await prisma.payment.create({
+        data: {
+            agreementId,
+            payerId,
+            receiverId,
+            amount,
+            currency,
+            type,
+            status,
+            dueDate,
+            paidAt,
+            notes,
+            metadata: {
+                seed: true,
+                source: "seed.js",
+            },
+        },
+    });
+    console.log(`  • created : ${notes} (payment)`);
+    return payment;
+}
+
 async function main() {
     console.log("— seeding RBAC permissions");
     await seedAndLoadPermissions();
@@ -94,7 +213,7 @@ async function main() {
         fullName: "Platform Admin",
         role: "ADMIN",
     });
-    await upsertUser({
+    const investor = await upsertUser({
         email: "investor@farmlease.local",
         password: "InvestorPass123!",
         fullName: "Demo Investor",
@@ -202,6 +321,57 @@ async function main() {
         centerLng: 35.3948,
         imageUrl:
             "https://images.unsplash.com/photo-1464454709131-ffd692591ee5?w=500",
+    });
+
+    console.log("— seeding proposal, agreement, and payments");
+    const seedCluster = await prisma.cluster.findFirst({
+        where: { name: "Kisumu Maize Cooperative" },
+    });
+    const proposal = await upsertProposal({
+        investorId: investor.id,
+        clusterId: seedCluster.id,
+        title: "Kisumu Harvest Expansion Financing",
+        description:
+            "Working capital and irrigation upgrade financing for the Kisumu cooperative.",
+        proposedAmount: 50000,
+        leaseTermMonths: 24,
+        roi: 18,
+        location: seedCluster.location,
+    });
+    const agreement = await upsertAgreement({
+        proposalId: proposal.id,
+        clusterId: seedCluster.id,
+        title: "Kisumu Harvest Expansion Agreement",
+        startDate: new Date("2026-01-15T00:00:00.000Z"),
+        endDate: new Date("2028-01-15T00:00:00.000Z"),
+        totalAmount: 50000,
+        installmentAmount: 2500,
+        status: "ACTIVE",
+    });
+
+    await upsertPayment({
+        agreementId: agreement.id,
+        payerId: investor.id,
+        receiverId: rep.id,
+        amount: 12500,
+        currency: "USD",
+        type: "DISBURSEMENT",
+        status: "VERIFIED",
+        dueDate: new Date("2026-03-16T00:00:00.000Z"),
+        paidAt: new Date("2026-03-17T09:30:00.000Z"),
+        notes: "seed: verified disbursement for Kisumu agreement",
+    });
+
+    await upsertPayment({
+        agreementId: agreement.id,
+        payerId: rep.id,
+        receiverId: investor.id,
+        amount: 2500,
+        currency: "USD",
+        type: "REPAYMENT",
+        status: "SUBMITTED",
+        dueDate: new Date("2026-03-25T00:00:00.000Z"),
+        notes: "seed: submitted repayment for Kisumu agreement",
     });
 
     console.log("done.");

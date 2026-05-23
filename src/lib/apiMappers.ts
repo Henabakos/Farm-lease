@@ -171,34 +171,96 @@ export function mapAgreementFromApi(row: Record<string, unknown>): Agreement {
 const PAYMENT_STATUS_MAP: Record<string, PaymentStatus> = {
     pending: "PENDING",
     processing: "SUBMITTED",
+    submitted: "SUBMITTED",
     completed: "VERIFIED",
     failed: "REJECTED",
-    refunded: "REJECTED",
+    refunded: "REFUNDED",
     verified: "VERIFIED",
+    rejected: "REJECTED",
+    under_review: "SUBMITTED",
+};
+
+const PAYMENT_TYPE_MAP: Record<string, Payment["type"]> = {
+    disbursement: "DISBURSEMENT",
+    repayment: "REPAYMENT",
+    fee: "FEE",
 };
 
 export function mapPaymentFromApi(row: Record<string, unknown>): Payment {
     const status = PAYMENT_STATUS_MAP[String(row.status)] || "PENDING";
+    const verification = row.verification as
+        | Record<string, unknown>
+        | undefined;
+    const agreement = row.agreement as Record<string, unknown> | undefined;
+    const verificationDecision = String(
+        row.verification_decision ??
+            row.decision ??
+            verification?.decision ??
+            "PENDING",
+    ).toUpperCase() as Payment["verificationDecision"];
+    const receipts = Array.isArray(row.receipts)
+        ? (row.receipts as Record<string, unknown>[])
+        : [];
+    const rawType = String(
+        row.type ?? row.payment_type ?? "repayment",
+    ).toLowerCase();
+    const currency = String(row.currency ?? "USD");
+    const dueDate = row.due_date ?? row.dueDate;
+    const paidAt = row.paid_at ?? row.paidAt;
+    const agreementId = String(row.agreement_id ?? row.agreementId ?? "");
+    const senderName = String(
+        row.payer_name ?? row.sender_name ?? row.senderName ?? "Payer",
+    );
+    const receiverName = String(
+        row.receiver_name ?? row.receiverName ?? "Receiver",
+    );
     return {
         id: String(row.id),
-        agreementId: String(row.agreement_id),
+        agreementId,
         agreementTitle: String(
             row.agreement_title ||
-                `Agreement ${String(row.agreement_id).slice(0, 8)}`,
+                agreement?.title ||
+                `Agreement ${agreementId.slice(0, 8)}`,
         ),
         amount: Number(row.amount ?? 0),
-        type: "DISBURSEMENT",
+        type: PAYMENT_TYPE_MAP[rawType] || "REPAYMENT",
         status,
         date: String(
-            row.due_date || row.created_at || new Date().toISOString(),
+            dueDate ||
+                row.created_at ||
+                row.createdAt ||
+                new Date().toISOString(),
         ),
-        submittedAt: row.paid_at ? String(row.paid_at) : undefined,
+        currency,
+        dueDate: dueDate ? String(dueDate) : undefined,
+        paidAt: paidAt ? String(paidAt) : undefined,
+        submittedAt: row.submitted_at
+            ? String(row.submitted_at)
+            : row.paid_at
+              ? String(row.paid_at)
+              : undefined,
         verifiedAt:
-            row.status === "completed" || row.status === "verified"
-                ? String(row.paid_at || row.updated_at)
+            row.status === "completed" ||
+            row.status === "verified" ||
+            row.status === "VERIFIED"
+                ? String(
+                      row.paid_at ||
+                          row.paidAt ||
+                          row.updated_at ||
+                          row.updatedAt,
+                  )
                 : undefined,
-        senderName: String(row.payer_name || "Payer"),
-        receiverName: String(row.receiver_name || "Receiver"),
+        receiptUrl:
+            String(row.receipt_url ?? "") ||
+            String(
+                (receipts[0]?.file_name ?? receipts[0]?.storage_key) || "",
+            ) ||
+            undefined,
+        receiptCount:
+            receipts.length || Number(row.receipt_count ?? 0) || undefined,
+        verificationDecision,
+        senderName,
+        receiverName,
         notes: row.notes ? String(row.notes) : undefined,
     };
 }

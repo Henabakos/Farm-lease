@@ -30,16 +30,21 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useClusters } from "@/src/hooks/useClusters";
-import { mapClusterFromApi } from "@/src/lib/apiMappers";
+import { mapClusterFromApi, mapPaymentFromApi } from "@/src/lib/apiMappers";
+import { paymentVerificationService } from "@/src/services/payment-verification";
 import { authAPI, paymentsAPI } from "@/src/services/api";
 import {
     Activity,
+    ArrowDownLeft,
+    ArrowUpRight,
     BrainCircuit,
     CheckCircle2,
     ChevronRight,
+    Clock,
     FileSignature,
     FileText,
     Lock,
@@ -83,6 +88,25 @@ const item = {
     show: { opacity: 1, y: 0 },
 };
 
+function unwrapPayments(payload: unknown): Record<string, unknown>[] {
+    if (Array.isArray(payload)) return payload as Record<string, unknown>[];
+    if (
+        payload &&
+        typeof payload === "object" &&
+        Array.isArray((payload as { data?: unknown }).data)
+    ) {
+        return (payload as { data: Record<string, unknown>[] }).data;
+    }
+    if (
+        payload &&
+        typeof payload === "object" &&
+        Array.isArray((payload as { items?: unknown }).items)
+    ) {
+        return (payload as { items: Record<string, unknown>[] }).items;
+    }
+    return [];
+}
+
 export const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
     const {
@@ -103,6 +127,12 @@ export const AdminDashboard: React.FC = () => {
     const [payments, setPayments] = useState<Payment[]>([]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
+    const [paymentStatusFilter, setPaymentStatusFilter] = useState<
+        "ALL" | "PENDING" | "SUBMITTED" | "VERIFIED" | "REJECTED"
+    >("ALL");
+    const [paymentTypeFilter, setPaymentTypeFilter] = useState<
+        "ALL" | "DISBURSEMENT" | "REPAYMENT" | "FEE"
+    >("ALL");
     const [activeTab, setActiveTab] = useState<
         "USERS" | "CLUSTERS" | "PAYMENTS" | "CONTRACTS" | "AI"
     >("USERS");
@@ -113,6 +143,13 @@ export const AdminDashboard: React.FC = () => {
     const [selectedCluster, setSelectedCluster] = useState<any>(null);
     const [clusterActionType, setClusterActionType] =
         useState<ClusterActionType | null>(null);
+    const [selectedPayment, setSelectedPayment] = useState<Payment | null>(
+        null,
+    );
+    const [paymentReviewNotes, setPaymentReviewNotes] = useState("");
+    const [paymentRefundReason, setPaymentRefundReason] = useState("");
+    const [isProcessingPaymentAction, setIsProcessingPaymentAction] =
+        useState(false);
     const [createClusterOpen, setCreateClusterOpen] = useState(false);
     const [createUserOpen, setCreateUserOpen] = useState(false);
     const [isCreatingUser, setIsCreatingUser] = useState(false);
@@ -152,16 +189,49 @@ export const AdminDashboard: React.FC = () => {
     const pendingClusters = clusters.filter(
         (c) => c.verificationStatus !== "VERIFIED",
     );
-    const pendingPayments = payments.filter((p) => p.status === "SUBMITTED");
+    const submittedPayments = payments.filter((p) => p.status === "SUBMITTED");
+    const verifiedPayments = payments.filter((p) => p.status === "VERIFIED");
+    const rejectedPayments = payments.filter((p) => p.status === "REJECTED");
+    const refundedPayments = payments.filter((p) => p.status === "REFUNDED");
+    const pendingPaymentCount = payments.filter(
+        (p) => p.status === "PENDING",
+    ).length;
+    const submittedPaymentCount = submittedPayments.length;
+    const totalVerifiedVolume = verifiedPayments.reduce(
+        (sum, payment) => sum + payment.amount,
+        0,
+    );
+    const totalQueuedVolume = submittedPayments.reduce(
+        (sum, payment) => sum + payment.amount,
+        0,
+    );
+    const totalRefundedVolume = refundedPayments.reduce(
+        (sum, payment) => sum + payment.amount,
+        0,
+    );
+    const totalPaymentVolume = payments.reduce(
+        (sum, payment) => sum + payment.amount,
+        0,
+    );
+    const totalRejectedVolume = rejectedPayments.reduce(
+        (sum, payment) => sum + payment.amount,
+        0,
+    );
 
     // Fetch payments on mount
     useEffect(() => {
         const fetchPayments = async () => {
             try {
                 const response = await paymentsAPI.getAll();
-                setPayments(Array.isArray(response.data) ? response.data : []);
+                const rows = unwrapPayments(response.data);
+                setPayments(
+                    rows.map((payment) =>
+                        mapPaymentFromApi(payment as Record<string, unknown>),
+                    ),
+                );
             } catch (err) {
                 console.error("Failed to fetch payments", err);
+                setPayments([]);
             }
         };
         fetchPayments();
@@ -201,6 +271,18 @@ export const AdminDashboard: React.FC = () => {
         setClusterActionType(null);
     };
 
+    const closePaymentDialog = () => {
+        setSelectedPayment(null);
+        setPaymentReviewNotes("");
+        setPaymentRefundReason("");
+    };
+
+    const openPaymentDialog = (payment: Payment) => {
+        setSelectedPayment(payment);
+        setPaymentReviewNotes(payment.notes ?? "");
+        setPaymentRefundReason("");
+    };
+
     const getClusterStatusBadgeColor = (status?: string) => {
         switch (status) {
             case "ACTIVE":
@@ -235,9 +317,49 @@ export const AdminDashboard: React.FC = () => {
                 return "bg-amber-50 text-amber-700 border-amber-200";
             case "REJECTED":
                 return "bg-red-50 text-red-700 border-red-200";
+            case "REFUNDED":
+                return "bg-slate-100 text-slate-700 border-slate-200";
             default:
                 return "bg-slate-50 text-slate-600 border-slate-200";
         }
+    };
+
+    const getPaymentTypeTone = (type?: string) => {
+        switch (type) {
+            case "DISBURSEMENT":
+                return "bg-blue-50 text-blue-700 border-blue-200";
+            case "REPAYMENT":
+                return "bg-emerald-50 text-emerald-700 border-emerald-200";
+            case "FEE":
+                return "bg-violet-50 text-violet-700 border-violet-200";
+            default:
+                return "bg-slate-50 text-slate-600 border-slate-200";
+        }
+    };
+
+    const getPaymentTypeLabel = (type?: string) => {
+        switch (type) {
+            case "DISBURSEMENT":
+                return "Disbursement";
+            case "REPAYMENT":
+                return "Repayment";
+            case "FEE":
+                return "Fee";
+            default:
+                return "Payment";
+        }
+    };
+
+    const formatCurrencyAmount = (amount: number, currency = "USD") => {
+        return new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency,
+            maximumFractionDigits: 2,
+        }).format(amount);
+    };
+
+    const formatPaymentAmount = (payment: Payment) => {
+        return formatCurrencyAmount(payment.amount, payment.currency || "USD");
     };
 
     const getRoleBadgeColor = (role: string) => {
@@ -311,6 +433,124 @@ export const AdminDashboard: React.FC = () => {
             console.error("Failed to verify payment", err);
         }
     };
+
+    const handleReviewSelectedPayment = async (
+        decision: "verified" | "rejected",
+    ) => {
+        if (!selectedPayment) return;
+
+        const reviewNotes = paymentReviewNotes.trim();
+        if (decision === "rejected" && !reviewNotes) {
+            toast.error("Please enter a rejection reason");
+            return;
+        }
+
+        try {
+            setIsProcessingPaymentAction(true);
+            const response = await paymentVerificationService.verifyPayment(
+                selectedPayment.id,
+                {
+                    verifiedAmount: selectedPayment.amount,
+                    notes: reviewNotes,
+                    status: decision,
+                },
+            );
+            const nextStatus =
+                decision === "verified" ? "VERIFIED" : "REJECTED";
+            setPayments((prev) =>
+                prev.map((payment) =>
+                    payment.id === selectedPayment.id
+                        ? {
+                              ...payment,
+                              status: nextStatus,
+                              verificationDecision:
+                                  decision === "verified"
+                                      ? "APPROVED"
+                                      : "REJECTED",
+                              verifiedAt: new Date().toISOString(),
+                              notes: reviewNotes || payment.notes,
+                          }
+                        : payment,
+                ),
+            );
+            toast.success(response?.message || "Payment review updated");
+            closePaymentDialog();
+        } catch (err) {
+            console.error("Failed to review payment", err);
+        } finally {
+            setIsProcessingPaymentAction(false);
+        }
+    };
+
+    const handleRefundSelectedPayment = async () => {
+        if (!selectedPayment) return;
+
+        const reason = paymentRefundReason.trim();
+        if (!reason) {
+            toast.error("Refund reason is required");
+            return;
+        }
+
+        try {
+            setIsProcessingPaymentAction(true);
+            await paymentsAPI.refund(selectedPayment.id, reason);
+            setPayments((prev) =>
+                prev.map((payment) =>
+                    payment.id === selectedPayment.id
+                        ? { ...payment, status: "REFUNDED" }
+                        : payment,
+                ),
+            );
+            toast.success("Payment refunded successfully");
+            closePaymentDialog();
+        } catch (err) {
+            console.error("Failed to refund payment", err);
+        } finally {
+            setIsProcessingPaymentAction(false);
+        }
+    };
+
+    const filteredPayments = payments
+        .filter((payment) => {
+            if (paymentStatusFilter === "ALL") return true;
+            return payment.status === paymentStatusFilter;
+        })
+        .filter((payment) => {
+            if (paymentTypeFilter === "ALL") return true;
+            return payment.type === paymentTypeFilter;
+        })
+        .filter((payment) => {
+            const query = searchTerm.toLowerCase();
+            return (
+                payment.agreementTitle?.toLowerCase().includes(query) ||
+                payment.id.toLowerCase().includes(query) ||
+                payment.senderName?.toLowerCase().includes(query) ||
+                payment.receiverName?.toLowerCase().includes(query)
+            );
+        });
+
+    const paymentSummaryCards = [
+        {
+            label: "Total Payments",
+            value: payments.length,
+            tone: "bg-slate-50 text-slate-700 border-slate-200",
+        },
+        {
+            label: "Queued",
+            value: pendingPaymentCount + submittedPaymentCount,
+            tone: "bg-amber-50 text-amber-700 border-amber-200",
+        },
+        {
+            label: "Verified",
+            value: verifiedPayments.length,
+            tone: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        },
+        {
+            label: "Refunded",
+            value: refundedPayments.length,
+            tone: "bg-slate-100 text-slate-700 border-slate-200",
+        },
+    ];
 
     const handleCreateUser = async () => {
         const fullName = newUserForm.fullName.trim();
@@ -1015,7 +1255,7 @@ export const AdminDashboard: React.FC = () => {
                                             <Card className="p-6 border-slate-200">
                                                 <div className="flex items-center justify-between mb-4">
                                                     <h3 className="font-bold flex items-center gap-2">
-                                                        <FileSignature className="w-4 h-4" />{" "}
+                                                        <FileSignature className="w-4 h-4" />
                                                         Contract Templates
                                                     </h3>
                                                     <Button
@@ -1033,60 +1273,408 @@ export const AdminDashboard: React.FC = () => {
                                         </div>
                                     )}
                                     {activeTab === "PAYMENTS" && (
-                                        <div className="space-y-3">
-                                            {payments.map((payment) => (
-                                                <div
-                                                    key={payment.id}
-                                                    className="flex items-center justify-between p-4 rounded-md bg-slate-50 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 transition-all group"
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-amber-600 group-hover:scale-105 transition-transform">
-                                                            <Wallet className="w-5 h-5" />
-                                                        </div>
-                                                        <div>
-                                                            <h4 className="font-bold text-sm text-slate-900 tracking-tight">
-                                                                $
-                                                                {payment.amount.toLocaleString()}
-                                                            </h4>
-                                                            <p className="text-[11px] text-slate-500 font-medium">
-                                                                {
-                                                                    payment.agreementTitle
-                                                                }
+                                        <div className="space-y-6">
+                                            <div className="grid grid-cols-1 gap-6">
+                                                <div className="xl:col-span-8 space-y-4">
+                                                    <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+                                                        <CardContent className="p-4 space-y-3">
+                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                                <div className="md:col-span-2 relative group">
+                                                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-primary transition-colors" />
+                                                                    <Input
+                                                                        placeholder="Search payments by agreement, ID, sender, or receiver..."
+                                                                        className="pl-9 bg-white border-slate-200 focus-visible:ring-primary/20 h-9 rounded-md text-xs transition-all"
+                                                                        value={
+                                                                            searchTerm
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setSearchTerm(
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                                <Select
+                                                                    value={
+                                                                        paymentStatusFilter
+                                                                    }
+                                                                    onValueChange={(
+                                                                        value,
+                                                                    ) =>
+                                                                        setPaymentStatusFilter(
+                                                                            value as
+                                                                                | "ALL"
+                                                                                | "PENDING"
+                                                                                | "SUBMITTED"
+                                                                                | "VERIFIED"
+                                                                                | "REJECTED",
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <SelectTrigger className="bg-white border-slate-200 h-9 rounded-md focus:ring-primary/20 text-[11px] font-bold uppercase tracking-wider transition-all">
+                                                                        <SelectValue placeholder="Status" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent className="rounded-md border-slate-200">
+                                                                        <SelectItem
+                                                                            value="ALL"
+                                                                            className="text-xs font-medium"
+                                                                        >
+                                                                            All
+                                                                            Statuses
+                                                                        </SelectItem>
+                                                                        <SelectItem
+                                                                            value="PENDING"
+                                                                            className="text-xs font-medium"
+                                                                        >
+                                                                            Pending
+                                                                        </SelectItem>
+                                                                        <SelectItem
+                                                                            value="SUBMITTED"
+                                                                            className="text-xs font-medium"
+                                                                        >
+                                                                            Submitted
+                                                                        </SelectItem>
+                                                                        <SelectItem
+                                                                            value="VERIFIED"
+                                                                            className="text-xs font-medium"
+                                                                        >
+                                                                            Verified
+                                                                        </SelectItem>
+                                                                        <SelectItem
+                                                                            value="REJECTED"
+                                                                            className="text-xs font-medium"
+                                                                        >
+                                                                            Rejected
+                                                                        </SelectItem>
+                                                                        <SelectItem
+                                                                            value="REFUNDED"
+                                                                            className="text-xs font-medium"
+                                                                        >
+                                                                            Refunded
+                                                                        </SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+
+                                                            <div className="flex flex-col md:flex-row md:items-center gap-3">
+                                                                <Select
+                                                                    value={
+                                                                        paymentTypeFilter
+                                                                    }
+                                                                    onValueChange={(
+                                                                        value,
+                                                                    ) =>
+                                                                        setPaymentTypeFilter(
+                                                                            value as
+                                                                                | "ALL"
+                                                                                | "DISBURSEMENT"
+                                                                                | "REPAYMENT"
+                                                                                | "FEE",
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <SelectTrigger className="w-full md:w-56 bg-white border-slate-200 h-8 rounded-md focus:ring-primary/20 text-[11px] font-bold uppercase tracking-wider transition-all">
+                                                                        <SelectValue placeholder="Type" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent className="rounded-md border-slate-200">
+                                                                        <SelectItem
+                                                                            value="ALL"
+                                                                            className="text-xs font-medium"
+                                                                        >
+                                                                            All
+                                                                            Types
+                                                                        </SelectItem>
+                                                                        <SelectItem
+                                                                            value="DISBURSEMENT"
+                                                                            className="text-xs font-medium"
+                                                                        >
+                                                                            Disbursement
+                                                                        </SelectItem>
+                                                                        <SelectItem
+                                                                            value="REPAYMENT"
+                                                                            className="text-xs font-medium"
+                                                                        >
+                                                                            Repayment
+                                                                        </SelectItem>
+                                                                        <SelectItem
+                                                                            value="FEE"
+                                                                            className="text-xs font-medium"
+                                                                        >
+                                                                            Fee
+                                                                        </SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    className="h-8 rounded-md font-bold text-[10px] uppercase tracking-wider text-primary hover:bg-slate-50 border border-transparent hover:border-slate-200"
+                                                                    onClick={() => {
+                                                                        setSearchTerm(
+                                                                            "",
+                                                                        );
+                                                                        setPaymentStatusFilter(
+                                                                            "ALL",
+                                                                        );
+                                                                        setPaymentTypeFilter(
+                                                                            "ALL",
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    Reset
+                                                                    Filters
+                                                                </Button>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+
+                                                    <div className="space-y-3">
+                                                        {filteredPayments.length ===
+                                                        0 ? (
+                                                            <p className="text-sm text-slate-500 py-10 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
+                                                                No payments
+                                                                match your
+                                                                search or
+                                                                filter.
                                                             </p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <Badge
-                                                            className={cn(
-                                                                "font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider border",
-                                                                payment.status ===
-                                                                    "VERIFIED"
-                                                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                                                                    : payment.status ===
-                                                                        "SUBMITTED"
-                                                                      ? "bg-amber-50 text-amber-600 border-amber-100"
-                                                                      : "bg-slate-50 text-slate-600 border-slate-200",
-                                                            )}
-                                                        >
-                                                            {payment.status}
-                                                        </Badge>
-                                                        {payment.status ===
-                                                            "SUBMITTED" && (
-                                                            <Button
-                                                                size="sm"
-                                                                className="bg-primary hover:bg-primary/90 font-bold rounded-md h-8 text-[10px] uppercase tracking-wider px-3"
-                                                                onClick={() =>
-                                                                    handleVerifyPayment(
-                                                                        payment.id,
-                                                                    )
-                                                                }
-                                                            >
-                                                                Verify
-                                                            </Button>
+                                                        ) : (
+                                                            filteredPayments.map(
+                                                                (payment) => (
+                                                                    <div
+                                                                        key={
+                                                                            payment.id
+                                                                        }
+                                                                        onClick={() =>
+                                                                            openPaymentDialog(
+                                                                                payment,
+                                                                            )
+                                                                        }
+                                                                        className="flex flex-col gap-4 p-4 rounded-lg bg-slate-50 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 transition-all group cursor-pointer"
+                                                                    >
+                                                                        <div className="flex items-start justify-between gap-4">
+                                                                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                                                                                <div
+                                                                                    className={cn(
+                                                                                        "w-10 h-10 rounded-md border flex items-center justify-center shrink-0",
+                                                                                        getPaymentTypeTone(
+                                                                                            payment.type,
+                                                                                        ),
+                                                                                    )}
+                                                                                >
+                                                                                    {payment.type ===
+                                                                                    "DISBURSEMENT" ? (
+                                                                                        <ArrowUpRight className="w-5 h-5" />
+                                                                                    ) : payment.type ===
+                                                                                      "REPAYMENT" ? (
+                                                                                        <ArrowDownLeft className="w-5 h-5" />
+                                                                                    ) : (
+                                                                                        <Wallet className="w-5 h-5" />
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="min-w-0 flex-1">
+                                                                                    <div className="flex flex-wrap items-center gap-2">
+                                                                                        <h4 className="font-bold text-sm text-slate-900 tracking-tight truncate">
+                                                                                            {
+                                                                                                payment.agreementTitle
+                                                                                            }
+                                                                                        </h4>
+                                                                                        <Badge
+                                                                                            variant="outline"
+                                                                                            className={cn(
+                                                                                                "font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider border",
+                                                                                                getPaymentTypeTone(
+                                                                                                    payment.type,
+                                                                                                ),
+                                                                                            )}
+                                                                                        >
+                                                                                            {getPaymentTypeLabel(
+                                                                                                payment.type,
+                                                                                            )}
+                                                                                        </Badge>
+                                                                                    </div>
+                                                                                    <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                                                                                        {
+                                                                                            payment.senderName
+                                                                                        }{" "}
+                                                                                        →{" "}
+                                                                                        {
+                                                                                            payment.receiverName
+                                                                                        }
+                                                                                    </p>
+                                                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
+                                                                                        Payment
+                                                                                        ID{" "}
+                                                                                        {payment.id.toUpperCase()}
+                                                                                    </p>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="text-right shrink-0">
+                                                                                <p className="text-lg font-bold tracking-tight text-slate-900">
+                                                                                    {formatPaymentAmount(
+                                                                                        payment,
+                                                                                    )}
+                                                                                </p>
+                                                                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                                                    {payment.currency ||
+                                                                                        "USD"}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+                                                                            <div className="flex flex-wrap gap-2">
+                                                                                <Badge
+                                                                                    variant="outline"
+                                                                                    className={cn(
+                                                                                        "font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider border",
+                                                                                        getVerificationBadgeColor(
+                                                                                            payment.status,
+                                                                                        ),
+                                                                                    )}
+                                                                                >
+                                                                                    {
+                                                                                        payment.status
+                                                                                    }
+                                                                                </Badge>
+                                                                                {payment.dueDate && (
+                                                                                    <Badge
+                                                                                        variant="outline"
+                                                                                        className="bg-white text-slate-600 border-slate-200 font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider"
+                                                                                    >
+                                                                                        Due{" "}
+                                                                                        {new Date(
+                                                                                            payment.dueDate,
+                                                                                        ).toLocaleDateString()}
+                                                                                    </Badge>
+                                                                                )}
+                                                                                {payment.paidAt && (
+                                                                                    <Badge
+                                                                                        variant="outline"
+                                                                                        className="bg-white text-slate-600 border-slate-200 font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider"
+                                                                                    >
+                                                                                        Paid{" "}
+                                                                                        {new Date(
+                                                                                            payment.paidAt,
+                                                                                        ).toLocaleDateString()}
+                                                                                    </Badge>
+                                                                                )}
+                                                                                {payment.receiptCount ? (
+                                                                                    <Badge
+                                                                                        variant="outline"
+                                                                                        className="bg-white text-slate-600 border-slate-200 font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider"
+                                                                                    >
+                                                                                        {
+                                                                                            payment.receiptCount
+                                                                                        }{" "}
+                                                                                        receipt
+                                                                                        {payment.receiptCount !==
+                                                                                        1
+                                                                                            ? "s"
+                                                                                            : ""}
+                                                                                    </Badge>
+                                                                                ) : null}
+                                                                            </div>
+
+                                                                            <DropdownMenu>
+                                                                                <DropdownMenuTrigger>
+                                                                                    <Button
+                                                                                        variant="ghost"
+                                                                                        size="icon"
+                                                                                        className="h-8 w-8 rounded-md hover:bg-white border border-transparent hover:border-slate-200"
+                                                                                        onClick={(
+                                                                                            e,
+                                                                                        ) =>
+                                                                                            e.stopPropagation()
+                                                                                        }
+                                                                                    >
+                                                                                        <MoreVertical className="w-4 h-4" />
+                                                                                    </Button>
+                                                                                </DropdownMenuTrigger>
+                                                                                <DropdownMenuContent
+                                                                                    align="end"
+                                                                                    className="w-52"
+                                                                                >
+                                                                                    <DropdownMenuItem
+                                                                                        onClick={(
+                                                                                            e,
+                                                                                        ) => {
+                                                                                            e.stopPropagation();
+                                                                                            openPaymentDialog(
+                                                                                                payment,
+                                                                                            );
+                                                                                        }}
+                                                                                    >
+                                                                                        <ChevronRight className="w-4 h-4 mr-2" />
+                                                                                        View
+                                                                                        details
+                                                                                    </DropdownMenuItem>
+                                                                                    <DropdownMenuSeparator />
+                                                                                    {payment.status ===
+                                                                                        "SUBMITTED" && (
+                                                                                        <>
+                                                                                            <DropdownMenuItem
+                                                                                                onClick={(
+                                                                                                    e,
+                                                                                                ) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    openPaymentDialog(
+                                                                                                        payment,
+                                                                                                    );
+                                                                                                }}
+                                                                                                className="text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50"
+                                                                                            >
+                                                                                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                                                                Review
+                                                                                                receipt
+                                                                                            </DropdownMenuItem>
+                                                                                            <DropdownMenuItem
+                                                                                                onClick={(
+                                                                                                    e,
+                                                                                                ) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    openPaymentDialog(
+                                                                                                        payment,
+                                                                                                    );
+                                                                                                }}
+                                                                                                className="text-red-700 focus:text-red-700 focus:bg-red-50"
+                                                                                            >
+                                                                                                <XCircle className="w-4 h-4 mr-2" />
+                                                                                                Reject
+                                                                                                receipt
+                                                                                            </DropdownMenuItem>
+                                                                                        </>
+                                                                                    )}
+                                                                                    {payment.status ===
+                                                                                        "VERIFIED" && (
+                                                                                        <DropdownMenuItem
+                                                                                            onClick={(
+                                                                                                e,
+                                                                                            ) => {
+                                                                                                e.stopPropagation();
+                                                                                                openPaymentDialog(
+                                                                                                    payment,
+                                                                                                );
+                                                                                            }}
+                                                                                            className="text-amber-700 focus:text-amber-700 focus:bg-amber-50"
+                                                                                        >
+                                                                                            <Wallet className="w-4 h-4 mr-2" />
+                                                                                            Refund
+                                                                                            payment
+                                                                                        </DropdownMenuItem>
+                                                                                    )}
+                                                                                </DropdownMenuContent>
+                                                                            </DropdownMenu>
+                                                                        </div>
+                                                                    </div>
+                                                                ),
+                                                            )
                                                         )}
                                                     </div>
                                                 </div>
-                                            ))}
+                                            </div>
                                         </div>
                                     )}
                                     {activeTab === "AI" && <AdminAIPanel />}
@@ -1108,7 +1696,7 @@ export const AdminDashboard: React.FC = () => {
                                     </CardTitle>
                                     <Badge className="bg-primary text-white border-none font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider">
                                         {pendingClusters.length +
-                                            pendingPayments.length}
+                                            submittedPayments.length}
                                     </Badge>
                                 </div>
                                 <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">
@@ -1150,41 +1738,45 @@ export const AdminDashboard: React.FC = () => {
                                         </div>
                                     </div>
                                 ))}
-                                {pendingPayments.slice(0, 2).map((payment) => (
-                                    <div
-                                        key={payment.id}
-                                        className="p-4 rounded-md bg-slate-50 border border-slate-200 space-y-3 group"
-                                    >
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-md bg-white border border-slate-200 flex items-center justify-center text-amber-600 group-hover:scale-105 transition-transform">
-                                                    <Wallet className="w-4 h-4" />
+                                {submittedPayments
+                                    .slice(0, 2)
+                                    .map((payment) => (
+                                        <div
+                                            key={payment.id}
+                                            className="p-4 rounded-md bg-slate-50 border border-slate-200 space-y-3 group"
+                                        >
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-md bg-white border border-slate-200 flex items-center justify-center text-amber-600 group-hover:scale-105 transition-transform">
+                                                        <Wallet className="w-4 h-4" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-xs text-slate-900 tracking-tight">
+                                                            $
+                                                            {payment.amount.toLocaleString()}
+                                                        </h4>
+                                                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                                                            {
+                                                                payment.agreementTitle
+                                                            }
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h4 className="font-bold text-xs text-slate-900 tracking-tight">
-                                                        $
-                                                        {payment.amount.toLocaleString()}
-                                                    </h4>
-                                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                                                        {payment.agreementTitle}
-                                                    </p>
-                                                </div>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-7 w-7 rounded-md text-amber-600 hover:bg-white border border-transparent hover:border-slate-200"
+                                                    onClick={() =>
+                                                        handleVerifyPayment(
+                                                            payment.id,
+                                                        )
+                                                    }
+                                                >
+                                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                                </Button>
                                             </div>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-7 w-7 rounded-md text-amber-600 hover:bg-white border border-transparent hover:border-slate-200"
-                                                onClick={() =>
-                                                    handleVerifyPayment(
-                                                        payment.id,
-                                                    )
-                                                }
-                                            >
-                                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                            </Button>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
                                 <Button
                                     variant="ghost"
                                     className="w-full h-10 rounded-md font-bold text-[10px] uppercase tracking-wider text-primary hover:bg-slate-50 border border-transparent hover:border-slate-200"
@@ -1365,6 +1957,242 @@ export const AdminDashboard: React.FC = () => {
                             {isCreatingUser ? "Creating..." : "Create User"}
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={!!selectedPayment}
+                onOpenChange={(open) => {
+                    if (!open) closePaymentDialog();
+                }}
+            >
+                <DialogContent className="sm:max-w-3xl">
+                    {selectedPayment && (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle className="flex flex-wrap items-center gap-2">
+                                    Payment Details
+                                    <Badge
+                                        variant="outline"
+                                        className={cn(
+                                            "font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider border",
+                                            getVerificationBadgeColor(
+                                                selectedPayment.status,
+                                            ),
+                                        )}
+                                    >
+                                        {selectedPayment.status}
+                                    </Badge>
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Review the payment record, receipt state,
+                                    and verification outcome.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                                <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                            Agreement
+                                        </p>
+                                        <p className="mt-1 font-bold text-slate-900">
+                                            {selectedPayment.agreementTitle}
+                                        </p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div>
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                Amount
+                                            </p>
+                                            <p className="font-bold text-slate-900 mt-1">
+                                                {formatPaymentAmount(
+                                                    selectedPayment,
+                                                )}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                Type
+                                            </p>
+                                            <p className="font-bold text-slate-900 mt-1">
+                                                {getPaymentTypeLabel(
+                                                    selectedPayment.type,
+                                                )}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                Due Date
+                                            </p>
+                                            <p className="font-bold text-slate-900 mt-1">
+                                                {selectedPayment.dueDate
+                                                    ? new Date(
+                                                          selectedPayment.dueDate,
+                                                      ).toLocaleDateString()
+                                                    : "Not set"}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                Paid At
+                                            </p>
+                                            <p className="font-bold text-slate-900 mt-1">
+                                                {selectedPayment.paidAt
+                                                    ? new Date(
+                                                          selectedPayment.paidAt,
+                                                      ).toLocaleString()
+                                                    : "Not paid"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                            Parties
+                                        </p>
+                                        <p className="font-bold text-slate-900">
+                                            {selectedPayment.senderName}
+                                        </p>
+                                        <p className="text-xs text-slate-500">
+                                            Receiver:{" "}
+                                            {selectedPayment.receiverName}
+                                        </p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                            Receipt
+                                        </p>
+                                        <p className="text-xs text-slate-600">
+                                            {selectedPayment.receiptUrl ||
+                                                "No receipt file attached."}
+                                        </p>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                            {selectedPayment.receiptCount || 0}{" "}
+                                            total receipts
+                                        </p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                            Verification
+                                        </p>
+                                        <p className="text-xs text-slate-600">
+                                            {selectedPayment.verificationDecision ||
+                                                "Pending review"}
+                                        </p>
+                                        {selectedPayment.notes && (
+                                            <p className="text-xs italic text-slate-500">
+                                                "{selectedPayment.notes}"
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {selectedPayment.status === "SUBMITTED" && (
+                                <div className="space-y-3 pt-2">
+                                    <Textarea
+                                        value={paymentReviewNotes}
+                                        onChange={(e) =>
+                                            setPaymentReviewNotes(
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="Add review notes or a rejection reason..."
+                                        className="min-h-28"
+                                    />
+                                    <DialogFooter className="gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => closePaymentDialog()}
+                                            disabled={isProcessingPaymentAction}
+                                        >
+                                            Close
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-700"
+                                            onClick={() =>
+                                                handleReviewSelectedPayment(
+                                                    "rejected",
+                                                )
+                                            }
+                                            disabled={isProcessingPaymentAction}
+                                        >
+                                            Reject
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            onClick={() =>
+                                                handleReviewSelectedPayment(
+                                                    "verified",
+                                                )
+                                            }
+                                            disabled={isProcessingPaymentAction}
+                                        >
+                                            {isProcessingPaymentAction
+                                                ? "Saving..."
+                                                : "Verify Payment"}
+                                        </Button>
+                                    </DialogFooter>
+                                </div>
+                            )}
+
+                            {selectedPayment.status === "VERIFIED" && (
+                                <div className="space-y-3 pt-2">
+                                    <Textarea
+                                        value={paymentRefundReason}
+                                        onChange={(e) =>
+                                            setPaymentRefundReason(
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="Explain why this verified payment is being refunded..."
+                                        className="min-h-28"
+                                    />
+                                    <DialogFooter className="gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => closePaymentDialog()}
+                                            disabled={isProcessingPaymentAction}
+                                        >
+                                            Close
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            className="bg-red-600 hover:bg-red-700"
+                                            onClick={
+                                                handleRefundSelectedPayment
+                                            }
+                                            disabled={isProcessingPaymentAction}
+                                        >
+                                            {isProcessingPaymentAction
+                                                ? "Processing..."
+                                                : "Refund Payment"}
+                                        </Button>
+                                    </DialogFooter>
+                                </div>
+                            )}
+
+                            {selectedPayment.status !== "SUBMITTED" &&
+                                selectedPayment.status !== "VERIFIED" && (
+                                    <DialogFooter className="pt-4">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => closePaymentDialog()}
+                                        >
+                                            Close
+                                        </Button>
+                                    </DialogFooter>
+                                )}
+                        </>
+                    )}
                 </DialogContent>
             </Dialog>
         </motion.div>
