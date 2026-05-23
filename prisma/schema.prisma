@@ -399,6 +399,7 @@ enum ProposalStatus {
   NEGOTIATING
   ACCEPTED
   REJECTED
+  WITHDRAWN
   EXPIRED
 }
 
@@ -425,6 +426,8 @@ model Proposal {
   location        String?
   terms           Json               @default("{}")                        // interestRate, repaymentPeriod, collateral, ...
   status          ProposalStatus     @default(DRAFT)
+  version         Int                @default(0)
+  reviewedAt      DateTime?          @db.Timestamptz()
   expiresAt       DateTime?          @db.Timestamptz()
   createdAt       DateTime           @default(now()) @db.Timestamptz()
   updatedAt       DateTime           @updatedAt @db.Timestamptz()
@@ -438,6 +441,7 @@ model Proposal {
   @@index([investorId])
   @@index([targetUserId])
   @@index([status])
+  @@index([version])
 }
 
 model ProposalDocument {
@@ -569,8 +573,8 @@ model Agreement {
   id                String                  @id @default(uuid()) @db.Uuid
   proposalId        String                  @unique @db.Uuid
   proposal          Proposal                @relation(fields: [proposalId], references: [id], onDelete: Restrict)
-  clusterId         String                  @db.Uuid
-  cluster           Cluster                 @relation(fields: [clusterId], references: [id], onDelete: Restrict)
+  clusterId         String?                 @db.Uuid
+  cluster           Cluster?                @relation(fields: [clusterId], references: [id], onDelete: Restrict)
   templateVersionId String?                 @db.Uuid
   templateVersion   ContractTemplateVersion? @relation(fields: [templateVersionId], references: [id], onDelete: SetNull)
   title             String
