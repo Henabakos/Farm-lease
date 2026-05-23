@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Dialog,
     DialogContent,
@@ -24,6 +24,18 @@ import {
     RefreshCw,
     Save,
     X,
+    User,
+    Calendar,
+    Shield,
+    FileText,
+    Activity,
+    Clock,
+    MapPin,
+    Phone,
+    Mail,
+    Building2,
+    TrendingUp,
+    AlertTriangle,
 } from "lucide-react";
 import { motion } from "motion/react";
 import React, { useEffect, useState } from "react";
@@ -258,9 +270,9 @@ export const UserDetailPage: React.FC = () => {
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="min-h-screen bg-slate-50 p-6"
+            className="min-h-screen bg-slate-50"
         >
-            <div className="max-w-6xl mx-auto space-y-6">
+            <div className="mx-auto space-y-10">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <button
@@ -308,25 +320,25 @@ export const UserDetailPage: React.FC = () => {
                 {/* Main Content */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Sidebar - User Avatar & Key Info */}
-                    <div className="lg:col-span-1">
+                    <div className="lg:col-span-1 space-y-6">
                         <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
                             <CardContent className="p-6">
-                                <div className="w-20 h-20 mx-auto mb-4 rounded-lg bg-linear-to-br from-primary to-primary/50 flex items-center justify-center text-white font-bold text-2xl">
+                                <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-bold text-3xl shadow-sm">
                                     {user.fullName?.charAt(0) ||
                                         user.email?.charAt(0) ||
                                         "U"}
                                 </div>
-                                <h2 className="text-lg font-bold text-slate-900 mb-1">
+                                <h2 className="text-xl font-bold text-slate-900 mb-1 text-center">
                                     {user.fullName || "Unknown User"}
                                 </h2>
-                                <p className="text-sm text-slate-500 mb-4">
+                                <p className="text-sm text-slate-500 mb-6 text-center">
                                     {user.email}
                                 </p>
 
                                 <div className="space-y-2 mb-6">
                                     <Badge
                                         className={cn(
-                                            "w-full justify-center font-bold text-[11px] uppercase tracking-wider",
+                                            "w-full justify-center font-bold text-[11px] uppercase tracking-wider py-2",
                                             getStatusColor(user.status),
                                         )}
                                     >
@@ -334,7 +346,7 @@ export const UserDetailPage: React.FC = () => {
                                     </Badge>
                                     <Badge
                                         className={cn(
-                                            "w-full justify-center font-bold text-[11px] uppercase tracking-wider",
+                                            "w-full justify-center font-bold text-[11px] uppercase tracking-wider py-2",
                                             getRoleColor(user.role),
                                         )}
                                     >
@@ -342,7 +354,7 @@ export const UserDetailPage: React.FC = () => {
                                     </Badge>
                                     <Badge
                                         className={cn(
-                                            "w-full justify-center font-bold text-[11px] uppercase tracking-wider",
+                                            "w-full justify-center font-bold text-[11px] uppercase tracking-wider py-2",
                                             getVerificationColor(
                                                 user.verificationStatus,
                                             ),
@@ -353,6 +365,39 @@ export const UserDetailPage: React.FC = () => {
                                     </Badge>
                                 </div>
 
+                                {/* Quick Info */}
+                                <div className="space-y-3 mb-6 pt-4 border-t border-slate-100">
+                                    <div className="flex items-center gap-3">
+                                        <Calendar className="w-4 h-4 text-slate-400" />
+                                        <div className="flex-1">
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Member Since</p>
+                                            <p className="text-xs font-medium text-slate-900">
+                                                {user.createdAt
+                                                    ? new Date(user.createdAt).toLocaleDateString("en-US", {
+                                                        month: "short",
+                                                        year: "numeric"
+                                                    })
+                                                    : "N/A"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Clock className="w-4 h-4 text-slate-400" />
+                                        <div className="flex-1">
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Last Login</p>
+                                            <p className="text-xs font-medium text-slate-900">
+                                                {user.lastLoginAt
+                                                    ? new Date(user.lastLoginAt).toLocaleDateString("en-US", {
+                                                        month: "short",
+                                                        day: "numeric",
+                                                        year: "numeric"
+                                                    })
+                                                    : "Never"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {/* Admin Actions */}
                                 <div className="space-y-2">
                                     {user.status === "ACTIVE" && (
@@ -360,7 +405,7 @@ export const UserDetailPage: React.FC = () => {
                                             onClick={() =>
                                                 openActionDialog("suspend")
                                             }
-                                            className="w-full bg-red-600 hover:bg-red-700 font-bold text-[10px] uppercase h-9 rounded-md"
+                                            className="w-full bg-rose-600 hover:bg-rose-700 font-bold text-[10px] uppercase h-9 rounded-md"
                                         >
                                             <AlertCircle className="w-3 h-3 mr-1" />
                                             Suspend User
@@ -384,6 +429,7 @@ export const UserDetailPage: React.FC = () => {
                                         variant="outline"
                                         className="w-full border-slate-200 font-bold text-[10px] uppercase h-9 rounded-md"
                                     >
+                                        <Shield className="w-3 h-3 mr-1" />
                                         Update Verification
                                     </Button>
                                     <Button
@@ -393,6 +439,7 @@ export const UserDetailPage: React.FC = () => {
                                         variant="outline"
                                         className="w-full border-slate-200 font-bold text-[10px] uppercase h-9 rounded-md"
                                     >
+                                        <User className="w-3 h-3 mr-1" />
                                         Change Role
                                     </Button>
                                     <Button
@@ -408,6 +455,32 @@ export const UserDetailPage: React.FC = () => {
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {/* Quick Stats Card */}
+                        <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+                            <CardHeader className="p-4 pb-2">
+                                <CardTitle className="text-sm font-bold tracking-tight flex items-center gap-2">
+                                    <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                                    Account Stats
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Account Age</span>
+                                    <span className="font-bold text-xs text-slate-900">
+                                        {user.createdAt
+                                            ? Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+                                            : 0} days
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Profile Complete</span>
+                                    <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold text-[9px] uppercase tracking-wider px-1.5 py-0 rounded-md">
+                                        {user.fullName && user.phone && user.location ? '100%' : 'Partial'}
+                                    </Badge>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     {/* Right Content - Tabs */}
@@ -418,15 +491,24 @@ export const UserDetailPage: React.FC = () => {
                                     <TabsList className="bg-slate-100 p-1 rounded-md h-10 border border-slate-200 w-full">
                                         <TabsTrigger
                                             value="info"
-                                            className="flex-1 rounded-sm px-4 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
+                                            className="flex-1 rounded-sm px-3 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
                                         >
-                                            Profile Info
+                                            <User className="w-3 h-3 mr-1" />
+                                            Profile
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="activity"
-                                            className="flex-1 rounded-sm px-4 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
+                                            className="flex-1 rounded-sm px-3 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
                                         >
+                                            <Activity className="w-3 h-3 mr-1" />
                                             Activity
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="kyc"
+                                            className="flex-1 rounded-sm px-3 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
+                                        >
+                                            <FileText className="w-3 h-3 mr-1" />
+                                            Documents
                                         </TabsTrigger>
                                     </TabsList>
 
@@ -438,7 +520,8 @@ export const UserDetailPage: React.FC = () => {
                                         {isEditing ? (
                                             <div className="space-y-4">
                                                 <div className="space-y-2">
-                                                    <Label className="text-xs font-bold uppercase tracking-wider">
+                                                    <Label className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                                        <User className="w-3 h-3" />
                                                         Full Name
                                                     </Label>
                                                     <Input
@@ -459,7 +542,8 @@ export const UserDetailPage: React.FC = () => {
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label className="text-xs font-bold uppercase tracking-wider">
+                                                    <Label className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                                        <Mail className="w-3 h-3" />
                                                         Email
                                                     </Label>
                                                     <Input
@@ -480,7 +564,8 @@ export const UserDetailPage: React.FC = () => {
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label className="text-xs font-bold uppercase tracking-wider">
+                                                    <Label className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                                        <Phone className="w-3 h-3" />
                                                         Phone
                                                     </Label>
                                                     <Input
@@ -500,7 +585,8 @@ export const UserDetailPage: React.FC = () => {
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label className="text-xs font-bold uppercase tracking-wider">
+                                                    <Label className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                                        <MapPin className="w-3 h-3" />
                                                         Location
                                                     </Label>
                                                     <Input
@@ -521,7 +607,8 @@ export const UserDetailPage: React.FC = () => {
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label className="text-xs font-bold uppercase tracking-wider">
+                                                    <Label className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                                        <FileText className="w-3 h-3" />
                                                         Bio
                                                     </Label>
                                                     <Textarea
@@ -541,56 +628,71 @@ export const UserDetailPage: React.FC = () => {
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="space-y-3">
-                                                <div className="flex justify-between items-start pb-3 border-b border-slate-200">
-                                                    <div>
-                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                            <div className="space-y-4">
+                                                <div className="flex items-start gap-4 pb-4 border-b border-slate-100">
+                                                    <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                                        <User className="w-4 h-4 text-slate-500" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
                                                             Full Name
                                                         </p>
-                                                        <p className="text-sm font-medium text-slate-900 mt-1">
+                                                        <p className="text-sm font-medium text-slate-900">
                                                             {user.fullName ||
                                                                 "Not provided"}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="flex justify-between items-start pb-3 border-b border-slate-200">
-                                                    <div>
-                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                                <div className="flex items-start gap-4 pb-4 border-b border-slate-100">
+                                                    <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                                        <Mail className="w-4 h-4 text-slate-500" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
                                                             Email
                                                         </p>
-                                                        <p className="text-sm font-medium text-slate-900 mt-1">
+                                                        <p className="text-sm font-medium text-slate-900">
                                                             {user.email}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="flex justify-between items-start pb-3 border-b border-slate-200">
-                                                    <div>
-                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                                <div className="flex items-start gap-4 pb-4 border-b border-slate-100">
+                                                    <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                                        <Phone className="w-4 h-4 text-slate-500" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
                                                             Phone
                                                         </p>
-                                                        <p className="text-sm font-medium text-slate-900 mt-1">
+                                                        <p className="text-sm font-medium text-slate-900">
                                                             {user.phone ||
                                                                 "Not provided"}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="flex justify-between items-start pb-3 border-b border-slate-200">
-                                                    <div>
-                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                                <div className="flex items-start gap-4 pb-4 border-b border-slate-100">
+                                                    <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                                        <MapPin className="w-4 h-4 text-slate-500" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
                                                             Location
                                                         </p>
-                                                        <p className="text-sm font-medium text-slate-900 mt-1">
+                                                        <p className="text-sm font-medium text-slate-900">
                                                             {user.location ||
                                                                 "Not provided"}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                                        <FileText className="w-4 h-4 text-slate-500" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
                                                             Bio
                                                         </p>
-                                                        <p className="text-sm font-medium text-slate-900 mt-1">
+                                                        <p className="text-sm font-medium text-slate-900">
                                                             {user.bio ||
                                                                 "Not provided"}
                                                         </p>
@@ -605,13 +707,16 @@ export const UserDetailPage: React.FC = () => {
                                         value="activity"
                                         className="space-y-4 mt-4"
                                     >
-                                        <div className="space-y-3">
-                                            <div className="flex justify-between items-start pb-3 border-b border-slate-200">
-                                                <div>
-                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                                        Created
+                                        <div className="space-y-4">
+                                            <div className="flex items-start gap-4 pb-4 border-b border-slate-100">
+                                                <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                                    <Calendar className="w-4 h-4 text-slate-500" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                                                        Account Created
                                                     </p>
-                                                    <p className="text-sm font-medium text-slate-900 mt-1">
+                                                    <p className="text-sm font-medium text-slate-900">
                                                         {user.createdAt
                                                             ? new Date(
                                                                   user.createdAt,
@@ -629,12 +734,15 @@ export const UserDetailPage: React.FC = () => {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                            <div className="flex items-start gap-4 pb-4 border-b border-slate-100">
+                                                <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                                    <Clock className="w-4 h-4 text-slate-500" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
                                                         Last Login
                                                     </p>
-                                                    <p className="text-sm font-medium text-slate-900 mt-1">
+                                                    <p className="text-sm font-medium text-slate-900">
                                                         {user.lastLoginAt
                                                             ? new Date(
                                                                   user.lastLoginAt,
@@ -652,6 +760,42 @@ export const UserDetailPage: React.FC = () => {
                                                     </p>
                                                 </div>
                                             </div>
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                                    <Activity className="w-4 h-4 text-slate-500" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                                                        Account Status
+                                                    </p>
+                                                    <Badge className={cn("mt-1", getStatusColor(user.status))}>
+                                                        {user.status || "UNKNOWN"}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </TabsContent>
+
+                                    {/* Documents Tab */}
+                                    <TabsContent
+                                        value="kyc"
+                                        className="space-y-4 mt-4"
+                                    >
+                                        <div className="text-center py-12">
+                                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+                                                <FileText className="w-8 h-8 text-slate-400" />
+                                            </div>
+                                            <h3 className="text-base font-bold text-slate-900 mb-2">KYC Documents</h3>
+                                            <p className="text-sm text-slate-500 mb-4">
+                                                {user.verificationStatus === 'VERIFIED'
+                                                    ? 'User has completed KYC verification'
+                                                    : user.verificationStatus === 'PENDING'
+                                                    ? 'KYC verification is pending review'
+                                                    : 'User has not submitted KYC documents yet'}
+                                            </p>
+                                            <Badge className={cn("mb-6", getVerificationColor(user.verificationStatus))}>
+                                                {user.verificationStatus || "UNVERIFIED"}
+                                            </Badge>
                                         </div>
                                     </TabsContent>
                                 </Tabs>
