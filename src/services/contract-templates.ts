@@ -22,6 +22,7 @@ export interface ContractTemplate {
   name: string;
   description?: string | null;
   category?: string | null;
+  targetAudience?: 'FARMER' | 'INVESTOR' | 'BOTH';
   isActive: boolean;
   createdById: string;
   createdAt: string;
@@ -34,7 +35,9 @@ export interface ContractTemplateVersion {
   id: string;
   templateId: string;
   versionNumber: number;
-  body: string;
+  contentType?: 'MARKDOWN' | 'PDF';
+  body?: string | null;
+  pdfStorageKey?: string | null;
   variables: TemplateVariable[];
   publishedAt: string | null;
   createdById: string;
@@ -104,6 +107,7 @@ export const contractTemplateService = {
     name: string;
     description?: string;
     category?: string;
+    targetAudience?: 'FARMER' | 'INVESTOR' | 'BOTH';
   }): Promise<ContractTemplate> => {
     const { data } = await api.post(BASE, template);
     return data;
@@ -125,7 +129,12 @@ export const contractTemplateService = {
   // ---------------- Versions
   createVersion: async (
     templateId: string,
-    version: { body: string; variables?: TemplateVariable[] },
+    version: { 
+      contentType?: string;
+      body?: string;
+      pdfStorageKey?: string;
+      variables?: TemplateVariable[];
+    },
   ): Promise<ContractTemplateVersion> => {
     const { data } = await api.post(`${BASE}/${templateId}/versions`, version);
     return data;

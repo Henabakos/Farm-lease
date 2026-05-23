@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -15,49 +15,80 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { contractTemplateService } from "@/src/services/contract-templates";
 import { RichTextEditor } from "./RichTextEditor";
 import { api, getAccessToken } from "@/src/services/api";
 import axios from 'axios';
 
-interface CreateTemplateDialogProps {
+interface EditTemplateDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onCreate: (input: {
-        name: string;
-        description?: string;
-        category?: string;
-        targetAudience?: string;
-        contentType?: string;
-        body?: string;
-        pdfStorageKey?: string;
-    }) => Promise<unknown>;
+    templateId: string | null;
+    onChanged?: () => void;
 }
 
-export const CreateTemplateDialog: React.FC<CreateTemplateDialogProps> = ({
+export const EditTemplateDialog: React.FC<EditTemplateDialogProps> = ({
     open,
     onOpenChange,
-    onCreate,
+    templateId,
+    onChanged,
 }) => {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [category, setCategory] = useState("");
     const [targetAudience, setTargetAudience] = useState("BOTH");
+    const [isActive, setIsActive] = useState(true);
     const [contentType, setContentType] = useState<"MARKDOWN" | "PDF">("MARKDOWN");
     const [body, setBody] = useState("");
     const [pdfFile, setPdfFile] = useState<File | null>(null);
     const [pdfStorageKey, setPdfStorageKey] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const reset = () => {
         setName("");
         setDescription("");
         setCategory("");
         setTargetAudience("BOTH");
+        setIsActive(true);
         setContentType("MARKDOWN");
         setBody("");
         setPdfFile(null);
         setPdfStorageKey(null);
+    };
+
+    useEffect(() => {
+        if (open && templateId) {
+            loadTemplate();
+        } else if (!open) {
+            reset();
+        }
+    }, [open, templateId]);
+
+    const loadTemplate = async () => {
+        if (!templateId) return;
+        setIsLoading(true);
+        try {
+            const template = await contractTemplateService.getTemplate(templateId);
+            setName(template.name);
+            setDescription(template.description || "");
+            setCategory(template.category || "");
+            setTargetAudience(template.targetAudience || "BOTH");
+            setIsActive(template.isActive);
+            
+            // Load the latest version
+            if (template.versions && template.versions.length > 0) {
+                const latestVersion = template.versions[0];
+                setContentType((latestVersion.contentType as "MARKDOWN" | "PDF") || "MARKDOWN");
+                setBody(latestVersion.body || "");
+                setPdfStorageKey(latestVersion.pdfStorageKey || null);
+            }
+        } catch (err) {
+            toast.error("Failed to load template");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handlePdfUpload = async (file: File) => {
@@ -98,6 +129,8 @@ export const CreateTemplateDialog: React.FC<CreateTemplateDialogProps> = ({
     };
 
     const handleSubmit = async () => {
+        if (!templateId) return;
+        
         const trimmedName = name.trim();
         if (trimmedName.length < 1) {
             toast.error("Template name is required");
@@ -111,25 +144,48 @@ export const CreateTemplateDialog: React.FC<CreateTemplateDialogProps> = ({
             toast.error("Please upload a PDF file");
             return;
         }
+        
         try {
             setIsSaving(true);
-            await onCreate({
+            
+            // Update template metadata
+            await contractTemplateService.updateTemplate(templateId, {
                 name: trimmedName,
                 description: description.trim() || undefined,
                 category: category.trim() || undefined,
-                targetAudience,
+                isActive,
+            });
+
+            // Create a new version with updated content
+            await contractTemplateService.createVersion(templateId, {
                 contentType,
                 body: contentType === 'MARKDOWN' ? body : undefined,
                 pdfStorageKey: contentType === 'PDF' ? pdfStorageKey : undefined,
+                variables: [],
             });
+
+            toast.success("Template updated successfully");
             reset();
             onOpenChange(false);
-        } catch {
-            // toast handled upstream
+            onChanged?.();
+        } catch (err) {
+            toast.error("Failed to update template");
         } finally {
             setIsSaving(false);
         }
     };
+
+    if (isLoading) {
+        return (
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent className="sm:max-w-2xl">
+                    <div className="flex items-center justify-center py-16">
+                        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                    </div>
+                </DialogContent>
+            </Dialog>
+        );
+    }
 
     return (
         <Dialog
@@ -141,9 +197,9 @@ export const CreateTemplateDialog: React.FC<CreateTemplateDialogProps> = ({
         >
             <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Create contract template</DialogTitle>
+                    <DialogTitle>Edit contract template</DialogTitle>
                     <DialogDescription>
-                        Create a contract template by writing content in markdown or uploading a PDF.
+                        Update template details and content. A new version will be created.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -205,6 +261,19 @@ export const CreateTemplateDialog: React.FC<CreateTemplateDialogProps> = ({
                             disabled={isSaving}
                             rows={2}
                         />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            id="template-active"
+                            checked={isActive}
+                            onChange={(e) => setIsActive(e.target.checked)}
+                            disabled={isSaving}
+                            className="h-4 w-4"
+                        />
+                        <Label htmlFor="template-active" className="cursor-pointer">
+                            Active
+                        </Label>
                     </div>
 
                     <div className="space-y-1.5">
@@ -300,7 +369,7 @@ export const CreateTemplateDialog: React.FC<CreateTemplateDialogProps> = ({
                         {isSaving && (
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         )}
-                        Create template
+                        Save changes
                     </Button>
                 </DialogFooter>
             </DialogContent>

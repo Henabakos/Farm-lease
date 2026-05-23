@@ -6,18 +6,32 @@ import { NotFoundError, ConflictError } from '../../shared/errors.js';
 import { paginate } from '../../shared/pagination.js';
 
 /**
- * Create a new contract template.
+ * Create a new contract template with initial version.
  */
 export async function createTemplate(userId, data) {
-  const { name, description, category } = data;
+  const { name, description, category, targetAudience, contentType, body, pdfStorageKey, variables } = data;
 
   const template = await prisma.contractTemplate.create({
     data: {
       name,
       description,
       category,
+      targetAudience: targetAudience || 'BOTH',
       isActive: true,
       createdById: userId,
+      versions: {
+        create: {
+          versionNumber: 1,
+          contentType: contentType || 'MARKDOWN',
+          body: contentType === 'MARKDOWN' ? body : null,
+          pdfStorageKey: contentType === 'PDF' ? pdfStorageKey : null,
+          variables: variables || [],
+          createdById: userId,
+        },
+      },
+    },
+    include: {
+      versions: true,
     },
   });
 
@@ -28,7 +42,7 @@ export async function createTemplate(userId, data) {
  * Create a new version of a template.
  */
 export async function createTemplateVersion(userId, templateId, data) {
-  const { body, variables } = data;
+  const { contentType, body, pdfStorageKey, variables } = data;
 
   const template = await prisma.contractTemplate.findUnique({
     where: { id: templateId },
@@ -48,7 +62,9 @@ export async function createTemplateVersion(userId, templateId, data) {
     data: {
       templateId,
       versionNumber: nextVersion,
-      body,
+      contentType: contentType || 'MARKDOWN',
+      body: contentType === 'MARKDOWN' ? body : null,
+      pdfStorageKey: contentType === 'PDF' ? pdfStorageKey : null,
       variables: variables || [],
       createdById: userId,
     },

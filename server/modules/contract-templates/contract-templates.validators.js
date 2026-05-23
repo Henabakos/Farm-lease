@@ -12,6 +12,9 @@ export const CLAUSE_CATEGORIES = [
   'CUSTOM',
 ];
 
+export const TEMPLATE_TARGET_AUDIENCES = ['FARMER', 'INVESTOR', 'BOTH'];
+export const TEMPLATE_CONTENT_TYPES = ['MARKDOWN', 'PDF'];
+
 const variableSchema = z.object({
   name: z.string().min(1),
   type: z.enum(['text', 'number', 'date', 'boolean']),
@@ -23,11 +26,25 @@ export const createTemplateSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().optional(),
   category: z.string().optional(),
+  targetAudience: z.enum(TEMPLATE_TARGET_AUDIENCES).default('BOTH'),
 });
 
 export const createTemplateVersionSchema = z.object({
-  body: z.string().min(1),
+  contentType: z.enum(TEMPLATE_CONTENT_TYPES).default('MARKDOWN'),
+  body: z.string().optional(),
+  pdfStorageKey: z.string().optional(),
   variables: z.array(variableSchema).optional(),
+}).refine((data) => {
+  if (data.contentType === 'MARKDOWN') {
+    return data.body && data.body.length > 0;
+  }
+  if (data.contentType === 'PDF') {
+    return data.pdfStorageKey && data.pdfStorageKey.length > 0;
+  }
+  return false;
+}, {
+  message: 'body is required for MARKDOWN, pdfStorageKey is required for PDF',
+  path: ['body'],
 });
 
 export const updateTemplateSchema = z.object({

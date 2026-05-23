@@ -11,7 +11,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, Loader2, Save } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Plus, Trash2, Loader2, Save, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 import type {
     TemplateVariable,
@@ -22,7 +23,9 @@ interface VersionEditorProps {
     initialBody?: string;
     initialVariables?: TemplateVariable[];
     onSave: (payload: {
-        body: string;
+        contentType: string;
+        body?: string;
+        pdfStorageKey?: string;
         variables: TemplateVariable[];
     }) => Promise<unknown>;
     onCancel?: () => void;
@@ -40,7 +43,11 @@ export const VersionEditor: React.FC<VersionEditorProps> = ({
     submitLabel = "Save as new version",
     helperNote,
 }) => {
+    const [contentType, setContentType] = useState<"MARKDOWN" | "PDF">("MARKDOWN");
     const [body, setBody] = useState(initialBody);
+    const [pdfFile, setPdfFile] = useState<File | null>(null);
+    const [pdfStorageKey, setPdfStorageKey] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
     const [variables, setVariables] =
         useState<TemplateVariable[]>(initialVariables);
     const [isSaving, setIsSaving] = useState(false);
@@ -62,9 +69,49 @@ export const VersionEditor: React.FC<VersionEditorProps> = ({
         setVariables((prev) => prev.filter((_, i) => i !== idx));
     };
 
+    const handlePdfUpload = async (file: File) => {
+        if (file.type !== 'application/pdf') {
+            toast.error('Only PDF files are allowed');
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error('File size must be less than 10MB');
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('prefix', 'contract-templates');
+
+            const response = await fetch('/api/files/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('Upload failed');
+            }
+
+            const data = await response.json();
+            setPdfStorageKey(data.storage_key);
+            toast.success('PDF uploaded successfully');
+        } catch (err) {
+            toast.error('Failed to upload PDF');
+            setPdfFile(null);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     const handleSubmit = async () => {
-        if (!body.trim()) {
+        if (contentType === 'MARKDOWN' && !body.trim()) {
             toast.error("Body cannot be empty");
+            return;
+        }
+        if (contentType === 'PDF' && !pdfStorageKey) {
+            toast.error("Please upload a PDF file");
             return;
         }
         // Validate variable names unique + non-empty
@@ -84,7 +131,9 @@ export const VersionEditor: React.FC<VersionEditorProps> = ({
         try {
             setIsSaving(true);
             await onSave({
-                body,
+                contentType,
+                body: contentType === 'MARKDOWN' ? body : undefined,
+                pdfStorageKey: contentType === 'PDF' ? pdfStorageKey : undefined,
                 variables: variables.map((v) => ({
                     name: v.name.trim(),
                     type: v.type,
@@ -106,17 +155,87 @@ export const VersionEditor: React.FC<VersionEditorProps> = ({
             )}
 
             <div className="space-y-1.5">
-                <Label htmlFor="version-body">Body (markdown / mustache)</Label>
-                <Textarea
-                    id="version-body"
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    rows={14}
+                <Label>Content Type</Label>
+                <RadioGroup
+                    value={contentType}
+                    onValueChange={(value: "MARKDOWN" | "PDF") => setContentType(value)}
                     disabled={isSaving}
-                    className="font-mono text-xs"
-                    placeholder={`# Lease Agreement\n\nThis agreement is between {{owner_name}} and {{tenant_name}}...`}
-                />
+                    className="flex gap-4"
+                >
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="MARKDOWN" id="markdown" />
+                        <Label htmlFor="markdown" className="flex items-center gap-2 cursor-pointer">
+                            <FileText className="w-4 h-4" />
+                            Markdown Editor
+                        </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="PDF" id="pdf" />
+                        <Label htmlFor="pdf" className="flex items-center gap-2 cursor-pointer">
+                            <Upload className="w-4 h-4" />
+                            Upload PDF
+                        </Label>
+                    </div>
+                </RadioGroup>
             </div>
+
+            {contentType === 'MARKDOWN' ? (
+                <div className="space-y-1.5">
+                    <Label htmlFor="version-body">Body (markdown / mustache)</Label>
+                    <Textarea
+                        id="version-body"
+                        value={body}
+                        onChange={(e) => setBody(e.target.value)}
+                        rows={14}
+                        disabled={isSaving}
+                        className="font-mono text-xs"
+                        placeholder={`# Lease Agreement\n\nThis agreement is between {{owner_name}} and {{tenant_name}}...`}
+                    />
+                </div>
+            ) : (
+                <div className="space-y-1.5">
+                    <Label htmlFor="pdf-upload">PDF Document</Label>
+                    <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                        <input
+                            id="pdf-upload"
+                            type="file"
+                            accept=".pdf"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    setPdfFile(file);
+                                    handlePdfUpload(file);
+                                }
+                            }}
+                            disabled={isSaving || isUploading}
+                            className="hidden"
+                        />
+                        <label
+                            htmlFor="pdf-upload"
+                            className="cursor-pointer flex flex-col items-center gap-2"
+                        >
+                            {isUploading ? (
+                                <>
+                                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                    <p className="text-sm text-slate-600">Uploading...</p>
+                                </>
+                            ) : pdfStorageKey ? (
+                                <>
+                                    <FileText className="w-8 h-8 text-green-600" />
+                                    <p className="text-sm text-slate-600">PDF uploaded successfully</p>
+                                    <p className="text-xs text-slate-400">Click to replace</p>
+                                </>
+                            ) : (
+                                <>
+                                    <Upload className="w-8 h-8 text-slate-400" />
+                                    <p className="text-sm text-slate-600">Click to upload PDF</p>
+                                    <p className="text-xs text-slate-400">Max 10MB</p>
+                                </>
+                            )}
+                        </label>
+                    </div>
+                </div>
+            )}
 
             <div className="space-y-2">
                 <div className="flex items-center justify-between">

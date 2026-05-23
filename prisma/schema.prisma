@@ -494,17 +494,29 @@ model Negotiation {
 // CONTRACT TEMPLATES & AGREEMENTS
 // ============================================================================
 
-model ContractTemplate {
-  id          String                    @id @default(uuid()) @db.Uuid
-  name        String
-  description String?
-  category    String?
-  isActive    Boolean                   @default(true)
-  createdById String                    @db.Uuid
-  createdAt   DateTime                  @default(now()) @db.Timestamptz()
-  updatedAt   DateTime                  @updatedAt @db.Timestamptz()
+enum TemplateTargetAudience {
+  FARMER
+  INVESTOR
+  BOTH
+}
 
-  versions    ContractTemplateVersion[]
+enum TemplateContentType {
+  MARKDOWN
+  PDF
+}
+
+model ContractTemplate {
+  id             String                   @id @default(uuid()) @db.Uuid
+  name           String
+  description    String?
+  category       String?
+  targetAudience TemplateTargetAudience  @default(BOTH)
+  isActive       Boolean                  @default(true)
+  createdById    String                   @db.Uuid
+  createdAt      DateTime                 @default(now()) @db.Timestamptz()
+  updatedAt      DateTime                 @updatedAt @db.Timestamptz()
+
+  versions       ContractTemplateVersion[]
 }
 
 model ContractTemplateVersion {
@@ -512,7 +524,9 @@ model ContractTemplateVersion {
   templateId   String                @db.Uuid
   template     ContractTemplate      @relation(fields: [templateId], references: [id], onDelete: Cascade)
   versionNumber Int
-  body         String                                                       // markdown / mustache body
+  contentType  TemplateContentType    @default(MARKDOWN)
+  body         String?                                                      // markdown / mustache body (null if PDF)
+  pdfStorageKey String?                                                     // S3/MinIO storage key for PDF (null if markdown)
   variables    Json                  @default("[]")                         // declared placeholders
   publishedAt  DateTime?             @db.Timestamptz()
   createdById  String                @db.Uuid

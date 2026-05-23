@@ -41,6 +41,7 @@ const ALLOWED_PREFIXES = new Set([
   'avatars',
   'agreements',
   'kb',
+  'contract-templates',
 ]);
 
 router.post(

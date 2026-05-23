@@ -235,7 +235,9 @@ export const TemplateDetailDialog: React.FC<Props> = ({
     };
 
     const handleCreateVersion = async (payload: {
-        body: string;
+        contentType: string;
+        body?: string;
+        pdfStorageKey?: string;
         variables: any[];
     }) => {
         if (!templateId) return;
