@@ -176,6 +176,25 @@ export const useAdmin = () => {
     }
   }, [fetchAuditLogs]);
 
+  const exportReport = useCallback(async (reportType: string, startDate?: string, endDate?: string) => {
+    try {
+      const response = await adminAPI.exportReport(reportType, startDate, endDate);
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/csv' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${reportType.toLowerCase()}-report-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Report exported successfully');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to export report';
+      toast.error(errorMessage);
+      throw err;
+    }
+  }, []);
+
   const fetchStats = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -212,6 +231,7 @@ export const useAdmin = () => {
     fetchAuditLogs,
     exportAuditLogsCsv,
     clearAuditLogs,
+    exportReport,
     fetchStats,
   };
 };

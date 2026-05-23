@@ -15,6 +15,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
     Dialog,
     DialogContent,
@@ -51,6 +52,7 @@ import {
     MapPin,
     MoreVertical,
     Plus,
+    RefreshCw,
     Search,
     Shield,
     Trash2,
@@ -118,6 +120,7 @@ export const AdminDashboard: React.FC = () => {
         approveUser,
         fetchAllUsers,
         fetchAuditLogs,
+        exportReport,
     } = useAdmin();
     const {
         clusters: apiClusters,
@@ -160,6 +163,11 @@ export const AdminDashboard: React.FC = () => {
         password: "",
         role: "FARMER",
     });
+    const [exportReportOpen, setExportReportOpen] = useState(false);
+    const [reportType, setReportType] = useState<"USERS" | "CLUSTERS" | "PAYMENTS" | "AUDIT_LOGS">("USERS");
+    const [reportStartDate, setReportStartDate] = useState("");
+    const [reportEndDate, setReportEndDate] = useState("");
+    const [isExporting, setIsExporting] = useState(false);
 
     const filteredUsers = Array.isArray(users)
         ? users.filter(
@@ -628,6 +636,21 @@ export const AdminDashboard: React.FC = () => {
         }
     };
 
+    const handleExportReport = async () => {
+        try {
+            setIsExporting(true);
+            await exportReport(reportType, reportStartDate || undefined, reportEndDate || undefined);
+            setExportReportOpen(false);
+            setReportType("USERS");
+            setReportStartDate("");
+            setReportEndDate("");
+        } catch (err) {
+            // Error handled in hook
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
         <motion.div
             variants={container}
@@ -652,14 +675,11 @@ export const AdminDashboard: React.FC = () => {
                 <div className="flex items-center gap-3">
                     <Button
                         variant="outline"
+                        onClick={() => setExportReportOpen(true)}
                         className="gap-2 h-10 px-4 rounded-md border-slate-200 bg-white hover:bg-slate-50 hover:text-primary transition-all"
                     >
                         <FileText className="w-4 h-4" />
                         <span className="font-medium">Export Report</span>
-                    </Button>
-                    <Button className="gap-2 h-10 px-4 rounded-md bg-primary hover:bg-primary/90 shadow-sm transition-all">
-                        <UserPlus className="w-4 h-4" />
-                        <span className="font-medium">Invite User</span>
                     </Button>
                 </div>
             </motion.div>
@@ -2175,6 +2195,90 @@ export const AdminDashboard: React.FC = () => {
                                 )}
                         </>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Export Report Dialog */}
+            <Dialog open={exportReportOpen} onOpenChange={setExportReportOpen}>
+                <DialogContent className="sm:max-w-md rounded-lg border-slate-200">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-primary" />
+                            Export Report
+                        </DialogTitle>
+                        <DialogDescription className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                            Select report type and date range
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider">
+                                Report Type
+                            </Label>
+                            <Select value={reportType} onValueChange={(v: any) => setReportType(v)}>
+                                <SelectTrigger className="h-10 rounded-md bg-slate-50 border-slate-200">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="USERS">Users</SelectItem>
+                                    <SelectItem value="CLUSTERS">Clusters</SelectItem>
+                                    <SelectItem value="PAYMENTS">Payments</SelectItem>
+                                    <SelectItem value="AUDIT_LOGS">Audit Logs</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider">
+                                Start Date (Optional)
+                            </Label>
+                            <Input
+                                type="date"
+                                value={reportStartDate}
+                                onChange={(e) => setReportStartDate(e.target.value)}
+                                className="h-10 rounded-md bg-slate-50 border-slate-200"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider">
+                                End Date (Optional)
+                            </Label>
+                            <Input
+                                type="date"
+                                value={reportEndDate}
+                                onChange={(e) => setReportEndDate(e.target.value)}
+                                className="h-10 rounded-md bg-slate-50 border-slate-200"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="pt-4 gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setExportReportOpen(false)}
+                            disabled={isExporting}
+                            className="rounded-md border-slate-200"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleExportReport}
+                            disabled={isExporting}
+                            className="rounded-md font-bold bg-primary hover:bg-primary/90"
+                        >
+                            {isExporting ? (
+                                <>
+                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                    Exporting...
+                                </>
+                            ) : (
+                                <>
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    Export Report
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </motion.div>

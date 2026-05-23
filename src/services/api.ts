@@ -290,5 +290,7 @@ export const adminAPI = {
   getAuditLogs: (filters?: any) => api.get('/admin/audit-logs', { params: filters }),
   exportAuditLogs: (filters?: any) => api.get('/admin/audit-logs/export', { params: filters, responseType: 'blob' }),
   clearAuditLogs: (beforeDate: string) => api.delete('/admin/audit-logs', { data: { beforeDate } }),
+  exportReport: (reportType: string, startDate?: string, endDate?: string) => 
+    api.get('/admin/report/export', { params: { reportType, startDate, endDate }, responseType: 'blob' }),
   getStats: () => api.get('/admin/stats')
 };

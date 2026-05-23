@@ -12,6 +12,7 @@ import {
   listAuditLogsSchema,
   exportAuditLogsSchema,
   clearAuditLogsSchema,
+  exportReportSchema,
   updateUserVerificationSchema,
   updateUserRoleSchema,
   unsuspendSchema,
@@ -24,6 +25,7 @@ import {
   listAuditLogs,
   exportAuditLogsCsv,
   clearAuditLogs,
+  exportReport,
   getSystemStats,
   updateUserVerification,
   updateUserRole,
@@ -132,6 +134,28 @@ router.delete(
     try {
       const result = await clearAuditLogs(req.body);
       res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// GET /admin/report/export - Export report as CSV
+router.get(
+  '/report/export',
+  validate({ query: exportReportSchema }),
+  async (req, res, next) => {
+    try {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${req.query.reportType.toLowerCase()}-report-${new Date().toISOString().split('T')[0]}.csv"`
+      );
+
+      for await (const chunk of exportReport(req.query)) {
+        res.write(chunk);
+      }
+      res.end();
     } catch (err) {
       next(err);
     }

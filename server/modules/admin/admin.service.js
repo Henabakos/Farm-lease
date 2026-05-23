@@ -227,6 +227,91 @@ export async function clearAuditLogs({ beforeDate }) {
   return { deleted: result.count };
 }
 
+/**
+ * Export report as CSV based on report type.
+ */
+export async function* exportReport({ reportType, startDate, endDate }) {
+  const where = {};
+  if (startDate || endDate) {
+    where.createdAt = {};
+    if (startDate) where.createdAt.gte = startDate;
+    if (endDate) where.createdAt.lte = endDate;
+  }
+
+  if (reportType === 'USERS') {
+    yield 'id,email,fullName,role,status,verificationStatus,createdAt,lastLoginAt\n';
+    const users = await prisma.user.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+    for (const user of users) {
+      const row = [
+        user.id,
+        escapeCsv(user.email),
+        escapeCsv(user.fullName || ''),
+        user.role,
+        user.status,
+        user.verificationStatus,
+        user.createdAt?.toISOString() || '',
+        user.lastLoginAt?.toISOString() || '',
+      ].join(',');
+      yield row + '\n';
+    }
+  } else if (reportType === 'CLUSTERS') {
+    yield 'id,name,location,region,verificationStatus,createdAt\n';
+    const clusters = await prisma.cluster.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+    for (const cluster of clusters) {
+      const row = [
+        cluster.id,
+        escapeCsv(cluster.name),
+        escapeCsv(cluster.location || ''),
+        escapeCsv(cluster.region || ''),
+        cluster.verificationStatus,
+        cluster.createdAt?.toISOString() || '',
+      ].join(',');
+      yield row + '\n';
+    }
+  } else if (reportType === 'PAYMENTS') {
+    yield 'id,amount,currency,type,status,agreementId,createdAt\n';
+    const payments = await prisma.payment.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+    for (const payment of payments) {
+      const row = [
+        payment.id,
+        payment.amount,
+        payment.currency,
+        payment.type,
+        payment.status,
+        payment.agreementId || '',
+        payment.createdAt?.toISOString() || '',
+      ].join(',');
+      yield row + '\n';
+    }
+  } else if (reportType === 'AUDIT_LOGS') {
+    yield 'id,createdAt,userId,action,entityType,entityId\n';
+    const logs = await prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+    for (const log of logs) {
+      const row = [
+        log.id,
+        log.createdAt?.toISOString() || '',
+        log.userId || '',
+        escapeCsv(log.action),
+        escapeCsv(log.entityType || ''),
+        log.entityId || '',
+      ].join(',');
+      yield row + '\n';
+    }
+  }
+}
+
 function escapeCsv(value) {
   if (value === null || value === undefined) return '';
   const str = String(value);

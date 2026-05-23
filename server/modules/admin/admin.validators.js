@@ -45,6 +45,12 @@ export const clearAuditLogsSchema = z.object({
   beforeDate: z.coerce.date(),
 });
 
+export const exportReportSchema = z.object({
+  reportType: z.enum(['USERS', 'CLUSTERS', 'PAYMENTS', 'AUDIT_LOGS']),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+});
+
 export const updateUserVerificationSchema = z.object({
   verificationStatus: z.enum(['VERIFIED', 'REJECTED', 'UNVERIFIED', 'PENDING']),
   reason: z.string().optional(),
