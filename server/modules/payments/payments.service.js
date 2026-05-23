@@ -65,7 +65,15 @@ function toDto(p) {
 }
 
 const INCLUDE = {
-  agreement: { select: { id: true, title: true, clusterId: true, cluster: { select: { ownerId: true } } } },
+  agreement: {
+    select: {
+      id: true,
+      title: true,
+      clusterId: true,
+      cluster: { select: { ownerId: true } },
+      proposal: { select: { targetType: true, targetUserId: true } },
+    },
+  },
   payer:     { select: { id: true, fullName: true } },
   receiver:  { select: { id: true, fullName: true } },
   receipts:  { orderBy: { createdAt: 'desc' } },
@@ -123,13 +131,15 @@ export async function create(body, viewer) {
     include: { proposal: true, cluster: { select: { ownerId: true } } },
   });
   if (!agreement) throw new NotFoundError('Agreement not found');
-  // Only cluster owner or admin can schedule a payment.
-  if (![agreement.cluster?.ownerId].includes(viewer.id) && !isAdmin(viewer)) {
-    throw new ForbiddenError('Only the cluster owner can schedule payments');
+  const receiverId = agreement.proposal.targetType === 'FARMER'
+    ? agreement.proposal.targetUserId
+    : agreement.cluster?.ownerId;
+  if (!receiverId) throw new ConflictError('Agreement has no payment receiver');
+  if (![receiverId].includes(viewer.id) && !isAdmin(viewer)) {
+    throw new ForbiddenError('Only the agreement receiver can schedule payments');
   }
-  // Payer = the proposing investor; Receiver = cluster owner.
+  // Payer = the proposing investor; receiver = cluster owner or target farmer.
   const payerId = agreement.proposal.investorId;
-  const receiverId = agreement.cluster.ownerId;
 
   const payment = await prisma.payment.create({
     data: {
@@ -234,6 +244,22 @@ export async function verify(id, body, viewer) {
       aggregateId: id,
       payload: { paymentId: id, reviewerId: viewer.id, decision },
     });
+
+    if (decision === 'APPROVED' && p.agreementId) {
+      await tx.agreement.update({
+        where: { id: p.agreementId },
+        data: {
+          status: 'ACTIVE',
+          activatedAt: new Date(),
+        },
+      });
+      await recordOutbox(tx, {
+        eventType: 'agreement.activated',
+        aggregateType: 'Agreement',
+        aggregateId: p.agreementId,
+        payload: { agreementId: p.agreementId },
+      });
+    }
   });
   return toDto(await loadOrThrow(id));
 }
