@@ -46,46 +46,26 @@ import { attachQueueLoggers, closeQueues } from "./queues/index.js";
 import { makeStubRouter } from "./modules/_stub.js";
 import { attachBroadcaster } from "./realtime/broadcaster.js";
 
-import authRouter from "./modules/auth/auth.routes.js";
-import usersRouter from "./modules/users/users.routes.js";
-import clustersRouter from "./modules/clusters/clusters.routes.js";
-import proposalsRouter from "./modules/proposals/proposals.routes.js";
-import agreementsRouter from "./modules/agreements/agreements.routes.js";
-import paymentsRouter from "./modules/payments/payments.routes.js";
-import messagingRouter from "./modules/messaging/messaging.routes.js";
-import notificationsRouter from "./modules/notifications/notifications.routes.js";
-import meetingsRouter from "./modules/meetings/meetings.routes.js";
-import analyticsRouter from "./modules/analytics/analytics.routes.js";
-import adminRouter from "./modules/admin/admin.routes.js";
-import geospatialRouter from "./modules/geospatial/geospatial.routes.js";
-import contractTemplatesRouter from "./modules/contract-templates/contract-templates.routes.js";
-import featureFlagsRouter from "./modules/feature-flags/feature-flags.routes.js";
-import aiRouter from "./modules/ai/ai.routes.js";
-import filesRouter from "./modules/files/files.routes.js";
-import plotsRouter from "./modules/plots/plots.routes.js";
-import resourcesRouter from "./modules/resources/resources.routes.js";
-import providerRequestsRouter from "./modules/provider-requests/provider-requests.routes.js";
-
-// Separate logger for pinoHttp that doesn't use thread-stream transport
-// (pino-http + pino-pretty's thread-stream have a known incompatibility)
-const pinoHttpLogger = pino({
-    level: env.LOG_LEVEL,
-    redact: {
-        paths: [
-            "req.headers.authorization",
-            "req.headers.cookie",
-            "*.password",
-            "*.passwordHash",
-            "*.refreshToken",
-            "*.accessToken",
-            "*.token",
-            "*.apiKey",
-            "*.secret",
-        ],
-        censor: "[REDACTED]",
-    },
-    base: { service: "farm-lease-api" },
-});
+import authRouter            from './modules/auth/auth.routes.js';
+import usersRouter           from './modules/users/users.routes.js';
+import clustersRouter        from './modules/clusters/clusters.routes.js';
+import proposalsRouter       from './modules/proposals/proposals.routes.js';
+import negotiationsRouter    from './modules/negotiations/negotiations.routes.js';
+import agreementsRouter      from './modules/agreements/agreements.routes.js';
+import paymentsRouter        from './modules/payments/payments.routes.js';
+import messagingRouter       from './modules/messaging/messaging.routes.js';
+import notificationsRouter  from './modules/notifications/notifications.routes.js';
+import meetingsRouter        from './modules/meetings/meetings.routes.js';
+import analyticsRouter       from './modules/analytics/analytics.routes.js';
+import adminRouter           from './modules/admin/admin.routes.js';
+import geospatialRouter      from './modules/geospatial/geospatial.routes.js';
+import contractTemplatesRouter from './modules/contract-templates/contract-templates.routes.js';
+import featureFlagsRouter    from './modules/feature-flags/feature-flags.routes.js';
+import aiRouter              from './modules/ai/ai.routes.js';
+import filesRouter           from './modules/files/files.routes.js';
+import plotsRouter           from './modules/plots/plots.routes.js';
+import resourcesRouter       from './modules/resources/resources.routes.js';
+import providerRequestsRouter from './modules/provider-requests/provider-requests.routes.js';
 
 // ----------------------------------------------------------------------------
 // App factory — exported for tests so we can mount the app without binding
@@ -155,27 +135,28 @@ export function buildApp() {
     // once the module ships, otherwise return 501 with a clear `code`.
     const api = express.Router();
 
-    api.use("/auth", authRouter);
-    api.use("/users", usersRouter);
-    api.use("/clusters", clustersRouter);
-    api.use("/proposals", proposalsRouter);
-    api.use("/agreements", agreementsRouter);
-    api.use("/payments", paymentsRouter);
-    api.use("/messages", messagingRouter);
-    api.use("/notifications", notificationsRouter);
-    api.use("/meetings", meetingsRouter);
-    api.use("/analytics", analyticsRouter);
-    api.use("/admin", adminRouter);
-    api.use("/geospatial", geospatialRouter);
-    api.use("/plots", plotsRouter);
-    api.use("/resources", resourcesRouter);
-    api.use("/provider-requests", providerRequestsRouter);
-    api.use("/payment-verification", makeStubRouter("payment-verification"));
-    api.use("/contract-templates", contractTemplatesRouter);
-    api.use("/multi-cluster", makeStubRouter("multi-cluster"));
-    api.use("/ai", aiRouter);
-    api.use("/feature-flags", featureFlagsRouter);
-    api.use("/files", filesRouter);
+  api.use('/auth',                 authRouter);
+  api.use('/users',                usersRouter);
+  api.use('/clusters',             clustersRouter);
+  api.use('/proposals',            proposalsRouter);
+  api.use('/negotiations',         negotiationsRouter);
+  api.use('/agreements',           agreementsRouter);
+  api.use('/payments',             paymentsRouter);
+  api.use('/messages',             messagingRouter);
+  api.use('/notifications',        notificationsRouter);
+  api.use('/meetings',             meetingsRouter);
+  api.use('/analytics',            analyticsRouter);
+  api.use('/admin',                adminRouter);
+  api.use('/geospatial',           geospatialRouter);
+  api.use('/plots',                plotsRouter);
+  api.use('/resources',            resourcesRouter);
+  api.use('/provider-requests',    providerRequestsRouter);
+  api.use('/payment-verification', makeStubRouter('payment-verification'));
+  api.use('/contract-templates',   contractTemplatesRouter);
+  api.use('/multi-cluster',        makeStubRouter('multi-cluster'));
+  api.use('/ai',                   aiRouter);
+  api.use('/feature-flags',        featureFlagsRouter);
+  api.use('/files',                filesRouter);
 
     // Mount at both /api/v1 (canonical) and /api (legacy alias).
     app.use("/api/v1", api);
