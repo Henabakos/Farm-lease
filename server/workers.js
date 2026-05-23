@@ -22,6 +22,7 @@ import { disconnectPrisma } from './db/prisma.js';
 import { disconnectRedis } from './db/redis.js';
 import { processAiIngestion } from './workers/aiIngestion.worker.js';
 import { processEmail } from './workers/email.worker.js';
+import { processNotification } from './workers/notification.worker.js';
 
 // Stub processor used by queues whose real implementation hasn't shipped yet.
 function stubProcessor(queueName) {
@@ -45,7 +46,7 @@ function makeWorker(name, processor, opts = {}) {
 
 const workers = [
   makeWorker(QUEUE_NAMES.EMAIL,           processEmail),
-  makeWorker(QUEUE_NAMES.NOTIFICATION,    stubProcessor(QUEUE_NAMES.NOTIFICATION)),
+  makeWorker(QUEUE_NAMES.NOTIFICATION,    processNotification),
   makeWorker(QUEUE_NAMES.OUTBOX_DISPATCH, stubProcessor(QUEUE_NAMES.OUTBOX_DISPATCH)),
   // AI ingestion can be slow (LLM calls); cap concurrency to avoid hammering
   // the upstream provider and bumping into rate limits.

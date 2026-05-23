@@ -22,6 +22,7 @@
 import { prisma } from '../db/prisma.js';
 import { enqueue, QUEUE_NAMES, getQueue } from '../queues/index.js';
 import { logger } from '../utils/logger.js';
+import { emitLocal } from './bus.js';
 
 const POLL_MS    = 1_000;
 const BATCH_SIZE = 25;
@@ -80,6 +81,7 @@ async function drainOnce() {
         },
         { jobId: row.id }, // jobId == outbox id ⇒ idempotent consumer
       );
+      emitLocal(row.eventType, row.payload);
     } catch (err) {
       // Roll the row back to PENDING and bump the attempt counter.
       logger.error({ err, outboxId: row.id, eventType: row.eventType }, 'outbox dispatch failed');

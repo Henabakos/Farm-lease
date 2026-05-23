@@ -46,6 +46,7 @@ import authRouter            from './modules/auth/auth.routes.js';
 import usersRouter           from './modules/users/users.routes.js';
 import clustersRouter        from './modules/clusters/clusters.routes.js';
 import proposalsRouter       from './modules/proposals/proposals.routes.js';
+import negotiationsRouter    from './modules/negotiations/negotiations.routes.js';
 import agreementsRouter      from './modules/agreements/agreements.routes.js';
 import paymentsRouter        from './modules/payments/payments.routes.js';
 import messagingRouter       from './modules/messaging/messaging.routes.js';
@@ -130,6 +131,7 @@ export function buildApp() {
   api.use('/users',                usersRouter);
   api.use('/clusters',             clustersRouter);
   api.use('/proposals',            proposalsRouter);
+  api.use('/negotiations',         negotiationsRouter);
   api.use('/agreements',           agreementsRouter);
   api.use('/payments',             paymentsRouter);
   api.use('/messages',             messagingRouter);
