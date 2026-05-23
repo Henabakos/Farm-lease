@@ -1,0 +1,1 @@
+ALTER TABLE "Agreement" ALTER COLUMN "clusterId" DROP NOT NULL;
