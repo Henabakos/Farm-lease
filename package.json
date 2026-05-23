@@ -17,8 +17,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "db:seed": "node scripts/seed.js",
-    "docker:up": "docker compose -f docker/docker-compose.yml up -d",
-    "docker:down": "docker compose -f docker/docker-compose.yml down"
+    "docker:up": "sudo docker compose -f docker/docker-compose.yml up -d",
+    "docker:down": "sudo docker compose -f docker/docker-compose.yml down"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"
