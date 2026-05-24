@@ -43,8 +43,9 @@ const schema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
+  DEV_LOG_EMAIL_TOKENS: bool.default('true'),
 
-  AI_LLM_PROVIDER: z.enum(['openai', 'gemini', 'voyage', 'groq', 'ollama']).default('openai'),
+  AI_LLM_PROVIDER: z.enum(['openai', 'gemini', 'voyage', 'groq', 'ollama', 'lmstudio']).default('openai'),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_CHAT_MODEL: z.string().default('gpt-4o-mini'),
   OPENAI_EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),
@@ -57,6 +58,9 @@ const schema = z.object({
   OLLAMA_HOST: z.string().default('http://localhost:11434'),
   OLLAMA_CHAT_MODEL: z.string().default('llama3'),
   OLLAMA_EMBEDDING_MODEL: z.string().default('nomic-embed-text'),
+  LMSTUDIO_HOST: z.string().default('http://localhost:1234/v1'),
+  LMSTUDIO_CHAT_MODEL: z.string().default('Meta-Llama-3.1-8B-Instruct'),
+  LMSTUDIO_EMBEDDING_MODEL: z.string().default('nomic-embed-text-v1.5'),
 
   ZOOM_ACCOUNT_ID: z.string().optional(),
   ZOOM_CLIENT_ID: z.string().optional(),

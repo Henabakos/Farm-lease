@@ -21,6 +21,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Brain,
   FileText as FileTextIcon
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ import { useClusters } from '@/src/hooks/useClusters';
 import { clustersAPI, plotsAPI } from '@/src/services/api';
 import { InviteMemberDialog } from './InviteMemberDialog';
 import { PlotMapPicker } from './PlotMapPicker';
+import { ClusterAdvisory } from '../analytics/ClusterAdvisory';
 import { motion } from 'motion/react';
 
 export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: () => void }) {
@@ -155,15 +157,11 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
     }
   };
 
-  const handleSavePlot = async (plotData: { location: string; size: number; status: string; latitude: number; longitude: number }) => {
+  const handleSavePlot = async (plotData: any) => {
     try {
       const response = await plotsAPI.create({
         clusterId: cluster.id,
-        location: plotData.location,
-        size: plotData.size,
-        status: plotData.status,
-        latitude: plotData.latitude,
-        longitude: plotData.longitude,
+        ...plotData
       });
       setPlots([...plots, response.data]);
       toast.success('Plot added successfully');
@@ -255,6 +253,10 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                 <TabsTrigger value="land" className="gap-2 px-6 h-full rounded-sm data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all text-[10px] font-bold uppercase tracking-wider">
                   <Layers className="w-3.5 h-3.5" />
                   <span>Land Management</span>
+                </TabsTrigger>
+                <TabsTrigger value="advisory" className="gap-2 px-6 h-full rounded-sm data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all text-[10px] font-bold uppercase tracking-wider border border-primary/20 bg-primary/5">
+                  <Brain className="w-3.5 h-3.5 text-primary" />
+                  <span>AI Advisor</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -512,6 +514,10 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                   </div>
                 </div>
               </TabsContent>
+
+              <TabsContent value="advisory" className="outline-none">
+                <ClusterAdvisory clusterId={cluster.id} clusterName={cluster.name} />
+              </TabsContent>
             </Tabs>
           </motion.div>
         </div>
@@ -611,6 +617,11 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
       open={showPlotDialog}
       onOpenChange={setShowPlotDialog}
       onSave={handleSavePlot}
+      baseLocation={
+        cluster.centerLatitude && cluster.centerLongitude 
+          ? { lat: cluster.centerLatitude, lng: cluster.centerLongitude } 
+          : undefined
+      }
     />
     </>
   );

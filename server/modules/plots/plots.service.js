@@ -3,16 +3,48 @@
 // ============================================================================
 import { prisma } from '../../db/prisma.js';
 import { NotFoundError, ForbiddenError } from '../../shared/errors.js';
+import { generateRectangularPlot } from '../../utils/geography.js';
 
 /**
  * Create a new plot for a cluster.
  */
 export async function createPlot(userId, data) {
-  const { clusterId, location, size, status, latitude, longitude } = data;
+  const { 
+    clusterId, 
+    location, 
+    size, 
+    status, 
+    latitude, 
+    longitude,
+    relativeDimensions 
+  } = data;
 
   // Verify cluster exists
   const cluster = await prisma.cluster.findUnique({ where: { id: clusterId } });
   if (!cluster) throw new NotFoundError('Cluster not found');
+
+  let finalLat = latitude;
+  let finalLng = longitude;
+  let geojson = null;
+
+  // If relative dimensions are provided, calculate the polygon and center
+  if (relativeDimensions && cluster.centerLat && cluster.centerLng) {
+    const { direction, width, height } = relativeDimensions;
+    const plotFeature = generateRectangularPlot(
+      Number(cluster.centerLat),
+      Number(cluster.centerLng),
+      direction,
+      Number(width),
+      Number(height)
+    );
+    
+    geojson = plotFeature;
+    // Use the centroid or the base location? The user said "from the base location"
+    // Let's calculate the center of the rectangle for the lat/lng fields
+    const coords = plotFeature.geometry.coordinates[0];
+    finalLng = (coords[0][0] + coords[2][0]) / 2;
+    finalLat = (coords[0][1] + coords[2][1]) / 2;
+  }
 
   // Check user has permission (owner or cluster rep)
   const membership = await prisma.clusterMembership.findFirst({
@@ -34,8 +66,9 @@ export async function createPlot(userId, data) {
       location,
       size,
       status,
-      latitude: latitude || null,
-      longitude: longitude || null,
+      latitude: finalLat || null,
+      longitude: finalLng || null,
+      geojson: geojson || null,
     },
   });
 

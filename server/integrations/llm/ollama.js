@@ -6,7 +6,7 @@
 //
 // Ollama embedding models output different dimensions than OpenAI's 1536;
 // if you switch providers you must run a migration that re-indexes the
-// `KbChunk.embedding` column with the correct vector size.
+// `KbDocumentChunk.embedding` column with the correct vector size.
 import ollama from 'ollama';
 import { env } from '../../config/env.js';
 import { ExternalServiceError } from '../../shared/errors.js';

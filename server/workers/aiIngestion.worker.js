@@ -61,26 +61,29 @@ export async function processAiIngestion(job) {
     const chunks = chunkText(text, { chunkSize: 1200, overlap: 200 });
     if (chunks.length === 0) throw new Error('No chunks produced');
 
+    // Sanitize chunks to remove null bytes (0x00) which PostgreSQL rejects
+    const sanitizedChunks = chunks.map(chunk => chunk.replace(/\x00/g, ''));
+
     // 4. Embed in batches --------------------------------------------------
     const embeddings = [];
-    for (let i = 0; i < chunks.length; i += BATCH_EMBED_SIZE) {
-      const batch = chunks.slice(i, i + BATCH_EMBED_SIZE);
+    for (let i = 0; i < sanitizedChunks.length; i += BATCH_EMBED_SIZE) {
+      const batch = sanitizedChunks.slice(i, i + BATCH_EMBED_SIZE);
       const vecs = await embed(batch);
       embeddings.push(...vecs);
     }
-    if (embeddings.length !== chunks.length) {
-      throw new Error(`Embedding count mismatch (${embeddings.length} vs ${chunks.length})`);
+    if (embeddings.length !== sanitizedChunks.length) {
+      throw new Error(`Embedding count mismatch (${embeddings.length} vs ${sanitizedChunks.length})`);
     }
 
     // 5. Persist chunks + vectors -----------------------------------------
     // We do this in two passes inside a transaction: the typed Prisma client
     // for the row metadata, then $executeRaw for the vector column.
     await prisma.$transaction(async (tx) => {
-      await tx.kbChunk.deleteMany({ where: { documentId } }); // idempotent re-indexing
+      await tx.kbDocumentChunk.deleteMany({ where: { documentId } }); // idempotent re-indexing
       // First create rows without the vector (cheap), capture ids.
       const created = await Promise.all(
-        chunks.map((content, idx) =>
-          tx.kbChunk.create({
+        sanitizedChunks.map((content, idx) =>
+          tx.kbDocumentChunk.create({
             data: { documentId, chunkIndex: idx, content, tokenCount: Math.ceil(content.length / 4) },
             select: { id: true },
           }),
@@ -91,7 +94,7 @@ export async function processAiIngestion(job) {
       for (let i = 0; i < created.length; i++) {
         const vecLiteral = `[${embeddings[i].join(',')}]`;
         await tx.$executeRawUnsafe(
-          `UPDATE "KbChunk" SET embedding = $1::vector WHERE id = $2`,
+          `UPDATE "KbDocumentChunk" SET embedding = $1::vector WHERE id = $2::uuid`,
           vecLiteral,
           created[i].id,
         );
@@ -102,8 +105,8 @@ export async function processAiIngestion(job) {
       });
     });
 
-    logger.info({ documentId, chunks: chunks.length }, 'document indexed');
-    return { ok: true, chunks: chunks.length };
+    logger.info({ documentId, chunks: sanitizedChunks.length }, 'document indexed');
+    return { ok: true, chunks: sanitizedChunks.length };
   } catch (err) {
     logger.error({ err, documentId }, 'ingestion failed');
     await prisma.kbDocument.update({

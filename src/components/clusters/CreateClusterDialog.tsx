@@ -150,6 +150,35 @@ export function CreateClusterDialog({
               placeholder="Optional, total cluster size"
             />
           </div>
+
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 border-dashed space-y-3">
+            <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Base Coordinates (For Plot Positioning)</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Latitude</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={centerLatitude ?? ''}
+                  onChange={(e) => setCenterLatitude(e.target.value ? Number(e.target.value) : undefined)}
+                  placeholder="e.g. 6.5244"
+                  className="h-8 rounded-md text-xs border-slate-200 bg-white"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Longitude</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={centerLongitude ?? ''}
+                  onChange={(e) => setCenterLongitude(e.target.value ? Number(e.target.value) : undefined)}
+                  placeholder="e.g. 3.3792"
+                  className="h-8 rounded-md text-xs border-slate-200 bg-white"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Description</Label>
             <Textarea
