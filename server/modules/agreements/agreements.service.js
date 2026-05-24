@@ -233,6 +233,38 @@ export async function sign(id, body, viewer) {
         activatedAt: null,
       },
     });
+
+    // When fully signed, auto-create the initial disbursement payment so the
+    // investor has a record to upload a receipt against. Idempotent: only
+    // create if no DISBURSEMENT payment exists yet for this agreement.
+    if (isComplete) {
+      const existingDisbursement = await tx.payment.findFirst({
+        where: { agreementId: id, type: 'DISBURSEMENT' },
+        select: { id: true },
+      });
+      if (!existingDisbursement) {
+        const payerId = a.proposal.investorId;
+        const receiverId = a.proposal.targetType === 'FARMER'
+          ? a.proposal.targetUserId
+          : a.cluster?.ownerId;
+        if (payerId && receiverId) {
+          await tx.payment.create({
+            data: {
+              agreementId: id,
+              payerId,
+              receiverId,
+              amount: a.totalAmount,
+              currency: a.currency ?? 'USD',
+              type: 'DISBURSEMENT',
+              status: 'PENDING',
+              dueDate: a.startDate ?? null,
+              notes: 'Initial lease disbursement — upload your payment receipt to activate the agreement.',
+            },
+          });
+        }
+      }
+    }
+
     await recordOutbox(tx, {
       eventType: isComplete ? 'agreement.fully_signed' : 'agreement.signed_by',
       aggregateType: 'Agreement',

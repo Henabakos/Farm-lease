@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Agreement, Clause, AgreementStatus, AgreementWorkflowStatus } from '@/src/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,12 +23,14 @@ import {
   AlertCircle,
   TrendingUp,
   Calendar,
-  DollarSign
+  DollarSign,
+  Upload
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useAgreements } from '@/src/hooks/useAgreements';
 import { mapAgreementFromApi } from '@/src/lib/apiMappers';
+import { paymentsAPI } from '@/src/services/api';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 
@@ -66,11 +69,13 @@ export function AgreementDetail({
   onUpdateAgreement?: (agreement: Agreement) => void,
 }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { signAgreement: apiSignAgreement, updateAgreement: apiUpdateAgreement, downloadAgreement: apiDownloadAgreement } = useAgreements();
   const [clauses, setClauses] = useState<Clause[]>(agreement.clauses.length > 0 ? agreement.clauses : DEFAULT_CLAUSES);
   const [isSigning, setIsSigning] = useState(false);
   const [signedName, setSignedName] = useState('');
   const [isEditingTerms, setIsEditingTerms] = useState(false);
+  const [isPreparingReceipt, setIsPreparingReceipt] = useState(false);
   const [terms, setTerms] = useState({ ...agreement.terms });
   const rawWorkflowStatus = agreement.apiStatus ?? (agreement.status === 'SIGNED' ? 'ACTIVE' : 'DRAFT');
   const workflowStatus: AgreementWorkflowStatus = String(rawWorkflowStatus).toUpperCase() as AgreementWorkflowStatus;
@@ -109,6 +114,33 @@ export function AgreementDetail({
       if (onSign) onSign(mapped);
     } catch (err) {
       setIsSigning(false);
+    }
+  };
+
+  const handleUploadReceipt = async () => {
+    setIsPreparingReceipt(true);
+    try {
+      // 1) Look for an existing payment tied to this agreement.
+      const existing = await paymentsAPI.getAll({ agreementId: agreement.id });
+      const rows = (Array.isArray(existing.data?.data) ? existing.data.data : existing.data) as Array<Record<string, unknown>>;
+      const hasPending = rows.some((p) => String(p.status ?? '').toLowerCase() === 'pending');
+
+      if (!hasPending) {
+        // None found — create one now (server allows either party).
+        await paymentsAPI.create({
+          agreementId: agreement.id,
+          amount: agreement.amount,
+          type: 'DISBURSEMENT',
+          notes: 'Initial lease disbursement',
+        });
+      }
+      toast.success('Payment ready — submit your receipt from the Payments tab.');
+      navigate('/payments');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || 'Failed to prepare payment receipt upload';
+      toast.error(msg);
+    } finally {
+      setIsPreparingReceipt(false);
     }
   };
 
@@ -182,6 +214,25 @@ export function AgreementDetail({
             <Download className="w-3.5 h-3.5" />
             <span>Download Draft</span>
           </Button>
+          {workflowStatus === 'PENDING_SIGNATURES' && (
+            <Button
+              className="gap-2 h-9 px-4 rounded-md transition-all text-xs font-bold uppercase tracking-wider shadow-sm"
+              onClick={handleUploadReceipt}
+              disabled={isPreparingReceipt}
+            >
+              {isPreparingReceipt ? (
+                <>
+                  <Clock className="w-3.5 h-3.5 animate-spin" />
+                  <span>Preparing...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Payment Receipt</span>
+                </>
+              )}
+            </Button>
+          )}
           {workflowStatus === 'DRAFT' && (
             <Button variant="outline" className="text-destructive border-destructive/10 hover:bg-destructive/5 gap-2 h-9 px-4 rounded-md transition-all text-xs font-bold uppercase tracking-wider">
               <XCircle className="w-3.5 h-3.5" />
