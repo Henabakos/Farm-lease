@@ -64,7 +64,7 @@ export function ClusterList({ onSelectCluster }: { onSelectCluster: (cluster: Cl
     return matchesSearch && matchesRegion && matchesVerified;
   });
 
-  const canCreateCluster = uiRole === 'ADMIN' || uiRole === 'CLUSTER_REP' || uiRole === 'FARMER';
+  const canCreateCluster = uiRole === 'ADMIN' || uiRole === 'CLUSTER_REP';
 
   if (isLoading && clusters.length === 0) {
     return (
@@ -141,7 +141,7 @@ export function ClusterList({ onSelectCluster }: { onSelectCluster: (cluster: Cl
           <motion.div key={cluster.id} variants={item}>
             <Card className="group hover:shadow-md transition-all duration-300 border border-slate-200 bg-white overflow-hidden rounded-lg flex flex-col h-full">
               <div className="h-24 bg-slate-50 relative overflow-hidden border-b border-slate-100">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-transparent" />
                 <div className="absolute top-3 right-3">
                   {cluster.isVerified && (
                     <Badge variant="secondary" className="bg-white/90 backdrop-blur-md text-emerald-600 border border-emerald-100 shadow-sm font-semibold px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider">

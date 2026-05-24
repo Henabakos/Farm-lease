@@ -29,6 +29,10 @@ export function uiRoleToApi(role: UserRole): ApiRole {
 }
 
 export function apiRoleToUi(role: ApiRole | string): UserRole {
+  const normalized = String(role).toUpperCase();
+  if (normalized === 'INVESTOR' || normalized === 'FARMER' || normalized === 'CLUSTER_REP' || normalized === 'ADMIN') {
+    return normalized as UserRole;
+  }
   if (role in API_TO_UI_ROLE) return API_TO_UI_ROLE[role as ApiRole];
   return 'FARMER';
 }

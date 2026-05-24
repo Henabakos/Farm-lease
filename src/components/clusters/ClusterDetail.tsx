@@ -50,10 +50,9 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
   const [showPlotDialog, setShowPlotDialog] = useState(false);
   const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null);
 
-  const canManage = uiRole === 'ADMIN' || uiRole === 'CLUSTER_REP';
+  const canManageCluster = uiRole === 'ADMIN' || uiRole === 'CLUSTER_REP';
   const canVerify = uiRole === 'ADMIN';
-  const canPropose = uiRole === 'INVESTOR' || uiRole === 'FARMER';
-  const canInvite = uiRole === 'ADMIN' || uiRole === 'CLUSTER_REP' || uiRole === 'FARMER';
+  const canCreateProposal = uiRole === 'INVESTOR';
 
   const handleCreateProposal = () => {
     // Navigate to proposal creation with cluster pre-selected
@@ -229,7 +228,7 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
             </div>
           </div>
         </div>
-        {canPropose && (
+        {canCreateProposal && (
           <Button
             onClick={handleCreateProposal}
             className="bg-primary hover:bg-primary/90 font-bold rounded-md h-9 px-4 text-[11px] uppercase tracking-wider gap-2 shadow-sm transition-all active:scale-95"
@@ -317,10 +316,12 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                       <CardTitle className="text-base font-bold tracking-tight text-slate-900">Cluster Representatives</CardTitle>
                       <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Official contacts managing this cluster.</CardDescription>
                     </div>
-                    <Button size="sm" onClick={handleInviteRep} className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider bg-primary hover:bg-primary/90 text-white">
-                      <UserPlus className="w-3 h-3 mr-1" />
-                      Add Rep
-                    </Button>
+                    {canManageCluster && (
+                      <Button size="sm" onClick={handleInviteRep} className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider bg-primary hover:bg-primary/90 text-white">
+                        <UserPlus className="w-3 h-3 mr-1" />
+                        Add Rep
+                      </Button>
+                    )}
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -357,10 +358,12 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                       <CardTitle className="text-xl font-bold tracking-tight">Member Directory</CardTitle>
                       <CardDescription className="text-sm font-normal">Manage farmers associated with this cluster.</CardDescription>
                     </div>
-                    <Button onClick={handleInviteFarmer} className="gap-2 h-9 px-4 rounded-md bg-primary hover:bg-primary/90 shadow-sm transition-all text-xs">
-                      <UserPlus className="w-3.5 h-3.5" />
-                      <span>Add Farmer</span>
-                    </Button>
+                    {canManageCluster && (
+                      <Button onClick={handleInviteFarmer} className="gap-2 h-9 px-4 rounded-md bg-primary hover:bg-primary/90 shadow-sm transition-all text-xs">
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Add Farmer</span>
+                      </Button>
+                    )}
                   </CardHeader>
                   <CardContent className="p-6 space-y-6">
                     <div className="relative group">
@@ -398,7 +401,7 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Joined</p>
                                 <p className="text-xs font-bold">{new Date(member.joinedDate).toLocaleDateString()}</p>
                               </div>
-                              {!isRep && (
+                              {canManageCluster && !isRep && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -408,14 +411,16 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                                   Make Rep
                                 </Button>
                               )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:bg-destructive/10 h-8 w-8 rounded-md opacity-0 group-hover:opacity-100 transition-all border border-transparent hover:border-destructive/20"
-                                onClick={() => handleRemoveMember(member.id)}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
+                              {canManageCluster && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:bg-destructive/10 h-8 w-8 rounded-md opacity-0 group-hover:opacity-100 transition-all border border-transparent hover:border-destructive/20"
+                                  onClick={() => handleRemoveMember(member.id)}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         );
@@ -434,10 +439,12 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
                           <CardTitle className="text-xl font-bold tracking-tight">Land Plots</CardTitle>
                           <CardDescription className="text-sm font-normal">Inventory of available and occupied land.</CardDescription>
                         </div>
-                        <Button size="sm" onClick={() => setShowPlotDialog(true)} className="gap-2 rounded-md h-8 px-3 text-xs bg-primary hover:bg-primary/90 text-white">
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Add Plot</span>
-                        </Button>
+                        {canManageCluster && (
+                          <Button size="sm" onClick={() => setShowPlotDialog(true)} className="gap-2 rounded-md h-8 px-3 text-xs bg-primary hover:bg-primary/90 text-white">
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Plot</span>
+                          </Button>
+                        )}
                       </CardHeader>
                       <CardContent className="p-6 space-y-3">
                         {plots.map((plot) => (
@@ -512,7 +519,7 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
         <div className="space-y-6">
           <motion.div variants={item}>
             <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden h-full flex flex-col">
-              <CardContent className="p-6 flex-1 flex flex-col min-h-[500px]">
+              <CardContent className="p-6 flex-1 flex flex-col min-h-125">
                <GeospatialClusterDetail cluster={cluster} plots={plots} />
               </CardContent>
             </Card>
@@ -556,7 +563,7 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
             </Card>
           </motion.div>
 
-          {canManage && (
+          {canManageCluster && (
             <motion.div variants={item}>
               <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
                 <CardHeader className="p-6 pb-4">
