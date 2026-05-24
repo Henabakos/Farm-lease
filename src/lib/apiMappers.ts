@@ -112,6 +112,32 @@ export function mapProposalFromApi(row: Record<string, unknown>): Proposal {
             ? String(row.target_user_id ?? "")
             : String(row.cluster_id ?? "");
     const terms = (row.terms as Record<string, unknown>) || {};
+    const rawDocs = Array.isArray(row.documents)
+        ? (row.documents as Record<string, unknown>[])
+        : [];
+    const formatBytes = (bytes: number) => {
+        if (!Number.isFinite(bytes) || bytes <= 0) return "—";
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
+    const documents = rawDocs.map((d) => {
+        const fileName = String(d.file_name ?? d.fileName ?? "Document");
+        const mimeType = String(d.mime_type ?? d.mimeType ?? "");
+        const fileSize = Number(d.file_size ?? d.fileSize ?? 0);
+        const storageKey = d.storage_key ?? d.storageKey;
+        return {
+            id: d.id ? String(d.id) : undefined,
+            name: fileName,
+            size: formatBytes(fileSize),
+            type:
+                mimeType.split("/").pop()?.toUpperCase() ||
+                fileName.split(".").pop()?.toUpperCase() ||
+                "FILE",
+            storageKey: storageKey ? String(storageKey) : undefined,
+            mimeType: mimeType || undefined,
+        };
+    });
     return {
         id: String(row.id),
         title: String(row.title),
@@ -130,7 +156,7 @@ export function mapProposalFromApi(row: Record<string, unknown>): Proposal {
         // Raw backend status preserved so consumers can branch on draft/published/etc.
         apiStatus: rawStatus as Proposal["apiStatus"],
         createdAt: String(row.created_at ?? new Date().toISOString()),
-        documents: [],
+        documents,
         terms: {
             interestRate: Number(
                 terms.interestRate ?? terms.interest_rate ?? 0,
