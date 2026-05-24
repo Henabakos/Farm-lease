@@ -439,6 +439,10 @@ function AppContent() {
                     element={<ResourceRecommendations />}
                 />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route
+                    path="/admin/users/:id"
+                    element={<UserDetailPage />}
+                />
             </Routes>
             <AIChatbot />
             <ReceiptModal
