@@ -139,6 +139,11 @@ export function mapProposalFromApi(row: Record<string, unknown>): Proposal {
                 terms.repaymentPeriod ?? terms.repayment_period ?? "Monthly",
             ),
             collateral: terms.collateral ? String(terms.collateral) : undefined,
+            cropType: terms.cropType ?? terms.crop_type ? String(terms.cropType ?? terms.crop_type) : undefined,
+            landArea: terms.landArea ?? terms.land_area ? Number(terms.landArea ?? terms.land_area) : undefined,
+            landAreaUnit: terms.landAreaUnit ?? terms.land_area_unit ? String(terms.landAreaUnit ?? terms.land_area_unit) : undefined,
+            revenueShare: terms.revenueShare ?? terms.revenue_share ? Number(terms.revenueShare ?? terms.revenue_share) : undefined,
+            expectedStartDate: terms.expectedStartDate ?? terms.expected_start_date ? String(terms.expectedStartDate ?? terms.expected_start_date) : undefined,
         },
         history: [],
     };
@@ -188,7 +193,16 @@ export function mapAgreementFromApi(row: Record<string, unknown>): Agreement {
             interestRate: Number(terms.interestRate ?? terms.interest_rate ?? 0),
             repaymentPeriod: String(terms.repaymentPeriod ?? terms.repayment_period ?? row.payment_frequency ?? "monthly"),
             collateral: terms.collateral ? String(terms.collateral) : undefined,
+            cropType: terms.cropType ?? terms.crop_type ? String(terms.cropType ?? terms.crop_type) : undefined,
+            landArea: terms.landArea ?? terms.land_area ? Number(terms.landArea ?? terms.land_area) : undefined,
+            landAreaUnit: terms.landAreaUnit ?? terms.land_area_unit ? String(terms.landAreaUnit ?? terms.land_area_unit) : undefined,
+            revenueShare: terms.revenueShare ?? terms.revenue_share ? Number(terms.revenueShare ?? terms.revenue_share) : undefined,
+            expectedStartDate: terms.expectedStartDate ?? terms.expected_start_date ? String(terms.expectedStartDate ?? terms.expected_start_date) : undefined,
         },
+        startDate: row.start_date ? String(row.start_date) : undefined,
+        endDate: row.end_date ? String(row.end_date) : undefined,
+        totalAmount: row.total_amount != null ? Number(row.total_amount) : undefined,
+        currency: row.currency ? String(row.currency) : undefined,
     };
 }
 

@@ -475,6 +475,47 @@ export function ProposalDetail({
                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">ROI</p>
                       <p className="text-xs font-bold text-slate-900">{proposal.roi ? `${proposal.roi}%` : '—'}</p>
                     </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Revenue Share</p>
+                      <p className="text-xs font-bold text-slate-900">
+                        {proposal.terms.revenueShare != null ? `${proposal.terms.revenueShare}% to cluster` : '—'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Expected Start</p>
+                      <p className="text-xs font-bold text-slate-900">
+                        {proposal.terms.expectedStartDate
+                          ? new Date(proposal.terms.expectedStartDate).toLocaleDateString()
+                          : '—'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-400">Farming Plan</CardTitle>
+                  <CardDescription className="text-xs">Crop and land area committed by the investor.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Crop Type</p>
+                      <p className="text-xs font-bold text-slate-900">{proposal.terms.cropType || '—'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Land Area</p>
+                      <p className="text-xs font-bold text-slate-900">
+                        {proposal.terms.landArea
+                          ? `${proposal.terms.landArea} ${proposal.terms.landAreaUnit ?? 'hectares'}`
+                          : '—'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Location</p>
+                      <p className="text-xs font-bold text-slate-900">{proposal.location || '—'}</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

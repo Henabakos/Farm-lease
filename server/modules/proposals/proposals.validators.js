@@ -7,6 +7,16 @@ const baseTerms = z.object({
   repaymentPeriod: z.string().max(120).optional(),
   collateral: z.string().max(2000).optional(),
   roi: z.coerce.number().min(0).max(1000).optional(),
+  cropType: z.string().trim().max(120).optional(),
+  crop_type: z.string().trim().max(120).optional(),
+  landArea: z.coerce.number().positive().optional(),
+  land_area: z.coerce.number().positive().optional(),
+  landAreaUnit: z.string().trim().max(20).optional(),
+  land_area_unit: z.string().trim().max(20).optional(),
+  revenueShare: z.coerce.number().min(0).max(100).optional(),
+  revenue_share: z.coerce.number().min(0).max(100).optional(),
+  expectedStartDate: z.string().date().or(z.string().datetime()).optional(),
+  expected_start_date: z.string().date().or(z.string().datetime()).optional(),
 }).passthrough();
 
 const documentSchema = z.object({
