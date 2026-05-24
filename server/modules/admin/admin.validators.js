@@ -23,6 +23,47 @@ export const listAuditLogsSchema = z.object({
   userId: z.string().uuid().optional(),
   action: z.string().optional(),
   entityType: z.string().optional(),
+  role: z.enum(['ADMIN', 'INVESTOR', 'CLUSTER_REP', 'FARMER']).optional(),
+  search: z.string().trim().min(1).optional(),
+  createdAfter: z.coerce.date().optional(),
+  createdBefore: z.coerce.date().optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50),
+});
+
+export const exportAuditLogsSchema = z.object({
+  userId: z.string().uuid().optional(),
+  action: z.string().optional(),
+  entityType: z.string().optional(),
+  role: z.enum(['ADMIN', 'INVESTOR', 'CLUSTER_REP', 'FARMER']).optional(),
+  search: z.string().trim().min(1).optional(),
+  createdAfter: z.coerce.date().optional(),
+  createdBefore: z.coerce.date().optional(),
+});
+
+export const clearAuditLogsSchema = z.object({
+  beforeDate: z.coerce.date(),
+});
+
+export const exportReportSchema = z.object({
+  reportType: z.enum(['USERS', 'CLUSTERS', 'PAYMENTS', 'AUDIT_LOGS']),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+});
+
+export const updateUserVerificationSchema = z.object({
+  verificationStatus: z.enum(['VERIFIED', 'REJECTED', 'UNVERIFIED', 'PENDING']),
+  reason: z.string().optional(),
+});
+
+export const updateUserRoleSchema = z.object({
+  role: z.enum(['ADMIN', 'INVESTOR', 'CLUSTER_REP', 'FARMER']),
+});
+
+export const unsuspendSchema = z.object({
+  reason: z.string().optional(),
+});
+
+export const resetPasswordSchema = z.object({
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });

@@ -7,10 +7,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { clustersAPI } from '@/src/services/api';
+import { ClusterLocationPicker } from './ClusterLocationPicker';
 
 // Lightweight cluster-creation form. Posts to POST /clusters; the server fills
-// owner from the JWT, so we only collect human-meaningful fields plus an
-// optional region tag stored in metadata for filterability.
+// owner from the JWT, so we only collect human-meaningful fields plus optional
+// center coordinates for map display and geospatial features.
 export function CreateClusterDialog({
   open,
   onOpenChange,
@@ -25,6 +26,8 @@ export function CreateClusterDialog({
   const [region, setRegion] = useState('');
   const [areaHectares, setAreaHectares] = useState<string>('');
   const [description, setDescription] = useState('');
+  const [centerLatitude, setCenterLatitude] = useState<number | undefined>();
+  const [centerLongitude, setCenterLongitude] = useState<number | undefined>();
   const [saving, setSaving] = useState(false);
 
   const reset = () => {
@@ -33,11 +36,31 @@ export function CreateClusterDialog({
     setRegion('');
     setAreaHectares('');
     setDescription('');
+    setCenterLatitude(undefined);
+    setCenterLongitude(undefined);
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !location.trim()) return;
+
+    const lat = centerLatitude;
+    const lng = centerLongitude;
+    if (
+      (lat != null && lng == null) ||
+      (lat == null && lng != null)
+    ) {
+      toast.error('Please provide both latitude and longitude, or clear both');
+      return;
+    }
+    if (
+      lat != null &&
+      (lat < -90 || lat > 90 || lng! < -180 || lng! > 180)
+    ) {
+      toast.error('Coordinates are out of valid range');
+      return;
+    }
+
     setSaving(true);
     try {
       await clustersAPI.create({
@@ -46,6 +69,8 @@ export function CreateClusterDialog({
         region: region.trim() || undefined,
         area_hectares: areaHectares ? Number(areaHectares) : undefined,
         description: description.trim() || undefined,
+        center_latitude: lat,
+        center_longitude: lng,
       });
       toast.success('Cluster created');
       reset();
@@ -60,13 +85,13 @@ export function CreateClusterDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] rounded-lg border-slate-200">
+      <DialogContent className="sm:max-w-xl rounded-lg border-slate-200 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold tracking-tight text-slate-900">
             New Cluster
           </DialogTitle>
           <DialogDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Create a farming cluster you will represent
+            Create a cluster with location details and map coordinates
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4 pt-2">
@@ -103,6 +128,16 @@ export function CreateClusterDialog({
               />
             </div>
           </div>
+
+          <ClusterLocationPicker
+            latitude={centerLatitude}
+            longitude={centerLongitude}
+            onChange={({ latitude, longitude }) => {
+              setCenterLatitude(latitude);
+              setCenterLongitude(longitude);
+            }}
+          />
+
           <div className="space-y-2">
             <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Area (Hectares)</Label>
             <Input

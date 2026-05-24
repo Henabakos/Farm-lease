@@ -21,5 +21,6 @@ router.get( '/me',               requireAuth,                                   
 router.post('/verify-email',     authLimiter, validate({ body: v.verifyEmailSchema }),            c.verifyEmail);
 router.post('/forgot-password',  authLimiter, validate({ body: v.requestPasswordResetSchema }),   c.requestPasswordReset);
 router.post('/reset-password',   authLimiter, validate({ body: v.resetPasswordSchema }),          c.resetPassword);
+router.post('/change-password',  requireAuth, validate({ body: v.changePasswordSchema }),        c.changePassword);
 
 export default router;

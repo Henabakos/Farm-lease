@@ -73,9 +73,21 @@ router.patch('/:id/members/:userId/role',
   }),
 );
 
+router.patch('/:id/representative',
+  validate({ params: v.uuidParam, body: v.assignRepresentativeSchema }),
+  asyncHandler(async (req, res) =>
+    res.json(await s.assignRepresentative(req.params.id, req.body.userId, req.user)),
+  ),
+);
+
 router.post('/:id/verify',
   validate({ params: v.uuidParam }),
   asyncHandler(async (req, res) => res.json(await s.adminVerify(req.params.id, req.user))),
+);
+
+router.post('/:id/unverify',
+  validate({ params: v.uuidParam }),
+  asyncHandler(async (req, res) => res.json(await s.adminUnverify(req.params.id, req.user))),
 );
 
 export default router;

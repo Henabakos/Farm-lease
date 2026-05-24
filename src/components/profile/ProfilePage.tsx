@@ -40,7 +40,7 @@ const item = {
 };
 
 export function ProfilePage() {
-  const { user } = useRole();
+  const { user, isLoading } = useRole();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const roleIcons = {
@@ -51,6 +51,14 @@ export function ProfilePage() {
   };
 
   const RoleIcon = roleIcons[user.role];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-slate-600">Loading profile...</div>
+      </div>
+    );
+  }
 
   return (
     <motion.div 

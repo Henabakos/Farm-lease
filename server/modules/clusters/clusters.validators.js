@@ -18,7 +18,13 @@ export const createClusterSchema = z.object({
   metadata: z.record(z.any()).optional(),
 });
 
-export const updateClusterSchema = createClusterSchema.partial();
+export const updateClusterSchema = createClusterSchema.partial().extend({
+  status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).optional(),
+});
+
+export const assignRepresentativeSchema = z.object({
+  userId: z.string().uuid(),
+});
 
 export const listClustersQuery = z.object({
   q: z.string().trim().min(1).max(120).optional(),
