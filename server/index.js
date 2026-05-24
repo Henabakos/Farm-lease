@@ -22,7 +22,6 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import pinoHttp from "pino-http";
-import pino from "pino";
 
 import { env, isProd } from "./config/env.js";
 import { logger } from "./utils/logger.js";
@@ -83,7 +82,7 @@ export function buildApp() {
     app.use(requestId());
     app.use(
         pinoHttp({
-            logger: pinoHttpLogger,
+            logger,
             genReqId: (req) => req.id,
             customLogLevel: (_req, res, err) => {
                 if (err || res.statusCode >= 500) return "error";

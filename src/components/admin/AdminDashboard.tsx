@@ -70,6 +70,7 @@ import { Payment } from "../../types";
 import { CreateClusterDialog } from "../clusters/CreateClusterDialog";
 import { ContractTemplatesPanel } from "./contracts/ContractTemplatesPanel";
 import { AdminAIPanel } from "./AdminAIPanel";
+import { AnalyticsDashboard } from "@/src/components/analytics/AnalyticsDashboard";
 import {
     ClusterActionType,
     ClusterActionsDialog,
@@ -2281,6 +2282,11 @@ export const AdminDashboard: React.FC = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Analytics Section */}
+            <motion.div variants={item}>
+                <AnalyticsDashboard />
+            </motion.div>
         </motion.div>
     );
 };

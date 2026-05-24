@@ -282,10 +282,11 @@ export const analyticsAPI = {
   logEvent: (data: any) => api.post('/analytics/events', data),
   getDashboard: () => api.get('/analytics/dashboard'),
   getRevenue: (months?: number) =>
-    api.get('/analytics/revenue', { params: { months } }),
-  getPaymentStats: () => api.get('/analytics/payments'),
-  getClusterStats: (clusterId: string) =>
-    api.get(`/analytics/clusters/${clusterId}`)
+    api.get('/analytics/payments/by-month', { params: { months } }),
+  getUsersByRole: () => api.get('/analytics/users/by-role'),
+  getProposalsByStatus: () => api.get('/analytics/proposals/by-status'),
+  getTopClusters: (limit?: number) => api.get('/analytics/clusters/top', { params: { limit } }),
+  getActivity: (limit?: number) => api.get('/analytics/activity', { params: { limit } }),
 };
 
 // Admin API
