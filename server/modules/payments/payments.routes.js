@@ -15,6 +15,10 @@ router.get('/',
   asyncHandler(async (req, res) => res.json(await s.list(req.query, req.user))),
 );
 
+router.get('/stats',
+  asyncHandler(async (req, res) => res.json(await s.getStats(req.user))),
+);
+
 router.get('/:id',
   validate({ params: v.uuidParam }),
   asyncHandler(async (req, res) => res.json(await s.getById(req.params.id, req.user))),

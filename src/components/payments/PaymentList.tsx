@@ -4,28 +4,29 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Search, 
-  DollarSign, 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
-  Upload, 
-  Eye, 
-  Filter,
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Search,
+  DollarSign,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Upload,
+  Eye,
   Calendar,
   ArrowUpRight,
   ArrowDownLeft,
   FileText,
-  MoreVertical,
-  ShieldCheck
+  ShieldCheck,
+  TrendingUp,
+  AlertCircle
 } from 'lucide-react';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useRole } from '@/src/contexts/RoleContext';
@@ -76,12 +77,12 @@ const MOCK_PAYMENTS_FALLBACK: Payment[] = [
 
 import { motion } from 'motion/react';
 
-export function PaymentList({ 
-  onSelectPayment, 
+export function PaymentList({
+  onSelectPayment,
   onSubmitPayment,
   onReviewPayment,
   onViewReceipt
-}: { 
+}: {
   onSelectPayment: (payment: Payment) => void,
   onSubmitPayment: (payment: Payment) => void,
   onReviewPayment: (payment: Payment) => void,
@@ -89,7 +90,7 @@ export function PaymentList({
 }) {
   const { role, isAdmin, isClusterRep } = useRole();
   const isInvestor = role === 'INVESTOR';
-  const { payments: apiPayments, isLoading } = usePayments();
+  const { payments: apiPayments, stats, isLoading } = usePayments();
   const apiPaymentRows: Array<Record<string, unknown>> = Array.isArray(apiPayments)
     ? (apiPayments as Array<Record<string, unknown>>)
     : Array.isArray((apiPayments as { data?: unknown } | undefined)?.data)
@@ -99,10 +100,140 @@ export function PaymentList({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+
   if (isLoading) {
     return (
-      <motion.div className="flex items-center justify-center py-24">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="space-y-8"
+      >
+        {/* Header skeleton */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48 rounded-md" />
+            <Skeleton className="h-3 w-72 rounded-md" />
+          </div>
+          <Skeleton className="h-9 w-40 rounded-md" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Left — search bar + payment cards */}
+          <div className="lg:col-span-9 space-y-6">
+            {/* Search / filter bar */}
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+              <CardContent className="p-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Skeleton className="md:col-span-2 h-9 rounded-md" />
+                  <Skeleton className="h-9 rounded-md" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Payment card skeletons */}
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="border border-slate-200 bg-white overflow-hidden rounded-lg">
+                  <CardContent className="p-0">
+                    <div className="flex flex-col md:flex-row">
+                      <div className="flex-1 p-5 space-y-5">
+                        {/* Title row */}
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-2 flex-1">
+                            <div className="flex items-center gap-3">
+                              <Skeleton className="w-9 h-9 rounded-md shrink-0" />
+                              <Skeleton className="h-5 w-56 rounded-md" />
+                              <Skeleton className="h-5 w-20 rounded-md" />
+                            </div>
+                            <div className="flex items-center gap-3 pl-12">
+                              <Skeleton className="h-4 w-28 rounded-md" />
+                              <Skeleton className="h-4 w-24 rounded-md" />
+                            </div>
+                          </div>
+                          <div className="text-right space-y-1">
+                            <Skeleton className="h-8 w-20 rounded-md" />
+                            <Skeleton className="h-3 w-12 rounded-md ml-auto" />
+                          </div>
+                        </div>
+
+                        {/* Footer row */}
+                        <div className="flex items-center gap-8 pt-4 border-t border-slate-100">
+                          <div className="space-y-1">
+                            <Skeleton className="h-3 w-10 rounded-md" />
+                            <Skeleton className="h-4 w-24 rounded-md" />
+                          </div>
+                          <div className="space-y-1">
+                            <Skeleton className="h-3 w-12 rounded-md" />
+                            <Skeleton className="h-4 w-24 rounded-md" />
+                          </div>
+                          <div className="space-y-1">
+                            <Skeleton className="h-3 w-20 rounded-md" />
+                            <Skeleton className="h-4 w-32 rounded-md" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action panel */}
+                      <div className="bg-slate-50 md:w-56 flex flex-col justify-center p-5 border-t md:border-t-0 md:border-l border-slate-100 gap-3">
+                        <Skeleton className="h-9 w-full rounded-md" />
+                        <Skeleton className="h-7 w-full rounded-md" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Right — stats sidebar skeleton */}
+          <div className="lg:col-span-3 space-y-6">
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+              <CardHeader className="p-5 pb-3 border-b border-slate-100">
+                <Skeleton className="h-4 w-28 rounded-md" />
+              </CardHeader>
+              <CardContent className="p-5 pt-4 space-y-5">
+                {/* Stat rows */}
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="space-y-1.5">
+                    <Skeleton className="h-3 w-24 rounded-md" />
+                    <Skeleton className="h-8 w-32 rounded-md" />
+                    <Skeleton className="h-3 w-20 rounded-md" />
+                  </div>
+                ))}
+                {/* Volume divider */}
+                <div className="pt-3 border-t border-slate-100 space-y-1.5">
+                  <Skeleton className="h-3 w-24 rounded-md" />
+                  <Skeleton className="h-5 w-28 rounded-md" />
+                  <Skeleton className="h-3 w-36 rounded-md" />
+                </div>
+                {/* Breakdown grid */}
+                <div className="pt-3 border-t border-slate-100 space-y-2">
+                  <Skeleton className="h-3 w-20 rounded-md" />
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {Array.from({ length: 4 }).map((_, j) => (
+                      <Skeleton key={j} className="h-12 rounded-md" />
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Security card skeleton */}
+            <Card className="border border-primary/10 shadow-sm bg-primary/5 rounded-lg overflow-hidden">
+              <CardContent className="p-5 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="w-9 h-9 rounded-md shrink-0" />
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-4 w-20 rounded-md" />
+                    <Skeleton className="h-3 w-28 rounded-md" />
+                  </div>
+                </div>
+                <Skeleton className="h-10 w-full rounded-md" />
+                <Skeleton className="h-8 w-full rounded-md" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </motion.div>
     );
   }
@@ -121,8 +252,8 @@ export function PaymentList({
   };
 
   const filteredPayments = payments.filter((payment) => {
-    const matchesSearch = payment.agreementTitle.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          payment.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = payment.agreementTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -145,7 +276,7 @@ export function PaymentList({
   };
 
   return (
-    <motion.div 
+    <motion.div
       variants={container}
       initial="hidden"
       animate="show"
@@ -172,8 +303,8 @@ export function PaymentList({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="md:col-span-2 relative group">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-primary transition-colors" />
-                    <Input 
-                      placeholder="Search by agreement or payment ID..." 
+                    <Input
+                      placeholder="Search by agreement or payment ID..."
                       className="pl-9 bg-white border-slate-200 focus-visible:ring-primary/20 h-9 rounded-md text-xs transition-all"
                       value={searchQuery}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
@@ -275,16 +406,16 @@ export function PaymentList({
                       </div>
                       <div className="bg-slate-50 md:w-56 flex flex-col justify-center p-5 border-t md:border-t-0 md:border-l border-slate-100 gap-2">
                         {isAdminOrRep && payment.status === 'SUBMITTED' ? (
-                          <Button 
-                            className="w-full h-9 rounded-md gap-2 bg-amber-600 hover:bg-amber-700 text-xs font-bold uppercase tracking-wider" 
+                          <Button
+                            className="w-full h-9 rounded-md gap-2 bg-amber-600 hover:bg-amber-700 text-xs font-bold uppercase tracking-wider"
                             onClick={() => onReviewPayment(payment)}
                           >
                             <ShieldCheck className="w-3.5 h-3.5" />
                             <span>Review Receipt</span>
                           </Button>
                         ) : isInvestor && payment.status === 'PENDING' ? (
-                          <Button 
-                            className="w-full h-9 rounded-md gap-2 text-xs font-bold uppercase tracking-wider" 
+                          <Button
+                            className="w-full h-9 rounded-md gap-2 text-xs font-bold uppercase tracking-wider"
                             onClick={() => onSubmitPayment(payment)}
                           >
                             <Upload className="w-3.5 h-3.5" />
@@ -297,8 +428,8 @@ export function PaymentList({
                           </Button>
                         )}
                         {payment.receiptUrl && (
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             className="w-full gap-2 text-[9px] font-bold uppercase tracking-wider h-7 hover:bg-primary/5 hover:text-primary"
                             onClick={() => onViewReceipt?.(payment)}
                           >
@@ -318,36 +449,109 @@ export function PaymentList({
         <div className="lg:col-span-3 space-y-6">
           <motion.div variants={item}>
             <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
-              <CardHeader className="p-5 pb-2">
-                <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-400">Payment Stats</CardTitle>
+              <CardHeader className="p-5 pb-3 border-b border-slate-100">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-400">Payment Stats</CardTitle>
+                  {stats?.is_admin && (
+                    <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider bg-primary/5 text-primary border-primary/10 px-2 py-0.5">
+                      Platform-wide
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
-              <CardContent className="p-5 pt-0 space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Disbursed</p>
-                    <p className="text-2xl font-bold text-slate-900 tracking-tight">$17,500</p>
-                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold uppercase tracking-wider">
-                      <ArrowUpRight className="w-3 h-3" />
-                      <span>+12% vs last month</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Repaid</p>
-                    <p className="text-2xl font-bold text-slate-900 tracking-tight">$2,500</p>
-                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold uppercase tracking-wider">
-                      <CheckCircle2 className="w-3 h-3" />
-                      <span>On track for Q1</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pending Review</p>
-                    <p className="text-2xl font-bold text-slate-900 tracking-tight">2</p>
-                    <div className="flex items-center gap-1.5 text-[10px] text-amber-600 font-bold uppercase tracking-wider">
-                      <Clock className="w-3 h-3" />
-                      <span>Action required</span>
-                    </div>
+              <CardContent className="p-5 pt-4 space-y-5">
+                {/* Total Disbursed */}
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Disbursed</p>
+                  {isLoading || !stats ? (
+                    <Skeleton className="h-8 w-28 rounded-md" />
+                  ) : (
+                    <p className="text-2xl font-bold text-slate-900 tracking-tight">
+                      ${stats.total_disbursed.toLocaleString()}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold uppercase tracking-wider">
+                    <ArrowUpRight className="w-3 h-3" />
+                    <span>{stats ? `${stats.verified_count} verified` : '—'}</span>
                   </div>
                 </div>
+
+                {/* Total Repaid */}
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Repaid</p>
+                  {isLoading || !stats ? (
+                    <Skeleton className="h-8 w-24 rounded-md" />
+                  ) : (
+                    <p className="text-2xl font-bold text-slate-900 tracking-tight">
+                      ${stats.total_repaid.toLocaleString()}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold uppercase tracking-wider">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Verified repayments</span>
+                  </div>
+                </div>
+
+                {/* Pending Review */}
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pending Review</p>
+                  {isLoading || !stats ? (
+                    <Skeleton className="h-8 w-12 rounded-md" />
+                  ) : (
+                    <p className={cn(
+                      "text-2xl font-bold tracking-tight",
+                      stats.submitted_count > 0 ? "text-amber-600" : "text-slate-900"
+                    )}>
+                      {stats.submitted_count}
+                    </p>
+                  )}
+                  {stats && stats.submitted_count > 0 ? (
+                    <div className="flex items-center gap-1.5 text-[10px] text-amber-600 font-bold uppercase tracking-wider">
+                      <Clock className="w-3 h-3" />
+                      <span>Awaiting verification</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold uppercase tracking-wider">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>All clear</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Total Volume */}
+                <div className="pt-3 border-t border-slate-100 space-y-1">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Volume</p>
+                  {isLoading || !stats ? (
+                    <Skeleton className="h-6 w-20 rounded-md" />
+                  ) : (
+                    <p className="text-base font-bold text-primary tracking-tight">
+                      ${stats.total_volume.toLocaleString()}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-slate-400 font-medium">
+                    {stats ? `${stats.total_payments} total transaction${stats.total_payments !== 1 ? 's' : ''}` : '—'}
+                  </p>
+                </div>
+
+                {/* Status Breakdown */}
+                {stats && (
+                  <div className="pt-3 border-t border-slate-100 space-y-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Breakdown</p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {[
+                        { label: 'Pending', count: stats.pending_count, color: 'bg-slate-100 text-slate-600' },
+                        { label: 'Submitted', count: stats.submitted_count, color: 'bg-blue-50 text-blue-600' },
+                        { label: 'Verified', count: stats.verified_count, color: 'bg-emerald-50 text-emerald-600' },
+                        { label: 'Rejected', count: stats.rejected_count, color: 'bg-red-50 text-red-500' },
+                      ].map(({ label, count, color }) => (
+                        <div key={label} className={cn('rounded-md px-2 py-1.5 text-center', color)}>
+                          <p className="text-base font-bold leading-none">{count}</p>
+                          <p className="text-[9px] font-bold uppercase tracking-wider mt-0.5 opacity-75">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -367,6 +571,12 @@ export function PaymentList({
                 <p className="text-[10px] text-slate-600 leading-relaxed font-medium mb-4">
                   All transactions are verified through multi-party receipt validation to ensure transparency and trust.
                 </p>
+                {stats && stats.rejected_count > 0 && (
+                  <div className="flex items-center gap-2 mb-3 p-2 rounded-md bg-red-50 border border-red-100">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                    <p className="text-[10px] font-bold text-red-600">{stats.rejected_count} payment{stats.rejected_count !== 1 ? 's' : ''} rejected</p>
+                  </div>
+                )}
                 <Button variant="outline" className="w-full h-8 rounded-md bg-white border-slate-200 text-slate-700 font-bold text-[9px] uppercase tracking-wider shadow-sm hover:bg-slate-50 transition-all">
                   Security Protocol
                 </Button>

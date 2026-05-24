@@ -291,3 +291,56 @@ export async function refund(id, body, viewer) {
   });
   return toDto(await loadOrThrow(id));
 }
+
+export async function getStats(viewer) {
+  // Admin sees all payments; regular users see only their own.
+  const where = isAdmin(viewer)
+    ? {}
+    : { OR: [{ payerId: viewer.id }, { receiverId: viewer.id }, { agreement: { cluster: { ownerId: viewer.id } } }] };
+
+  const [rows, byStatus] = await Promise.all([
+    prisma.payment.findMany({
+      where,
+      select: { status: true, type: true, amount: true, currency: true },
+    }),
+    prisma.payment.groupBy({
+      by: ['status'],
+      where,
+      _count: { id: true },
+      _sum: { amount: true },
+    }),
+  ]);
+
+  // Build a quick lookup: status → { count, sum }
+  const statusMap = Object.fromEntries(
+    byStatus.map((s) => [s.status, { count: s._count.id, sum: Number(s._sum.amount ?? 0) }])
+  );
+
+  const totalDisbursed = rows
+    .filter((r) => r.type === 'DISBURSEMENT' && r.status === 'VERIFIED')
+    .reduce((acc, r) => acc + Number(r.amount), 0);
+
+  const totalRepaid = rows
+    .filter((r) => r.type === 'REPAYMENT' && r.status === 'VERIFIED')
+    .reduce((acc, r) => acc + Number(r.amount), 0);
+
+  const totalVolume = rows
+    .filter((r) => r.status === 'VERIFIED')
+    .reduce((acc, r) => acc + Number(r.amount), 0);
+
+  return {
+    total_payments:     rows.length,
+    total_volume:       totalVolume,
+    total_disbursed:    totalDisbursed,
+    total_repaid:       totalRepaid,
+    pending_count:      statusMap['PENDING']?.count  ?? 0,
+    submitted_count:    statusMap['SUBMITTED']?.count ?? 0,
+    verified_count:     statusMap['VERIFIED']?.count  ?? 0,
+    rejected_count:     statusMap['REJECTED']?.count  ?? 0,
+    refunded_count:     statusMap['REFUNDED']?.count  ?? 0,
+    pending_amount:     statusMap['PENDING']?.sum  ?? 0,
+    submitted_amount:   statusMap['SUBMITTED']?.sum ?? 0,
+    verified_amount:    statusMap['VERIFIED']?.sum  ?? 0,
+    is_admin:           isAdmin(viewer),
+  };
+}
