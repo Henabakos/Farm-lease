@@ -2,6 +2,15 @@ import { useState, useCallback, useEffect } from 'react';
 import { paymentsAPI } from '../services/api';
 import { toast } from 'sonner';
 
+export interface ReceiptSubmissionPayload {
+  storage_key: string;
+  file_name: string;
+  mime_type: string;
+  file_size: number;
+  perceptual_hash?: string;
+  extracted_fields?: Record<string, unknown>;
+}
+
 export interface Payment {
   id: string;
   agreement_id: string;
@@ -29,7 +38,8 @@ export const usePayments = () => {
       setIsLoading(true);
       setError(null);
       const response = await paymentsAPI.getAll(filters);
-      setPayments(response.data);
+      const payload = response.data as { data?: Payment[] } | Payment[];
+      setPayments(Array.isArray(payload) ? payload : payload.data ?? []);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Failed to fetch payments';
       setError(errorMessage);
@@ -71,10 +81,10 @@ export const usePayments = () => {
     }
   }, []);
 
-  const processPayment = useCallback(async (id: string, transactionId: string) => {
+  const processPayment = useCallback(async (id: string, receipt: string | ReceiptSubmissionPayload) => {
     try {
       setIsLoading(true);
-      const response = await paymentsAPI.process(id, transactionId);
+      const response = await paymentsAPI.process(id, receipt);
       setPayments(prev => prev.map(p => p.id === id ? response.data : p));
       toast.success('Payment processed successfully');
       return response.data;
@@ -87,6 +97,7 @@ export const usePayments = () => {
       setIsLoading(false);
     }
   }, []);
+
 
   const refundPayment = useCallback(async (id: string, reason?: string) => {
     try {

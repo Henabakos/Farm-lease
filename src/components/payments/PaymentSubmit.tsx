@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Payment } from '@/src/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { 
@@ -15,13 +14,12 @@ import {
   Calendar, 
   ShieldCheck, 
   CheckCircle2,
-  Info,
   Clock,
   AlertCircle
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useStore } from '@/src/store/useStore';
 import { usePayments } from '@/src/hooks/usePayments';
+import { uploadFile, type UploadedFile } from '@/src/services/files';
 import { toast } from 'sonner';
 
 export function PaymentSubmit({ 
@@ -35,18 +33,70 @@ export function PaymentSubmit({
 }) {
   const { updatePayment } = useStore();
   const { processPayment } = usePayments();
-  const [receipt, setReceipt] = useState<{ name: string; size: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [receipt, setReceipt] = useState<UploadedFile | null>(null);
   const [notes, setNotes] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleUpload = () => {
-    // Mock upload
-    setReceipt({ name: 'payment_receipt_march.pdf', size: '1.2MB' });
-    toast.success('Receipt uploaded successfully');
+  const formatBytes = (bytes: number) => {
+    if (!Number.isFinite(bytes)) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const validateReceiptFile = (file: File) => {
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+    const maxSize = 5 * 1024 * 1024;
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Upload a PDF, JPG, or PNG receipt.');
+      return false;
+    }
+
+    if (file.size > maxSize) {
+      toast.error('Receipt must be 5MB or smaller.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const uploadReceipt = async (file: File) => {
+    if (!validateReceiptFile(file)) return;
+
+    setIsUploading(true);
+    try {
+      const uploaded = await uploadFile(file, 'receipts');
+      setReceipt(uploaded);
+      toast.success('Receipt uploaded successfully');
+    } catch {
+      toast.error('Failed to upload receipt. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await uploadReceipt(file);
+    event.target.value = '';
+  };
+
+  const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+    await uploadReceipt(file);
   };
 
   const handleRemove = () => {
     setReceipt(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,18 +106,18 @@ export function PaymentSubmit({
     setIsSubmitting(true);
     try {
       const payload = {
-        storage_key: receipt.name,
-        file_name: receipt.name,
-        mime_type: 'application/pdf',
-        file_size: 1200000
+        storage_key: receipt.storage_key,
+        file_name: receipt.file_name,
+        mime_type: receipt.mime_type,
+        file_size: receipt.file_size,
       };
-      await processPayment(payment.id, payload as any);
+      await processPayment(payment.id, payload);
       updatePayment(payment.id, { 
         status: 'SUBMITTED', 
-        receiptUrl: receipt.name,
+        receiptUrl: receipt.file_name,
         submittedAt: new Date().toISOString()
       });
-      onSubmit(payment.id, receipt.name, notes);
+      onSubmit(payment.id, receipt.file_name, notes);
       setIsSubmitting(false);
     } catch (err) {
       setIsSubmitting(false);
@@ -130,13 +180,30 @@ export function PaymentSubmit({
                 {!receipt ? (
                   <div 
                     className="border border-dashed border-slate-200 rounded-lg p-10 text-center space-y-3 hover:border-primary/50 hover:bg-slate-50 transition-all cursor-pointer group"
-                    onClick={handleUpload}
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={handleDrop}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        fileInputRef.current?.click();
+                      }
+                    }}
                   >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="application/pdf,image/jpeg,image/png"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
                     <div className="w-12 h-12 bg-primary/10 rounded-md flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                      <Upload className="w-6 h-6 text-primary" />
+                      {isUploading ? <Clock className="w-6 h-6 text-primary animate-spin" /> : <Upload className="w-6 h-6 text-primary" />}
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs font-bold text-slate-700 tracking-tight">Click to upload or drag and drop</p>
+                      <p className="text-xs font-bold text-slate-700 tracking-tight">{isUploading ? 'Uploading receipt...' : 'Click to upload or drag and drop'}</p>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Maximum file size: 5MB</p>
                     </div>
                   </div>
@@ -147,8 +214,8 @@ export function PaymentSubmit({
                         <File className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-slate-900">{receipt.name}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{receipt.size}</p>
+                        <p className="text-xs font-bold text-slate-900">{receipt.file_name}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{formatBytes(receipt.file_size)}</p>
                       </div>
                     </div>
                     <Button variant="ghost" size="icon" className="text-rose-500 h-9 w-9 rounded-md hover:bg-rose-50 transition-all active:scale-95" onClick={handleRemove}>
@@ -163,7 +230,7 @@ export function PaymentSubmit({
                 <Textarea 
                   id="notes" 
                   placeholder="Any extra details about this payment..." 
-                  className="min-h-[100px] bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium p-3 resize-none"
+                  className="min-h-25 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium p-3 resize-none"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
@@ -204,7 +271,7 @@ export function PaymentSubmit({
               <div className="space-y-3">
                 <Button 
                   className="w-full h-10 gap-2 text-[11px] font-bold uppercase tracking-wider rounded-md bg-primary hover:bg-primary/90 shadow-sm transition-all active:scale-95" 
-                  disabled={!receipt || isSubmitting}
+                  disabled={!receipt || isSubmitting || isUploading}
                   onClick={handleSubmit}
                 >
                   {isSubmitting ? (

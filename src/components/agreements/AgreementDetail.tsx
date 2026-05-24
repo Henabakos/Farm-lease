@@ -25,7 +25,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useStore } from '@/src/store/useStore';
+import { useAuth } from '@/src/contexts/AuthContext';
 import { useAgreements } from '@/src/hooks/useAgreements';
 import { mapAgreementFromApi } from '@/src/lib/apiMappers';
 import { toast } from 'sonner';
@@ -65,14 +65,15 @@ export function AgreementDetail({
   onSign?: (agreement: Agreement) => void,
   onUpdateAgreement?: (agreement: Agreement) => void,
 }) {
-  const { user } = useStore();
+  const { user } = useAuth();
   const { signAgreement: apiSignAgreement, updateAgreement: apiUpdateAgreement, downloadAgreement: apiDownloadAgreement } = useAgreements();
   const [clauses, setClauses] = useState<Clause[]>(agreement.clauses.length > 0 ? agreement.clauses : DEFAULT_CLAUSES);
   const [isSigning, setIsSigning] = useState(false);
   const [signedName, setSignedName] = useState('');
   const [isEditingTerms, setIsEditingTerms] = useState(false);
   const [terms, setTerms] = useState({ ...agreement.terms });
-  const workflowStatus: AgreementWorkflowStatus = agreement.apiStatus ?? (agreement.status === 'SIGNED' ? 'ACTIVE' : 'DRAFT');
+  const rawWorkflowStatus = agreement.apiStatus ?? (agreement.status === 'SIGNED' ? 'ACTIVE' : 'DRAFT');
+  const workflowStatus: AgreementWorkflowStatus = String(rawWorkflowStatus).toUpperCase() as AgreementWorkflowStatus;
   const capturedSignatures = agreement.signatures ?? [];
 
   const handleClauseChange = (id: string, content: string) => {
@@ -138,15 +139,16 @@ export function AgreementDetail({
     }
   };
 
+  const currentUserRole = user?.role;
+  const currentUserId = user?.id;
   const canEdit = (workflowStatus === 'DRAFT' || workflowStatus === 'PENDING_SIGNATURES') && (
-    user.role === 'INVESTOR' ||
-    user.role === 'CLUSTER_REP' ||
-    user.role === 'ADMIN'
+    currentUserRole === 'INVESTOR' ||
+    currentUserRole === 'CLUSTER_REP' ||
+    currentUserRole === 'ADMIN'
   );
-  const canSign = (workflowStatus === 'DRAFT' || workflowStatus === 'PENDING_SIGNATURES') && (
-    (capturedSignatures.length === 0 && user.role === 'CLUSTER_REP') ||
-    (capturedSignatures.length === 1 && user.role === 'INVESTOR')
-  );
+  const hasSigned = Boolean(currentUserId) && capturedSignatures.some((signature) => signature.signerId === currentUserId);
+  const canShowSignatureCard = workflowStatus === 'DRAFT' || workflowStatus === 'PENDING_SIGNATURES';
+  const canSign = canShowSignatureCard && Boolean(user) && !hasSigned;
 
   return (
     <motion.div 
@@ -354,7 +356,7 @@ export function AgreementDetail({
             </Card>
           </motion.div>
 
-          {canSign && (
+          {canShowSignatureCard && (
             <motion.div variants={item}>
               <Card className="border border-primary/20 shadow-md shadow-primary/5 bg-primary/5 rounded-lg overflow-hidden">
                 <CardHeader className="bg-primary/10 py-4 px-5">
@@ -373,10 +375,11 @@ export function AgreementDetail({
                     <Label htmlFor="sign-name" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-0.5">Type your full name to sign</Label>
                     <Input 
                       id="sign-name" 
-                      placeholder={user.name} 
+                      placeholder={user?.full_name || user?.email || 'Your full name'} 
                       className="bg-white border-slate-200 focus:border-primary focus:ring-primary/10 rounded-md h-10 text-sm font-medium px-4 transition-all"
                       value={signedName}
                       onChange={(e) => setSignedName(e.target.value)}
+                      disabled={hasSigned}
                     />
                   </div>
 
@@ -392,13 +395,18 @@ export function AgreementDetail({
 
                   <Button 
                     className="w-full h-10 gap-2 text-xs font-bold uppercase tracking-wider rounded-md shadow-md shadow-primary/20 transition-all" 
-                    disabled={!signedName.trim() || isSigning}
+                    disabled={!signedName.trim() || isSigning || hasSigned}
                     onClick={handleSign}
                   >
                     {isSigning ? (
                       <>
                         <Clock className="w-4 h-4 animate-spin" />
                         Processing...
+                      </>
+                    ) : hasSigned ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        Already Signed
                       </>
                     ) : (
                       <>

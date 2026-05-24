@@ -87,15 +87,15 @@ export function PaymentList({
   onReviewPayment: (payment: Payment) => void,
   onViewReceipt?: (payment: Payment) => void
 }) {
-  const { isAdmin, isClusterRep } = useRole();
+  const { role, isAdmin, isClusterRep } = useRole();
+  const isInvestor = role === 'INVESTOR';
   const { payments: apiPayments, isLoading } = usePayments();
-  const payments = apiPayments.length > 0
-    ? apiPayments.map((p) => mapPaymentFromApi(p as unknown as Record<string, unknown>))
-    : MOCK_PAYMENTS_FALLBACK;
+  const apiPaymentRows = apiPayments as Array<Record<string, unknown>>;
+  const payments: Payment[] = apiPaymentRows.map((payment) => mapPaymentFromApi(payment));
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  if (isLoading && apiPayments.length === 0) {
+  if (isLoading) {
     return (
       <motion.div className="flex items-center justify-center py-24">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -116,12 +116,26 @@ export function PaymentList({
     }
   };
 
-  const filteredPayments = payments.filter(p => {
-    const matchesSearch = p.agreementTitle.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+  const filteredPayments = payments.filter((payment) => {
+    const matchesSearch = payment.agreementTitle.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          payment.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  if (payments.length === 0) {
+    return (
+      <motion.div className="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md bg-slate-50 text-slate-400">
+          <FileText className="h-5 w-5" />
+        </div>
+        <h2 className="text-base font-bold tracking-tight text-slate-900">No payments yet</h2>
+        <p className="mt-2 text-sm text-slate-500">
+          Payments from the API will appear here once they are created for your account.
+        </p>
+      </motion.div>
+    );
+  }
 
   const isAdminOrRep = isAdmin || isClusterRep;
 
@@ -172,7 +186,7 @@ export function PaymentList({
                       placeholder="Search by agreement or payment ID..." 
                       className="pl-9 bg-white border-slate-200 focus-visible:ring-primary/20 h-9 rounded-md text-xs transition-all"
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                     />
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -257,7 +271,7 @@ export function PaymentList({
                             <ShieldCheck className="w-3.5 h-3.5" />
                             <span>Review Receipt</span>
                           </Button>
-                        ) : uiRole === 'INVESTOR' && payment.status === 'PENDING' ? (
+                        ) : isInvestor && payment.status === 'PENDING' ? (
                           <Button 
                             className="w-full h-9 rounded-md gap-2 text-xs font-bold uppercase tracking-wider" 
                             onClick={() => onSubmitPayment(payment)}
