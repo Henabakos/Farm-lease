@@ -90,7 +90,12 @@ export function PaymentList({
   const { role, isAdmin, isClusterRep } = useRole();
   const isInvestor = role === 'INVESTOR';
   const { payments: apiPayments, isLoading } = usePayments();
-  const apiPaymentRows = apiPayments as Array<Record<string, unknown>>;
+  console.log(apiPayments)
+  const apiPaymentRows: Array<Record<string, unknown>> = Array.isArray(apiPayments)
+    ? (apiPayments as Array<Record<string, unknown>>)
+    : Array.isArray((apiPayments as { data?: unknown } | undefined)?.data)
+      ? ((apiPayments as unknown as { data: Array<Record<string, unknown>> }).data)
+      : [];
   const payments: Payment[] = apiPaymentRows.map((payment) => mapPaymentFromApi(payment));
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
