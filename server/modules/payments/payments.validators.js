@@ -43,3 +43,11 @@ export const listPaymentsQuery = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(20),
 });
+
+export const updatePaymentSchema = z.object({
+  status: z.enum(['PENDING', 'SUBMITTED', 'VERIFIED', 'REJECTED', 'REFUNDED']),
+});
+
+export const deletePaymentSchema = z.object({
+  reason: z.string().trim().max(2000).optional(),
+});

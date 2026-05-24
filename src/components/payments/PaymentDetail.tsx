@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Payment, PaymentStatus } from '@/src/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,9 +17,20 @@ import {
   Info,
   ArrowUpRight,
   ArrowDownLeft,
-  ShieldCheck
+  ShieldCheck,
+  Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useRole } from '@/src/contexts/RoleContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 export function PaymentDetail({ 
   payment, 
@@ -30,6 +41,30 @@ export function PaymentDetail({
   onBack: () => void,
   onViewReceipt?: (payment: Payment) => void
 }) {
+  const { isAdmin } = useRole();
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [refundReason, setRefundReason] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleRefund = async () => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`/api/payments/${payment.id}/refund`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: refundReason }),
+      });
+      if (!response.ok) throw new Error('Failed to refund payment');
+      setRefundDialogOpen(false);
+      setRefundReason('');
+      onBack();
+    } catch (error) {
+      console.error('Error refunding payment:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const getStatusBadge = (status: PaymentStatus) => {
     switch (status) {
       case 'PENDING':
@@ -59,6 +94,16 @@ export function PaymentDetail({
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {isAdmin && payment.status === 'VERIFIED' && (
+            <Button 
+              variant="destructive" 
+              className="gap-2 h-9 px-4 rounded-md text-xs font-bold uppercase tracking-wider"
+              onClick={() => setRefundDialogOpen(true)}
+            >
+              <Wallet className="w-3.5 h-3.5" />
+              <span>Refund Payment</span>
+            </Button>
+          )}
           <Button variant="outline" className="gap-2 h-9 px-4 rounded-md border-slate-200 bg-white text-xs font-bold uppercase tracking-wider">
             <Download className="w-3.5 h-3.5" />
             <span>Download PDF</span>
@@ -265,7 +310,32 @@ export function PaymentDetail({
           </Card>
         </div>
       </div>
+
+      {/* Refund Dialog */}
+      <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Refund Payment</DialogTitle>
+            <DialogDescription>
+              This will refund payment {payment.id.toUpperCase()} and change its status to REFUNDED. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="Reason for refund (optional)..."
+            value={refundReason}
+            onChange={(e) => setRefundReason(e.target.value)}
+            className="min-h-24"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefundDialogOpen(false)} disabled={isProcessing}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRefund} disabled={isProcessing}>
+              {isProcessing ? 'Processing...' : 'Refund Payment'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-;
 }

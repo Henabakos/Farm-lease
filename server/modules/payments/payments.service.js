@@ -126,6 +126,7 @@ export async function list(query, viewer) {
       visibilityFilter,
       status ? { status } : {},
       agreementId ? { agreementId } : {},
+      { deletedAt: null }, // Filter out soft-deleted payments by default
     ],
   };
   const [rows, total] = await Promise.all([
@@ -315,5 +316,65 @@ export async function refund(id, body, viewer) {
       payload: { paymentId: id, reason: body?.reason ?? null },
     });
   });
+  return toDto(await loadOrThrow(id));
+}
+
+export async function update(id, body, viewer) {
+  if (!isAdmin(viewer)) throw new ForbiddenError('Only admin can update payments');
+  const p = await loadOrThrow(id);
+  
+  // Only allow status updates
+  const { status } = body;
+  if (!status) {
+    throw new ConflictError('Only status field can be updated');
+  }
+  
+  const validStatuses = ['PENDING', 'SUBMITTED', 'VERIFIED', 'REJECTED', 'REFUNDED'];
+  if (!validStatuses.includes(status)) {
+    throw new ConflictError(`Invalid status: ${status}`);
+  }
+  
+  await prisma.$transaction(async (tx) => {
+    await tx.payment.update({ 
+      where: { id }, 
+      data: { status } 
+    });
+    await recordOutbox(tx, {
+      eventType: 'payment.status_updated',
+      aggregateType: 'Payment',
+      aggregateId: id,
+      payload: { paymentId: id, oldStatus: p.status, newStatus: status, updatedBy: viewer.id },
+    });
+  });
+  
+  return toDto(await loadOrThrow(id));
+}
+
+export async function softDelete(id, body, viewer) {
+  if (!isAdmin(viewer)) throw new ForbiddenError('Only admin can delete payments');
+  const p = await loadOrThrow(id);
+  
+  if (p.deletedAt) {
+    throw new ConflictError('Payment is already deleted');
+  }
+  
+  const reason = body?.reason ?? 'Deleted by admin';
+  
+  await prisma.$transaction(async (tx) => {
+    await tx.payment.update({ 
+      where: { id }, 
+      data: { 
+        deletedAt: new Date(),
+        notes: p.notes ? `${p.notes}\n\n[DELETED: ${reason} by admin ${viewer.id}]` : `[DELETED: ${reason} by admin ${viewer.id}]`
+      } 
+    });
+    await recordOutbox(tx, {
+      eventType: 'payment.deleted',
+      aggregateType: 'Payment',
+      aggregateId: id,
+      payload: { paymentId: id, deletedBy: viewer.id, reason },
+    });
+  });
+  
   return toDto(await loadOrThrow(id));
 }

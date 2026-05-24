@@ -50,4 +50,16 @@ router.post('/:id/refund',
   asyncHandler(async (req, res) => res.json(await s.refund(req.params.id, req.body, req.user))),
 );
 
+router.put('/:id',
+  requirePermission(PERMISSIONS.PAYMENT_VERIFY),
+  validate({ params: v.uuidParam, body: v.updatePaymentSchema }),
+  asyncHandler(async (req, res) => res.json(await s.update(req.params.id, req.body, req.user))),
+);
+
+router.delete('/:id',
+  requirePermission(PERMISSIONS.PAYMENT_REFUND),
+  validate({ params: v.uuidParam, body: v.deletePaymentSchema }),
+  asyncHandler(async (req, res) => res.json(await s.softDelete(req.params.id, req.body, req.user))),
+);
+
 export default router;
