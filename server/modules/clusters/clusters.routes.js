@@ -59,9 +59,9 @@ router.delete('/:id/members/:userId',
 
 router.post('/:id/members/invite',
   asyncHandler(async (req, res) => {
-    const { email, role } = req.body;
-    if (!email) throw new Error('Email is required');
-    res.json(await s.inviteMember(req.params.id, email, role || 'FARMER', req.user));
+    const { email, userId, role } = req.body;
+    if (!email && !userId) throw new Error('Email or userId is required');
+    res.json(await s.inviteMember(req.params.id, { email, userId }, role || 'FARMER', req.user));
   }),
 );
 

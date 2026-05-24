@@ -217,15 +217,17 @@ export async function removeMember(clusterId, userId, viewer) {
   return { message: 'Member removed' };
 }
 
-export async function inviteMember(clusterId, email, role, viewer) {
+export async function inviteMember(clusterId, input, role, viewer) {
   const cluster = await loadOrThrow(clusterId);
   if (cluster.ownerId !== viewer.id && !isAdmin(viewer) && viewer.role !== 'CLUSTER_REP') {
     throw new ForbiddenError('Only cluster owner, admin, or cluster rep can invite members');
   }
 
-  const targetUser = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  const targetUser = input?.userId
+    ? await prisma.user.findUnique({ where: { id: input.userId } })
+    : await prisma.user.findUnique({ where: { email: String(input?.email ?? '').toLowerCase() } });
   if (!targetUser) {
-    throw new NotFoundError('User not found with this email');
+    throw new NotFoundError('User not found');
   }
 
   const existing = await prisma.clusterMembership.findUnique({
