@@ -61,6 +61,29 @@ export function renderVerification({ verifyUrl, fullName }) {
   };
 }
 
+export function renderKycDecision({ fullName, decision, documentType, notes, profileUrl }) {
+  const friendlyDoc = String(documentType ?? '').replace(/_/g, ' ');
+  if (decision === 'APPROVED') {
+    return {
+      subject: 'Your Farm Lease identity document was approved',
+      html: `<p>Hi ${escape(fullName ?? '')},</p>
+        <p>Good news — your <strong>${escape(friendlyDoc)}</strong> has been approved by our team.</p>
+        <p>Once all required documents are approved, your account is fully verified and you can create proposals, sign agreements, and run payments.</p>
+        <p><a href="${escape(profileUrl)}">View your verification status</a></p>`,
+      text: `Your ${friendlyDoc} was approved. View status: ${profileUrl}`,
+    };
+  }
+  return {
+    subject: 'Your Farm Lease identity document needs attention',
+    html: `<p>Hi ${escape(fullName ?? '')},</p>
+      <p>We couldn't approve your <strong>${escape(friendlyDoc)}</strong>.</p>
+      ${notes ? `<p><strong>Reviewer note:</strong> ${escape(notes)}</p>` : ''}
+      <p>Please head to your profile to upload a new copy.</p>
+      <p><a href="${escape(profileUrl)}">Re-upload document</a></p>`,
+    text: `Your ${friendlyDoc} was rejected.${notes ? ` Reason: ${notes}.` : ''} Re-upload: ${profileUrl}`,
+  };
+}
+
 export function renderPasswordReset({ resetUrl }) {
   return {
     subject: 'Reset your Farm Lease password',

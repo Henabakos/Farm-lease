@@ -11,6 +11,10 @@ import { prisma } from '../../db/prisma.js';
 import { ForbiddenError, NotFoundError, ConflictError } from '../../shared/errors.js';
 import { isAdmin } from '../../shared/scope.js';
 import { paginate, paginated } from '../../shared/pagination.js';
+import * as notifications from '../notifications/notifications.service.js';
+import { send as sendEmail, renderKycDecision } from '../../integrations/mailer/mailer.js';
+import { env } from '../../config/env.js';
+import { logger } from '../../utils/logger.js';
 
 const REQUIRED_TYPES_FOR_VERIFIED = ['photo', 'national_id'];
 
@@ -170,7 +174,16 @@ export async function review(id, body, viewer) {
   if (doc.status !== 'PENDING') {
     throw new ConflictError(`Cannot review a document already ${doc.status.toLowerCase()}`);
   }
-  const updated = await prisma.$transaction(async (tx) => {
+
+  // Capture pre-review status so we can detect the UNVERIFIED/PENDING → VERIFIED transition.
+  const previousUserStatus = doc.user?.id
+    ? (await prisma.user.findUnique({
+        where: { id: doc.userId },
+        select: { verificationStatus: true },
+      }))?.verificationStatus
+    : null;
+
+  const { updated, nextUserStatus } = await prisma.$transaction(async (tx) => {
     const next = await tx.kycDocument.update({
       where: { id },
       data: {
@@ -181,8 +194,103 @@ export async function review(id, body, viewer) {
       },
       include: { user: { select: { id: true, fullName: true, email: true } } },
     });
-    await recomputeUserVerification(tx, doc.userId);
-    return next;
+    const userStatus = await recomputeUserVerification(tx, doc.userId);
+    return { updated: next, nextUserStatus: userStatus };
   });
+
+  // Fire side-effects after the DB write is durable. Failures here must not
+  // roll back the review — log and move on.
+  void notifyDecision({
+    user: updated.user,
+    decision: body.decision,
+    documentType: updated.documentType,
+    notes: body.notes,
+    nextUserStatus,
+    previousUserStatus,
+  });
+
   return toDto(updated);
+}
+
+async function notifyDecision({
+  user,
+  decision,
+  documentType,
+  notes,
+  nextUserStatus,
+  previousUserStatus,
+}) {
+  if (!user) return;
+  const friendlyDoc = String(documentType ?? '').replace(/_/g, ' ');
+  const profileUrl = `${env.CLIENT_URL.replace(/\/$/, '')}/profile`;
+  const justFullyVerified =
+    nextUserStatus === 'VERIFIED' && previousUserStatus !== 'VERIFIED';
+
+  try {
+    if (decision === 'APPROVED') {
+      await notifications.create({
+        recipientId: user.id,
+        type: 'SUCCESS',
+        title: 'Identity document approved',
+        body: `Your ${friendlyDoc} was approved.`,
+        link: '/profile',
+        relatedType: 'KYC_DOCUMENT',
+        dedupeKey: `kyc:doc:${documentType}:APPROVED`,
+      });
+    } else {
+      await notifications.create({
+        recipientId: user.id,
+        type: 'WARNING',
+        title: 'Identity document rejected',
+        body: notes
+          ? `Your ${friendlyDoc} was rejected: ${notes}`
+          : `Your ${friendlyDoc} was rejected. Please re-upload.`,
+        link: '/profile',
+        relatedType: 'KYC_DOCUMENT',
+        dedupeKey: `kyc:doc:${documentType}:REJECTED`,
+      });
+    }
+
+    if (justFullyVerified) {
+      await notifications.create({
+        recipientId: user.id,
+        type: 'SUCCESS',
+        title: 'Account fully verified',
+        body: 'Your identity has been verified. You can now create proposals, sign agreements, and run payments.',
+        link: '/profile',
+        relatedType: 'KYC_VERIFIED',
+        dedupeKey: 'kyc:account:verified',
+      });
+    }
+  } catch (err) {
+    logger.error({ err, userId: user.id }, 'failed to create KYC notification');
+  }
+
+  try {
+    const { subject, html, text } = renderKycDecision({
+      fullName: user.fullName,
+      decision,
+      documentType,
+      notes,
+      profileUrl,
+    });
+    await sendEmail({ to: user.email, subject, html, text });
+  } catch (err) {
+    logger.error({ err, userId: user.id }, 'failed to send KYC decision email');
+  }
+
+  if (justFullyVerified) {
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Your Farm Lease account is verified',
+        html: `<p>Hi ${user.fullName ?? ''},</p>
+          <p>Your identity has been fully verified. You can now create proposals, sign agreements, and run payments.</p>
+          <p><a href="${profileUrl}">Go to your profile</a></p>`,
+        text: `Your Farm Lease account is verified. ${profileUrl}`,
+      });
+    } catch (err) {
+      logger.error({ err, userId: user.id }, 'failed to send KYC fully-verified email');
+    }
+  }
 }
