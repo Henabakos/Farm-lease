@@ -35,11 +35,214 @@ import { toast } from 'sonner';
 import { motion } from 'motion/react';
 
 const DEFAULT_CLAUSES: Clause[] = [
-  { id: 'c1', title: '1. Purpose of Investment', content: 'The Investor agrees to provide the specified amount to the Target for the sole purpose of agricultural expansion and operational improvements as detailed in the approved proposal.', isEditable: false },
-  { id: 'c2', title: '2. Repayment Terms', content: 'The Target shall repay the principal amount plus the agreed interest rate within the specified repayment period. Payments shall be made on a quarterly basis.', isEditable: true },
-  { id: 'c3', title: '3. Collateral & Security', content: 'The Target provides the specified collateral as security for the investment. In case of default, the Investor has the right to claim the collateral as per local regulations.', isEditable: true },
-  { id: 'c4', title: '4. Reporting & Monitoring', content: 'The Target agrees to provide monthly progress reports and allow the Investor or their representative to conduct site visits for monitoring purposes.', isEditable: true },
-  { id: 'c5', title: '5. Dispute Resolution', content: 'Any disputes arising from this agreement shall be resolved through mediation in accordance with the laws of the jurisdiction where the Target is located.', isEditable: false },
+  {
+    id: 'c1',
+    title: 'Preamble and Parties',
+    content: `Unofficial translation. This land lease agreement is made between:
+- The Ministry of Agriculture and Rural Development, Kirkos Sub-city, Addis Ababa, Ethiopia (the "Lessor"), and
+- Rahwa Agri-Development PLC, Bole Sub-city, Kebele 02, House No. Addis, Tel: _______ (the "Lessee"), including successors/beneficiaries and authorized representatives.
+
+Whereas the Lessee is a business entity established to engage in cotton development under the laws of Ethiopia and requires sufficient land for production in the Southern Nations, Nationalities and Peoples Regional State; and
+Whereas the Lessor is willing to provide the needed land in accordance with the terms and conditions stated herein;
+
+Now therefore, the parties execute this agreement on 07/09/2002 EC (May 15, 2010).`,
+    isEditable: false,
+  },
+  {
+    id: 'c2',
+    title: 'Article 1 - Scope of Agreement',
+    content: `1.1 The scope of this agreement is to establish a long-term land lease for cotton, cereals, oil seeds, and field crops farming on 3,000 hectares located in the Southern Nations, Nationalities and Peoples Regional State, South Omo Zone, Dassanech District, Karawo and Qelemagnato Kebele. The land is leased with all rights of easements, amenities, fittings, fixtures, structures, installations, property, or establishments standing thereon to the Lessee for the purposes mentioned below.
+1.2 This agreement applies to the "lease land" and grants full and exclusive use of rural land, subject to rental payments stated in Article 2.`,
+    isEditable: false,
+  },
+  {
+    id: 'c3',
+    title: 'Article 2 - Period of the Land Lease and the Rate',
+    content: `2.1 The lease term is 25 years. Upon mutual agreement, the term may be renewed for additional year(s).
+2.2 Payment procedure of the land lease:
+  2.2.1 From the signing date, there is a three (3) year grace period. Unpaid rent during the grace period shall be prorated over the remaining lease term and paid with the regular annual payment.
+  2.2.2 The lease rate is Birr 158 per hectare for agricultural investment stated in Article 1. The annual payment is Birr 474,000 and the total payment for the lease period is Birr 11,850,000.
+  2.2.3 Upon payment of rent, a receipt shall be issued immediately to the Lessee and a copy submitted to the district (wereda) administration office.
+  2.2.4 In addition to 2.2.1, there shall be a prepayment (down payment) of one year rent of the land stated above.
+  2.2.5 The Lessor reserves the right to revise the lease rate and inform the Lessee accordingly.`,
+    isEditable: false,
+  },
+  {
+    id: 'c4',
+    title: 'Article 3 - Rights of the Lessee',
+    content: `The Lessee shall have the right to:
+3.1 Develop and administer the land in accordance with this agreement.
+3.2 Build infrastructure such as dams, water boreholes, power houses, irrigation systems, roads, bridges, offices, residential buildings, fuel stations, and health and educational institutions, subject to permits and consultation with concerned authorities.
+3.3 Develop or administer the leased land by itself or through a legally represented individual or entity.
+3.4 Develop, cultivate, and harvest the leased land using modern machinery and appropriate methods.
+3.5 Obtain additional land based on performance, achievement, and need of the company.
+3.6 Terminate the agreement with at least six months prior written notice, with convincing reason and good cause.`,
+    isEditable: false,
+  },
+  {
+    id: 'c5',
+    title: 'Article 4 - Obligations of the Lessee',
+    content: `4.1 The Lessee shall provide good care and conservation of the leased land and natural resources and shall:
+  a) Conserve trees not cleared during land preparation.
+  b) Use methods appropriate to prevent soil erosion, especially in sloped areas.
+  c) Respect and implement legislation relating to natural resource conservation.
+  d) Conduct an environmental impact assessment and provide a report within four months of execution of this agreement.
+4.2 The Lessee shall start developing the land within six months of signing, provided required licenses are issued.
+4.3 The Lessee shall develop one-third (1/3) of the leased land within one year and the entire land within three years from the signing date.
+4.4 Upon termination or expiry, or cancellation of the investment license, the Lessee shall remove installed assets within six months and hand over the land to the Lessor.
+4.5 Upon request of the Ministry of Agriculture and Rural Development, the Lessee shall provide accurate data and report investment activities.
+4.6 When the grace period ends, the Lessee shall settle annual rent and prorated amounts at the regional office every year between December and June.
+4.7 Upon entering into this agreement, the Lessee shall submit an action plan for use of the leased land.
+4.8 Without written consent of the Lessor, the Lessee shall not use the land for any purpose other than stated in Article 3.
+4.9 The Lessee may not transfer the land to another company or individual unless 75% of the land is developed.
+4.10 Upon developing 75% and obtaining the Lessor's permission, the Lessee may transfer the land, and the Lessor shall respond promptly.`,
+    isEditable: false,
+  },
+  {
+    id: 'c6',
+    title: 'Article 5 - Rights of the Lessor',
+    content: `The Lessor has exclusive rights to:
+5.1 Control and follow up that the Lessee executes all obligations diligently.
+5.2 Take over undeveloped areas in accordance with sub-article 4.3 after the one-year limit, if the Lessee fails to correct within one year after six months notice of warning.
+5.3 Exercise rights under 5.1 without hindering the Lessee's work and activities.
+5.4 Terminate the lease agreement with convincing and justifiable good reason, subject to six months prior notice.
+5.5 Amend the land rent pursuant to this agreement.`,
+    isEditable: false,
+  },
+  {
+    id: 'c7',
+    title: 'Article 6 - Obligations of the Lessor',
+    content: `6.1 The Lessor shall hand over the leased land within one month of signing, free from obstructions.
+6.2 The Lessor shall provide special privileges such as exemptions from taxation and import duties on capital goods, and repatriation of capital and profits, in accordance with Ethiopian laws for foreign companies.
+6.3 The Lessor shall ensure there are no legal or other limitations that may restrict the Lessee's duties in clearing the land or implementing the objectives.
+6.4 The Lessor shall arrange access to federal and regional research centers for soil testing and surveying for a fee.
+6.5 If the Lessee fails to develop the land within time limits, causes damage to natural resources, or becomes unable to pay rent, the Lessor may terminate the lease with six months prior notice of warning; if no notice is given, the Lessor may extend the time limit by six months.
+6.6 The Lessor shall cooperate (including adequate security) free of charge so the Lessee may develop the land peacefully, free from trouble, riot, or disturbance except force majeure.`,
+    isEditable: false,
+  },
+  {
+    id: 'c8',
+    title: 'Article 7 - Delivery of the Leased Land',
+    content: `7.1 The Lessor shall deliver the land plan, title certificate, and other certificates within 30 days of signing.
+7.2 If delivery cannot be actualized due to reasons caused by the Lessor after written notice, the Lessor assumes responsibility for such failure.
+7.3 Delivery shall be effected once the one-year prepayment is completed in accordance with Article 2.2.2.
+7.4 The land shall be handed over within 15 days of signing.`,
+    isEditable: false,
+  },
+  {
+    id: 'c9',
+    title: 'Article 8 - Amendment and Renewal of the Contract',
+    content: `8.1 This agreement may be renewed on similar terms and conditions.
+8.2 If the Lessee wishes to renew, it shall notify the Lessor six months before expiration.`,
+    isEditable: false,
+  },
+  {
+    id: 'c10',
+    title: 'Article 9 - Grounds for Termination of the Contract',
+    content: `This agreement may be terminated for the following reasons:
+9.1 Expiry of the lease period.
+9.2 The Lessor is unable to deliver the land due to causes beyond reasonable control (force majeure).
+9.3 The Lessor fails to fulfill obligations after a six-month prior written notice from the Lessee.
+9.4 The Lessee fails to make annual rental and other tax payments for two consecutive years.
+9.5 The Lessee fails to perform obligations after a six-month prior notice from the Lessor.
+9.6 The Lessor terminates with good reason after six months prior notice as indicated in 5.4.
+9.7 The Lessor terminates with good reason after six months prior notice as indicated in 3.6.`,
+    isEditable: false,
+  },
+  {
+    id: 'c11',
+    title: 'Article 10 - Results of Contract Termination',
+    content: `10.1 Upon termination, the Lessee shall return the leased land within six months of termination.
+10.2 If terminated by the Lessee per 9.3 or by the Lessor per 9.6, the Lessor shall pay the Lessee for improvements and expenses at market rate after deducting outstanding dues.
+10.3 If terminated for reasons in 9.4, 9.5, or 9.7, the Lessor is not obliged to make payments to the Lessee.
+10.4 Upon termination, the Lessor has priority to negotiate and purchase properties on the land; if not interested, the Lessee may detach and take its property.`,
+    isEditable: false,
+  },
+  {
+    id: 'c12',
+    title: 'Article 11 - Registration',
+    content: `This agreement is not subject to registration and approval by a designated entity. Copies of the agreement and carbon copies shall be sent to the Lessor, the Lessee, the district (wereda) administration, finance office, investment commission, and other concerned entities with a covering letter of cooperation provided by the Lessor.`,
+    isEditable: false,
+  },
+  {
+    id: 'c13',
+    title: 'Article 12 - Governing Law',
+    content: `The Ethiopian law shall govern operations under this agreement.`,
+    isEditable: false,
+  },
+  {
+    id: 'c14',
+    title: 'Article 13 - Force Majeure',
+    content: `Regarding matters of force majeure, the Ethiopian Civil Code shall apply.`,
+    isEditable: false,
+  },
+  {
+    id: 'c15',
+    title: 'Article 14 - Covenant for Peaceful Possession/Usage',
+    content: `The Lessor guarantees the Lessee has full ownership and property rights in the leased land. The Lessor confirms the land remains under its peaceful possession and the Lessee may use it without problem.`,
+    isEditable: false,
+  },
+  {
+    id: 'c16',
+    title: 'Article 15 - Calendar',
+    content: `The Ethiopian calendar shall be used for the purpose of this agreement.`,
+    isEditable: false,
+  },
+  {
+    id: 'c17',
+    title: 'Article 16 - Annexes to the Agreement',
+    content: `The following items are annexed and considered part of this agreement:
+16.1 The site plan of the leased land.
+16.2 Photocopy of ID card or passport of the Lessee.
+16.3 Photocopy of the memorandum and Articles of Association of the Lessee.`,
+    isEditable: false,
+  },
+  {
+    id: 'c18',
+    title: 'Article 17 - Settlement of Disputes',
+    content: `If a dispute arises between the parties, they shall endeavor to resolve it peacefully. If the dispute cannot be resolved, it shall be referred to the Ethiopian Federal Court.`,
+    isEditable: false,
+  },
+  {
+    id: 'c19',
+    title: 'Article 18 - Language',
+    content: `This agreement has been signed between the contracting parties in Amharic.`,
+    isEditable: false,
+  },
+  {
+    id: 'c20',
+    title: 'Article 19 - Notices and Establishing Offices',
+    content: `19.1 The Lessee shall establish an office in Ethiopia to perform its duties and notify the Lessor accordingly.
+19.2 All communications and notices of warning shall be in writing either in English or Amharic and delivered in person or sent by mail to the addresses in the preamble.`,
+    isEditable: false,
+  },
+  {
+    id: 'c21',
+    title: 'Article 20 - Effective Date of this Contract',
+    content: `This agreement remains in effect for 25 years starting from 07/09/2002 EC (May 15, 2010) and expires on 06/09/2027 EC (May 14, 2035).`,
+    isEditable: false,
+  },
+  {
+    id: 'c22',
+    title: 'Signatures and Witnesses',
+    content: `Lessor: Ministry of Agriculture and Rural Development
+Name: Tefera Deribew, Minister
+Signature: illegible
+Date: not stated
+
+Lessee: Rahwa Agri-Development PLC
+Name: not stated
+Signature: illegible
+Date: not stated
+
+Witnesses:
+1) Rahwa M/Ab - Signature: illegible - Date: 07/09/2002 EC (05/15/2010)
+2) Berhanu Tesfaye - Signature: illegible - Date: 07/09/2002 EC (05/15/2010)
+3) Wondimagegnehu - Signature: illegible - Date: 07/09/2002 EC (05/15/2010)
+
+Note: Each page bears two seals (Ministry of Agriculture and Rural Development and Adama Development PLC) and initials by both parties. The last page includes additional signatures: Dr. Abera Deressa, State Minister of Agriculture, and Esayas Kebede Amare, Director, Agricultural Investment Directorate.`,
+    isEditable: false,
+  },
 ];
 
 const container = {
@@ -294,7 +497,7 @@ export function AgreementDetail({
                         className="min-h-25 bg-slate-50 border-slate-200 focus:border-primary/40 focus:ring-primary/10 rounded-md transition-all resize-none text-sm leading-relaxed"
                       />
                     ) : (
-                      <p className="text-sm text-slate-600 leading-relaxed pl-4 border-l-2 border-slate-100 group-hover:border-primary/20 transition-all">
+                      <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line pl-4 border-l-2 border-slate-100 group-hover:border-primary/20 transition-all">
                         {clause.content}
                       </p>
                     )}
