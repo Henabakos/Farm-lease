@@ -62,22 +62,22 @@ function AppContent() {
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [receiptPayment, setReceiptPayment] = useState<Payment | null>(null);
 
-  const guardRoute = (element: React.ReactElement, allowedRoles?: UserRole[]) => {
-    if (!allowedRoles) return element;
-    if (!role) return <Navigate to="/dashboard" replace />;
-    if (allowedRoles.includes(role)) return element;
-    return <Navigate to="/dashboard" replace />;
-  };
+//   const guardRoute = (element: React.ReactElement, allowedRoles?: UserRole[]) => {
+//     if (!allowedRoles) return element;
+//     if (!role) return <Navigate to="/dashboard" replace />;
+//     if (allowedRoles.includes(role)) return element;
+//     return <Navigate to="/dashboard" replace />;
+//   };
 
-  const ALL_ROLES: UserRole[] = ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'];
-  const CLUSTER_BROWSE_ROLES: UserRole[] = ALL_ROLES;
-  const PROPOSAL_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
-  const PROPOSAL_CREATE_ROLES: UserRole[] = ['INVESTOR'];
-  const AGREEMENT_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
-  const PAYMENT_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
-  const PAYMENT_SUBMIT_ROLES: UserRole[] = ['INVESTOR'];
-  const PAYMENT_REVIEW_ROLES: UserRole[] = ['CLUSTER_REP', 'ADMIN'];
-  const INVESTOR_OR_ADMIN: UserRole[] = ['INVESTOR', 'ADMIN'];
+//   const ALL_ROLES: UserRole[] = ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'];
+//   const CLUSTER_BROWSE_ROLES: UserRole[] = ALL_ROLES;
+//   const PROPOSAL_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
+//   const PROPOSAL_CREATE_ROLES: UserRole[] = ['INVESTOR'];
+//   const AGREEMENT_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
+//   const PAYMENT_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
+//   const PAYMENT_SUBMIT_ROLES: UserRole[] = ['INVESTOR'];
+//   const PAYMENT_REVIEW_ROLES: UserRole[] = ['CLUSTER_REP', 'ADMIN'];
+//   const INVESTOR_OR_ADMIN: UserRole[] = ['INVESTOR', 'ADMIN'];
 
   // Sync URL with currentView
   React.useEffect(() => {
@@ -390,6 +390,8 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Download, ExternalLink, FileText } from "lucide-react";
+import { UserDetailPage } from './components/admin/UserDetailPage';
+import { ClusterDetailPage } from './components/admin/ClusterDetailPage';
 
 export default function App() {
     return (

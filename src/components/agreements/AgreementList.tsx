@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Agreement, AgreementStatus } from '@/src/types';
+import { Agreement, AgreementStatus, AgreementWorkflowStatus } from '@/src/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -60,7 +60,24 @@ export function AgreementList({ onSelectAgreement }: { onSelectAgreement: (agree
     );
   }
 
-  const getStatusBadge = (status: AgreementStatus) => {
+  const getStatusBadge = (status: AgreementStatus, apiStatus?: AgreementWorkflowStatus) => {
+    if (apiStatus) {
+      switch (apiStatus) {
+        case 'DRAFT':
+          return <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 gap-1.5 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><FileText className="w-3.5 h-3.5" /> Draft / In Review</Badge>;
+        case 'PENDING_SIGNATURES':
+          return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1.5 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><Clock className="w-3.5 h-3.5" /> Awaiting Payment</Badge>;
+        case 'ACTIVE':
+          return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1.5 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><CheckCircle2 className="w-3.5 h-3.5" /> Active</Badge>;
+        case 'COMPLETED':
+          return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 gap-1.5 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><CheckCircle2 className="w-3.5 h-3.5" /> Completed</Badge>;
+        case 'TERMINATED':
+          return <Badge variant="outline" className="bg-destructive/5 text-destructive border-destructive/10 gap-1.5 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><XCircle className="w-3.5 h-3.5" /> Cancelled</Badge>;
+        case 'DISPUTED':
+          return <Badge variant="outline" className="bg-destructive/5 text-destructive border-destructive/10 gap-1.5 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><XCircle className="w-3.5 h-3.5" /> Disputed</Badge>;
+      }
+    }
+
     switch (status) {
       case 'PENDING':
         return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1.5 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><Clock className="w-3 h-3" /> Pending Signature</Badge>;
@@ -140,7 +157,7 @@ export function AgreementList({ onSelectAgreement }: { onSelectAgreement: (agree
                           <div className="space-y-2">
                             <div className="flex items-center gap-3 flex-wrap">
                               <h3 className="text-lg font-bold tracking-tight text-slate-900 group-hover:text-primary transition-colors leading-tight">{agreement.title}</h3>
-                              {getStatusBadge(agreement.status)}
+                              {getStatusBadge(agreement.status, agreement.apiStatus)}
                             </div>
                             <div className="flex items-center gap-3 text-xs text-slate-500">
                               <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-md border border-slate-100">
