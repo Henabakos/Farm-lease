@@ -241,7 +241,7 @@ export async function listBoundaries(userId, filters) {
   const params = [];
 
   if (clusterId) {
-    whereClause += ` AND "clusterId" = $${params.length + 1}`;
+    whereClause += ` AND "clusterId" = $${params.length + 1}::uuid`;
     params.push(clusterId);
   }
   if (verificationStatus) {
@@ -251,8 +251,8 @@ export async function listBoundaries(userId, filters) {
 
   // Simple access control - user must be owner, creator, or verifier
   whereClause += ` AND (
-    "createdById" = $${params.length + 1}
-    OR "verifiedById" = $${params.length + 2}
+    "createdById" = $${params.length + 1}::uuid
+    OR "verifiedById" = $${params.length + 2}::uuid
   )`;
   params.push(userId, userId);
 

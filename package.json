@@ -47,6 +47,7 @@
     "clsx": "^2.1.1",
     "compression": "^1.7.5",
     "cors": "^2.8.6",
+    "date-fns": "^4.3.0",
     "dotenv": "^17.4.2",
     "express": "^4.22.1",
     "express-rate-limit": "^7.4.1",

@@ -42,6 +42,24 @@ const retrieveSchema = z.object({
   top_k: z.coerce.number().int().min(1).max(20).default(6),
 });
 
+const insightSchema = z.object({
+  topic: z.string().trim().min(1).max(200).optional(),
+  knowledge_base_ids: z.array(z.string().uuid()).optional(),
+});
+
+const advisorySchema = z.object({
+  cluster_id: z.string().uuid(),
+  focus: z.string().min(3),
+  knowledge_base_ids: z.array(z.string().uuid()).optional(),
+});
+
+const predictionSchema = z.object({
+  landSize: z.coerce.number().positive(),
+  budget: z.coerce.number().positive(),
+  region: z.string().min(2),
+  knowledge_base_ids: z.array(z.string().uuid()).optional(),
+});
+
 // ---- Knowledge bases -------------------------------------------------------
 router.get('/knowledge-bases',
   validate({ query: pageQuery }),
@@ -133,6 +151,69 @@ router.post('/search',
         { query: req.body.query, knowledgeBaseIds: req.body.knowledge_base_ids, topK: req.body.top_k },
         req.user,
       ),
+    ),
+  ),
+);
+
+router.post('/insights',
+  aiLimiter,
+  validate({ body: insightSchema }),
+  asyncHandler(async (req, res) =>
+    res.json(
+      await s.getAiInsights(
+        { userId: req.user.id, topic: req.body.topic, knowledgeBaseIds: req.body.knowledge_base_ids },
+        req.user,
+      ),
+    ),
+  ),
+);
+
+router.post('/trends',
+  aiLimiter,
+  validate({ body: z.object({ knowledge_base_ids: z.array(z.string().uuid()).optional() }) }),
+  asyncHandler(async (req, res) =>
+    res.json(await s.analyzeLeaseTrends({ knowledgeBaseIds: req.body.knowledge_base_ids }, req.user)),
+  ),
+);
+
+router.post('/advisory',
+  aiLimiter,
+  validate({ body: advisorySchema }),
+  asyncHandler(async (req, res) =>
+    res.json(
+      await s.getAdvisoryReport(
+        { 
+          clusterId: req.body.cluster_id, 
+          focus: req.body.focus, 
+          knowledgeBaseIds: req.body.knowledge_base_ids 
+        }, 
+        req.user
+      )
+    ),
+  ),
+);
+
+router.get('/advisory/history/:clusterId',
+  validate({ params: z.object({ clusterId: z.string().uuid() }) }),
+  asyncHandler(async (req, res) =>
+    res.json(await s.listAdvisoryHistory(req.params.clusterId, req.user))
+  ),
+);
+
+router.post('/predictive-analytics',
+  aiLimiter,
+  validate({ body: predictionSchema }),
+  asyncHandler(async (req, res) =>
+    res.json(
+      await s.getPredictiveAnalytics(
+        { 
+          landSize: req.body.landSize, 
+          budget: req.body.budget, 
+          region: req.body.region, 
+          knowledgeBaseIds: req.body.knowledge_base_ids 
+        }, 
+        req.user
+      )
     ),
   ),
 );

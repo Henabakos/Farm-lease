@@ -23,7 +23,7 @@ generator client {
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
-  extensions = [pgcrypto]
+  extensions = [pgcrypto, vector]
 }
 
 // ============================================================================
@@ -92,6 +92,7 @@ model User {
   auditLogs           AuditLog[]
   knowledgeBases      KnowledgeBase[]
   aiChats             AiChat[]
+  advisoryReports     AdvisoryReport[]
   recommendations     Recommendation[]
 
   @@index([role])
@@ -208,6 +209,7 @@ model Cluster {
   plots           Plot[]
   proposals       Proposal[]
   agreements      Agreement[]
+  advisoryReports AdvisoryReport[]
 
   @@index([ownerId])
   @@index([status])
@@ -289,6 +291,7 @@ model Plot {
   status      PlotStatus          @default(AVAILABLE)
   latitude    Decimal?            @db.Decimal(10, 7)
   longitude   Decimal?            @db.Decimal(10, 7)
+  geojson     Json?                                                     // dynamic polygon for plots
   createdAt   DateTime            @default(now()) @db.Timestamptz()
   updatedAt   DateTime            @updatedAt @db.Timestamptz()
 
@@ -1024,12 +1027,13 @@ model KbDocumentChunk {
   chunkIndex  Int
   content     String
   tokenCount  Int?
-  // embedding   Unsupported("vector(1536)")?  // Temporarily disabled - requires pgvector
+  embedding   Unsupported("vector(192)")?
+  // Note: Use vector(768) for nomic-embed-text-v1.5, vector(1536) for OpenAI text-embedding-3-small, vector(192) for truncated nomic
   metadata    Json     @default("{}")
   createdAt   DateTime @default(now()) @db.Timestamptz()
 
   @@unique([documentId, chunkIndex])
-  // Note: ivfflat index for cosine similarity is created in the migration SQL,
+  // Note: GIN index for cosine similarity is created in the migration SQL,
   // not declared here because Prisma can't model vector indexes natively.
 }
 
@@ -1042,6 +1046,21 @@ model AiChat {
   updatedAt DateTime      @updatedAt @db.Timestamptz()
 
   messages  AiChatMessage[]
+}
+
+model AdvisoryReport {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @db.Uuid
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clusterId       String   @db.Uuid
+  cluster         Cluster  @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  focus           String                                                          // e.g. "ROI", "Sustainability"
+  report          String   @db.Text
+  sourceCount     Int?     @default(0)
+  createdAt       DateTime @default(now()) @db.Timestamptz()
+
+  @@index([userId])
+  @@index([clusterId])
 }
 
 enum AiChatRole {

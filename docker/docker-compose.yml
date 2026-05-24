@@ -9,8 +9,8 @@ name: farm-lease
 
 services:
   postgres:
-    # Standard PostgreSQL 16 image - extensions will be installed manually
-    image: postgres:16
+    # PostgreSQL 16 with pgvector extension pre-installed
+    image: pgvector/pgvector:pg16
     container_name: farm-lease-postgres
     restart: unless-stopped
     environment:
@@ -18,7 +18,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: farm_lease
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

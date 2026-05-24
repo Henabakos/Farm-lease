@@ -152,10 +152,21 @@ export async function listAuditLogs(filters) {
     }),
   ]);
 
-  return {
-    items,
-    pagination: { page, limit, total, pages: Math.ceil(total / limit) },
-  };
+    return {
+      items,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    };
+  } catch (error) {
+    console.error('Error fetching audit logs:', error);
+    // If the table doesn't exist, return empty results
+    if (error.code === 'P2021') {
+      return {
+        items: [],
+        pagination: { page, limit, total: 0, pages: 0 },
+      };
+    }
+    throw error;
+  }
 }
 
 /**

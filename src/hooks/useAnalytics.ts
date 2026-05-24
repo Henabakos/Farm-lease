@@ -28,7 +28,7 @@ export const useAnalytics = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await analyticsAPI.getRevenue(months);
+      const response = await analyticsAPI.getPaymentStatsByMonth(months);
       setRevenueData(response.data);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Failed to fetch revenue data';
