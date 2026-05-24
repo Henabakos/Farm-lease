@@ -170,7 +170,6 @@ export function AgreementDetail({
           <div>
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">{agreement.title}</h1>
-              {getStatusBadge(agreement.status)}
               {getWorkflowBadge(workflowStatus)}
             </div>
             <p className="text-slate-500 text-xs mt-1">
