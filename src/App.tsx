@@ -273,18 +273,22 @@ function AppContent() {
                 <Route
                     path="/payments"
                     element={
-                        <PaymentList
-                            onSelectPayment={(p) => {
-                                setSelectedPayment(p);
-                                navigate(`/payments/${p.id}`);
-                            }}
-                            onSubmitPayment={(p) =>
-                                navigate(`/payments/${p.id}/submit`)
-                            }
-                            onReviewPayment={(p) =>
-                                navigate(`/payments/${p.id}/review`)
-                            }
-                        />
+                        PAYMENT_ACCESS_ROLES.includes(role) ? (
+                            <PaymentList
+                                onSelectPayment={(p) => {
+                                    setSelectedPayment(p);
+                                    navigate(`/payments/${p.id}`);
+                                }}
+                                onSubmitPayment={(p) =>
+                                    navigate(`/payments/${p.id}/submit`)
+                                }
+                                onReviewPayment={(p) =>
+                                    navigate(`/payments/${p.id}/review`)
+                                }
+                            />
+                        ) : (
+                            <Navigate to="/dashboard" replace />
+                        )
                     }
                 />
                 <Route

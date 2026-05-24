@@ -97,11 +97,33 @@ function canView(p, viewer) {
 export async function list(query, viewer) {
   const { page, pageSize, status } = query;
   const agreementId = query.agreementId ?? query.agreement_id;
+  // FARMERs have no access to payments
+  if (viewer.role === 'FARMER') {
+    throw new ForbiddenError('Farmers do not have access to payments');
+  }
+  // Role-based visibility:
+  //   - ADMIN: see all payments
+  //   - CLUSTER_REP: only payments where they are receiver or cluster owner
+  //   - INVESTOR: only payments where they are payer
+  let visibilityFilter = {};
+  if (isAdmin(viewer)) {
+    visibilityFilter = {};
+  } else if (viewer.role === 'CLUSTER_REP') {
+    visibilityFilter = {
+      OR: [
+        { receiverId: viewer.id },
+        { agreement: { cluster: { ownerId: viewer.id } } },
+      ],
+    };
+  } else if (viewer.role === 'INVESTOR') {
+    visibilityFilter = { payerId: viewer.id };
+  } else {
+    visibilityFilter = {};
+  }
+
   const where = {
     AND: [
-      isAdmin(viewer)
-        ? {}
-        : { OR: [{ payerId: viewer.id }, { receiverId: viewer.id }, { agreement: { cluster: { ownerId: viewer.id } } }] },
+      visibilityFilter,
       status ? { status } : {},
       agreementId ? { agreementId } : {},
     ],
@@ -119,6 +141,10 @@ export async function list(query, viewer) {
 }
 
 export async function getById(id, viewer) {
+  // FARMERs have no access to payments
+  if (viewer.role === 'FARMER') {
+    throw new ForbiddenError('Farmers do not have access to payments');
+  }
   const p = await loadOrThrow(id);
   if (!canView(p, viewer)) throw new ForbiddenError();
   return toDto(p);

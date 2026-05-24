@@ -76,24 +76,29 @@ const MOCK_PAYMENTS_FALLBACK: Payment[] = [
 
 import { motion } from 'motion/react';
 
-export function PaymentList({ 
-  onSelectPayment, 
+export function PaymentList({
+  onSelectPayment,
   onSubmitPayment,
   onReviewPayment,
   onViewReceipt
-}: { 
+}: {
   onSelectPayment: (payment: Payment) => void,
   onSubmitPayment: (payment: Payment) => void,
   onReviewPayment: (payment: Payment) => void,
   onViewReceipt?: (payment: Payment) => void
 }) {
-  const { isAdmin, isClusterRep } = useRole();
+  const { isAdmin, isClusterRep, isInvestor } = useRole();
   const { payments: apiPayments, isLoading } = usePayments();
   const payments = apiPayments.length > 0
     ? apiPayments.map((p) => mapPaymentFromApi(p as unknown as Record<string, unknown>))
     : MOCK_PAYMENTS_FALLBACK;
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // FARMERs should not render this component (blocked by route guard, but double-check)
+  if (!isAdmin && !isClusterRep && !isInvestor) {
+    return null;
+  }
 
   if (isLoading && apiPayments.length === 0) {
     return (
@@ -250,16 +255,16 @@ export function PaymentList({
                       </div>
                       <div className="bg-slate-50 md:w-56 flex flex-col justify-center p-5 border-t md:border-t-0 md:border-l border-slate-100 gap-2">
                         {isAdminOrRep && payment.status === 'SUBMITTED' ? (
-                          <Button 
-                            className="w-full h-9 rounded-md gap-2 bg-amber-600 hover:bg-amber-700 text-xs font-bold uppercase tracking-wider" 
+                          <Button
+                            className="w-full h-9 rounded-md gap-2 bg-amber-600 hover:bg-amber-700 text-xs font-bold uppercase tracking-wider"
                             onClick={() => onReviewPayment(payment)}
                           >
                             <ShieldCheck className="w-3.5 h-3.5" />
                             <span>Review Receipt</span>
                           </Button>
-                        ) : uiRole === 'INVESTOR' && payment.status === 'PENDING' ? (
-                          <Button 
-                            className="w-full h-9 rounded-md gap-2 text-xs font-bold uppercase tracking-wider" 
+                        ) : isInvestor && payment.status === 'PENDING' ? (
+                          <Button
+                            className="w-full h-9 rounded-md gap-2 text-xs font-bold uppercase tracking-wider"
                             onClick={() => onSubmitPayment(payment)}
                           >
                             <Upload className="w-3.5 h-3.5" />
