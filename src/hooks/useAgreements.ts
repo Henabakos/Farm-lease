@@ -31,7 +31,7 @@ export const useAgreements = () => {
       setIsLoading(true);
       setError(null);
       const response = await agreementsAPI.getAll(filters);
-      setAgreements(response.data);
+      setAgreements(Array.isArray(response.data?.data) ? response.data.data : response.data);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Failed to fetch agreements';
       setError(errorMessage);
