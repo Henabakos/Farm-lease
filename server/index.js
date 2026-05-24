@@ -62,6 +62,7 @@ import contractTemplatesRouter from './modules/contract-templates/contract-templ
 import featureFlagsRouter    from './modules/feature-flags/feature-flags.routes.js';
 import aiRouter              from './modules/ai/ai.routes.js';
 import filesRouter           from './modules/files/files.routes.js';
+import kycRouter             from './modules/kyc/kyc.routes.js';
 import plotsRouter           from './modules/plots/plots.routes.js';
 import resourcesRouter       from './modules/resources/resources.routes.js';
 import providerRequestsRouter from './modules/provider-requests/provider-requests.routes.js';
@@ -156,6 +157,7 @@ export function buildApp() {
   api.use('/ai',                   aiRouter);
   api.use('/feature-flags',        featureFlagsRouter);
   api.use('/files',                filesRouter);
+  api.use('/kyc',                  kycRouter);
 
     // Mount at both /api/v1 (canonical) and /api (legacy alias).
     app.use("/api/v1", api);
