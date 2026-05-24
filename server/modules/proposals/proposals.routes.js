@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
+import { requireVerified } from '../../middleware/verification.js';
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/asyncHandler.js';
 import { PERMISSIONS } from '../rbac/permissions.js';
@@ -32,6 +33,7 @@ router.get('/:id/negotiations',
 
 router.post('/',
   requirePermission(PERMISSIONS.PROPOSAL_CREATE),
+  requireVerified,
   validate({ body: v.createProposalSchema }),
   asyncHandler(async (req, res) => res.status(201).json(await s.create(req.body, req.user))),
 );
