@@ -30,7 +30,7 @@ import { AuthProvider, useAuth } from "@/src/contexts/AuthContext";
 import { NotificationProvider } from "@/src/contexts/NotificationContext";
 import { RoleProvider, useRole } from "@/src/contexts/RoleContext";
 import { useStore } from "@/src/store/useStore";
-import { Payment } from "@/src/types";
+import { Payment, UserRole } from "@/src/types";
 import React, { useState } from "react";
 import {
     BrowserRouter,
@@ -73,40 +73,44 @@ function AppContent() {
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [receiptPayment, setReceiptPayment] = useState<Payment | null>(null);
 
-    // Sync URL with currentView
-    React.useEffect(() => {
-        const path = location.pathname;
-        const viewMap: Record<string, any> = {
-            "/dashboard": "DASHBOARD",
-            "/profile": "PROFILE",
-            "/clusters": "CLUSTERS",
-            "/proposals": "PROPOSALS",
-            "/agreements": "AGREEMENTS",
-            "/payments": "PAYMENTS",
-            "/messages": "MESSAGES",
-            "/meetings": "MEETINGS",
-            "/analytics": "ANALYTICS",
-            "/admin": "ADMIN_DASHBOARD",
-            "/audit-logs": "AUDIT_LOGS",
-            "/resources": "RESOURCES",
-            "/settings": "SETTINGS",
-        };
-        const matchedView = Object.entries(viewMap).find(([path]) =>
-            location.pathname.startsWith(path),
-        );
-        if (matchedView) {
-            setCurrentView(matchedView[1]);
-        }
-    }, [location.pathname, setCurrentView]);
-    if (authLoading) {
-        return (
-            <div className="flex items-center justify-center h-screen bg-linear-to-br from-background via-background to-muted/30">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                    <p className="text-muted-foreground">Loading...</p>
-                </div>
-            </div>
-        );
+  const guardRoute = (element: React.ReactElement, allowedRoles?: UserRole[]) => {
+    if (!allowedRoles) return element;
+    if (!role) return <Navigate to="/dashboard" replace />;
+    if (allowedRoles.includes(role)) return element;
+    return <Navigate to="/dashboard" replace />;
+  };
+
+  const ALL_ROLES: UserRole[] = ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'];
+  const CLUSTER_BROWSE_ROLES: UserRole[] = ALL_ROLES;
+  const PROPOSAL_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
+  const PROPOSAL_CREATE_ROLES: UserRole[] = ['INVESTOR'];
+  const AGREEMENT_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
+  const PAYMENT_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
+  const PAYMENT_SUBMIT_ROLES: UserRole[] = ['INVESTOR'];
+  const PAYMENT_REVIEW_ROLES: UserRole[] = ['CLUSTER_REP', 'ADMIN'];
+  const INVESTOR_OR_ADMIN: UserRole[] = ['INVESTOR', 'ADMIN'];
+
+  // Sync URL with currentView
+  React.useEffect(() => {
+    const path = location.pathname;
+    const viewMap: Record<string, any> = {
+      '/dashboard': 'DASHBOARD',
+      '/profile': 'PROFILE',
+      '/clusters': 'CLUSTERS',
+      '/proposals': 'PROPOSALS',
+      '/agreements': 'AGREEMENTS',
+      '/payments': 'PAYMENTS',
+      '/messages': 'MESSAGES',
+      '/meetings': 'MEETINGS',
+      '/analytics': 'ANALYTICS',
+      '/admin': 'ADMIN_DASHBOARD',
+      '/audit-logs': 'AUDIT_LOGS',
+      '/resources': 'RESOURCES',
+      '/settings': 'SETTINGS',
+    };
+    const matchedView = Object.entries(viewMap).find(([path]) => location.pathname.startsWith(path));
+    if (matchedView) {
+      setCurrentView(matchedView[1]);
     }
 
     if (!isAuthenticated) {
