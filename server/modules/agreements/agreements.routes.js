@@ -25,7 +25,7 @@ router.get('/:id/download',
   validate({ params: v.uuidParam }),
   asyncHandler(async (req, res) => {
     const agreement = await s.getById(req.params.id, req.user);
-    const pdfBuffer = s.generatePdfBuffer(agreement);
+    const pdfBuffer = await s.generatePdfBuffer(agreement);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="agreement-${agreement.id}.pdf"`);
     res.send(pdfBuffer);
