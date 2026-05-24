@@ -1,34 +1,42 @@
-import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation, Link, useNavigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from '@/src/contexts/AuthContext';
-import { RoleProvider, useRole } from '@/src/contexts/RoleContext';
-import { NotificationProvider } from '@/src/contexts/NotificationContext';
-import { DashboardLayout } from '@/src/components/layout/DashboardLayout';
-import { LoginPage } from '@/src/components/auth/LoginPage';
-import { RegisterPage } from '@/src/components/auth/RegisterPage';
-import { ProfilePage } from '@/src/components/profile/ProfilePage';
-import { ClusterList } from '@/src/components/clusters/ClusterList';
-import { ClusterDetail } from '@/src/components/clusters/ClusterDetail';
-import { ProposalList } from '@/src/components/proposals/ProposalList';
-import { ProposalCreate } from '@/src/components/proposals/ProposalCreate';
-import { ProposalDetail } from '@/src/components/proposals/ProposalDetail';
-import { NegotiationView } from '@/src/components/proposals/NegotiationView';
-import { AgreementList } from '@/src/components/agreements/AgreementList';
-import { AgreementDetail } from '@/src/components/agreements/AgreementDetail';
-import { PaymentList } from '@/src/components/payments/PaymentList';
-import { PaymentSubmit } from '@/src/components/payments/PaymentSubmit';
-import { PaymentReview } from '@/src/components/payments/PaymentReview';
-import { PaymentDetail } from '@/src/components/payments/PaymentDetail';
-import { MessagingPage } from '@/src/components/messaging/MessagingPage';
-import { MeetingScheduler } from '@/src/components/meetings/MeetingScheduler';
-import { AIChatbot } from '@/src/components/ai/AIChatbot';
-import { AuditLogs } from '@/src/components/admin/AuditLogs';
-import { SettingsPage } from '@/src/components/profile/SettingsPage';
-import { ResourceRecommendations } from '@/src/components/resources/ResourceRecommendations';
-import { DashboardOverview } from '@/src/components/dashboard/DashboardOverview';
-import { LandingPage } from '@/src/components/landing/LandingPage';
-import { Payment, Proposal, UserRole } from '@/src/types';
-import { useStore } from '@/src/store/useStore';
+import React, { useState } from "react";
+import {
+    BrowserRouter,
+    Routes,
+    Route,
+    Navigate,
+    useLocation,
+    Link,
+    useNavigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "@/src/contexts/AuthContext";
+import { RoleProvider, useRole } from "@/src/contexts/RoleContext";
+import { NotificationProvider } from "@/src/contexts/NotificationContext";
+import { DashboardLayout } from "@/src/components/layout/DashboardLayout";
+import { LoginPage } from "@/src/components/auth/LoginPage";
+import { RegisterPage } from "@/src/components/auth/RegisterPage";
+import { ProfilePage } from "@/src/components/profile/ProfilePage";
+import { ClusterList } from "@/src/components/clusters/ClusterList";
+import { ClusterDetail } from "@/src/components/clusters/ClusterDetail";
+import { ProposalList } from "@/src/components/proposals/ProposalList";
+import { ProposalCreate } from "@/src/components/proposals/ProposalCreate";
+import { ProposalDetail } from "@/src/components/proposals/ProposalDetail";
+import { NegotiationView } from "@/src/components/proposals/NegotiationView";
+import { AgreementList } from "@/src/components/agreements/AgreementList";
+import { AgreementDetail } from "@/src/components/agreements/AgreementDetail";
+import { PaymentList } from "@/src/components/payments/PaymentList";
+import { PaymentSubmit } from "@/src/components/payments/PaymentSubmit";
+import { PaymentReview } from "@/src/components/payments/PaymentReview";
+import { PaymentDetail } from "@/src/components/payments/PaymentDetail";
+import { MessagingPage } from "@/src/components/messaging/MessagingPage";
+import { MeetingScheduler } from "@/src/components/meetings/MeetingScheduler";
+import { AIChatbot } from "@/src/components/ai/AIChatbot";
+import { AuditLogs } from "@/src/components/admin/AuditLogs";
+import { SettingsPage } from "@/src/components/profile/SettingsPage";
+import { ResourceRecommendations } from "@/src/components/resources/ResourceRecommendations";
+import { DashboardOverview } from "@/src/components/dashboard/DashboardOverview";
+import { LandingPage } from "@/src/components/landing/LandingPage";
+import { Payment, Proposal, UserRole } from "@/src/types";
+import { useStore } from "@/src/store/useStore";
 
 function AppContent() {
     const {
@@ -62,54 +70,56 @@ function AppContent() {
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [receiptPayment, setReceiptPayment] = useState<Payment | null>(null);
 
-//   const guardRoute = (element: React.ReactElement, allowedRoles?: UserRole[]) => {
-//     if (!allowedRoles) return element;
-//     if (!role) return <Navigate to="/dashboard" replace />;
-//     if (allowedRoles.includes(role)) return element;
-//     return <Navigate to="/dashboard" replace />;
-//   };
+    //   const guardRoute = (element: React.ReactElement, allowedRoles?: UserRole[]) => {
+    //     if (!allowedRoles) return element;
+    //     if (!role) return <Navigate to="/dashboard" replace />;
+    //     if (allowedRoles.includes(role)) return element;
+    //     return <Navigate to="/dashboard" replace />;
+    //   };
 
-//   const ALL_ROLES: UserRole[] = ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'];
-//   const CLUSTER_BROWSE_ROLES: UserRole[] = ALL_ROLES;
-//   const PROPOSAL_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
-//   const PROPOSAL_CREATE_ROLES: UserRole[] = ['INVESTOR'];
-//   const AGREEMENT_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
-//   const PAYMENT_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
-//   const PAYMENT_SUBMIT_ROLES: UserRole[] = ['INVESTOR'];
-//   const PAYMENT_REVIEW_ROLES: UserRole[] = ['CLUSTER_REP', 'ADMIN'];
-//   const INVESTOR_OR_ADMIN: UserRole[] = ['INVESTOR', 'ADMIN'];
+    //   const ALL_ROLES: UserRole[] = ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'];
+    //   const CLUSTER_BROWSE_ROLES: UserRole[] = ALL_ROLES;
+    //   const PROPOSAL_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
+    //   const PROPOSAL_CREATE_ROLES: UserRole[] = ['INVESTOR'];
+    //   const AGREEMENT_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
+    //   const PAYMENT_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
+    //   const PAYMENT_SUBMIT_ROLES: UserRole[] = ['INVESTOR'];
+    //   const PAYMENT_REVIEW_ROLES: UserRole[] = ['CLUSTER_REP', 'ADMIN'];
+    //   const INVESTOR_OR_ADMIN: UserRole[] = ['INVESTOR', 'ADMIN'];
 
-  // Sync URL with currentView
-  React.useEffect(() => {
-    const path = location.pathname;
-    const viewMap: Record<string, any> = {
-      '/dashboard': 'DASHBOARD',
-      '/profile': 'PROFILE',
-      '/clusters': 'CLUSTERS',
-      '/proposals': 'PROPOSALS',
-      '/agreements': 'AGREEMENTS',
-      '/payments': 'PAYMENTS',
-      '/messages': 'MESSAGES',
-      '/meetings': 'MEETINGS',
-      '/audit-logs': 'AUDIT_LOGS',
-      '/resources': 'RESOURCES',
-      '/settings': 'SETTINGS',
-    };
-    const matchedView = Object.entries(viewMap).find(([path]) => location.pathname.startsWith(path));
-    if (matchedView) {
-      setCurrentView(matchedView[1]);
+    // Sync URL with currentView
+    React.useEffect(() => {
+        const path = location.pathname;
+        const viewMap: Record<string, any> = {
+            "/dashboard": "DASHBOARD",
+            "/profile": "PROFILE",
+            "/clusters": "CLUSTERS",
+            "/proposals": "PROPOSALS",
+            "/agreements": "AGREEMENTS",
+            "/payments": "PAYMENTS",
+            "/messages": "MESSAGES",
+            "/meetings": "MEETINGS",
+            "/audit-logs": "AUDIT_LOGS",
+            "/resources": "RESOURCES",
+            "/settings": "SETTINGS",
+        };
+        const matchedView = Object.entries(viewMap).find(([path]) =>
+            location.pathname.startsWith(path),
+        );
+        if (matchedView) {
+            setCurrentView(matchedView[1]);
+        }
+    }, [location.pathname, setCurrentView]);
+    if (authLoading) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-linear-to-br from-background via-background to-muted/30">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                    <p className="text-muted-foreground">Loading...</p>
+                </div>
+            </div>
+        );
     }
-  }, [location.pathname, setCurrentView]);
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-linear-to-br from-background via-background to-muted/30">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
     if (!isAuthenticated) {
         return (
@@ -202,12 +212,20 @@ function AppContent() {
                                 onBack={() => {
                                     setSelectedProposal(null);
                                     navigate("/proposals");
-                                } }
-                                onNegotiate={() => navigate(
-                                    `/proposals/${selectedProposal.id}/negotiate`
-                                )} onUpdateProposal={function (updated: Partial<Proposal>): void {
-                                    throw new Error('Function not implemented.');
-                                } }                            />
+                                }}
+                                onNegotiate={() =>
+                                    navigate(
+                                        `/proposals/${selectedProposal.id}/negotiate`,
+                                    )
+                                }
+                                onUpdateProposal={function (
+                                    updated: Partial<Proposal>,
+                                ): void {
+                                    throw new Error(
+                                        "Function not implemented.",
+                                    );
+                                }}
+                            />
                         ) : (
                             <Navigate to="/proposals" />
                         )
@@ -273,22 +291,20 @@ function AppContent() {
                 <Route
                     path="/payments"
                     element={
-                        PAYMENT_ACCESS_ROLES.includes(role) ? (
-                            <PaymentList
-                                onSelectPayment={(p) => {
-                                    setSelectedPayment(p);
-                                    navigate(`/payments/${p.id}`);
-                                }}
-                                onSubmitPayment={(p) =>
-                                    navigate(`/payments/${p.id}/submit`)
-                                }
-                                onReviewPayment={(p) =>
-                                    navigate(`/payments/${p.id}/review`)
-                                }
-                            />
-                        ) : (
-                            <Navigate to="/dashboard" replace />
-                        )
+                        <PaymentList
+                            onSelectPayment={(p) => {
+                                setSelectedPayment(p);
+                                navigate(`/payments/${p.id}`);
+                            }}
+                            onSubmitPayment={(p) => {
+                                setSelectedPayment(p);
+                                navigate(`/payments/${p.id}/submit`);
+                            }}
+                            onReviewPayment={(p) => {
+                                setSelectedPayment(p);
+                                navigate(`/payments/${p.id}/review`);
+                            }}
+                        />
                     }
                 />
                 <Route
@@ -390,8 +406,8 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Download, ExternalLink, FileText } from "lucide-react";
-import { UserDetailPage } from './components/admin/UserDetailPage';
-import { ClusterDetailPage } from './components/admin/ClusterDetailPage';
+import { UserDetailPage } from "./components/admin/UserDetailPage";
+import { ClusterDetailPage } from "./components/admin/ClusterDetailPage";
 
 export default function App() {
     return (
