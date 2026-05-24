@@ -59,7 +59,14 @@ export interface Proposal {
   // (publish, accept, negotiate, ...) are valid in the current state.
   apiStatus?: 'draft' | 'published' | 'negotiating' | 'accepted' | 'rejected' | 'withdrawn' | 'expired';
   createdAt: string;
-  documents: { name: string; size: string; type: string }[];
+  documents: {
+    id?: string;
+    name: string;
+    size: string;
+    type: string;
+    storageKey?: string;
+    mimeType?: string;
+  }[];
   terms: {
     interestRate: number;
     repaymentPeriod: string;
