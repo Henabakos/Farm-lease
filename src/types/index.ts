@@ -64,6 +64,11 @@ export interface Proposal {
     interestRate: number;
     repaymentPeriod: string;
     collateral?: string;
+    cropType?: string;
+    landArea?: number;
+    landAreaUnit?: string;
+    revenueShare?: number;
+    expectedStartDate?: string;
   };
   history: {
     date: string;
@@ -120,7 +125,16 @@ export interface Agreement {
     interestRate: number;
     repaymentPeriod: string;
     collateral?: string;
+    cropType?: string;
+    landArea?: number;
+    landAreaUnit?: string;
+    revenueShare?: number;
+    expectedStartDate?: string;
   };
+  startDate?: string;
+  endDate?: string;
+  totalAmount?: number;
+  currency?: string;
 }
 
 export type PaymentStatus =

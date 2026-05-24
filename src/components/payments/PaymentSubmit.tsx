@@ -36,6 +36,7 @@ export function PaymentSubmit({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [receipt, setReceipt] = useState<UploadedFile | null>(null);
   const [notes, setNotes] = useState('');
+  const [bankReference, setBankReference] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -110,6 +111,8 @@ export function PaymentSubmit({
         file_name: receipt.file_name,
         mime_type: receipt.mime_type,
         file_size: receipt.file_size,
+        bank_reference: bankReference.trim() || undefined,
+        notes: notes.trim() || undefined,
       };
       await processPayment(payment.id, payload);
       updatePayment(payment.id, { 
@@ -223,6 +226,20 @@ export function PaymentSubmit({
                     </Button>
                   </div>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bankReference" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">Bank Transfer Reference</Label>
+                <input
+                  id="bankReference"
+                  placeholder="e.g., TXN-2024-00451"
+                  className="flex h-9 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:bg-white focus-visible:outline-none transition-all"
+                  value={bankReference}
+                  onChange={(e) => setBankReference(e.target.value)}
+                />
+                <p className="text-[10px] text-slate-400 font-medium ml-1">
+                  Helps the cluster representative match your receipt to the bank statement.
+                </p>
               </div>
 
               <div className="space-y-2">

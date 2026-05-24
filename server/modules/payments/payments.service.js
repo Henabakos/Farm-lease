@@ -194,9 +194,18 @@ export async function submitReceipt(id, body, viewer) {
         uploadedById: viewer.id,
       },
     });
+    const bankReference = body.bank_reference ?? body.bankReference ?? null;
+    const submissionNotes = body.notes ?? null;
+    const mergedNotes = [submissionNotes, bankReference ? `Bank reference: ${bankReference}` : null]
+      .filter(Boolean)
+      .join('\n') || null;
     await tx.payment.update({
       where: { id },
-      data: { status: 'SUBMITTED', paidAt: new Date() },
+      data: {
+        status: 'SUBMITTED',
+        paidAt: new Date(),
+        ...(mergedNotes ? { notes: mergedNotes } : {}),
+      },
     });
     await tx.paymentVerification.upsert({
       where: { paymentId: id },

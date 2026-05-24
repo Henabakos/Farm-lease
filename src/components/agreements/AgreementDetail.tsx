@@ -406,6 +406,44 @@ export function AgreementDetail({
             </Card>
           </motion.div>
 
+          <motion.div variants={item}>
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+              <CardHeader className="pb-3 px-5 pt-5">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Farming Plan</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 px-5 pb-5">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Crop</p>
+                    <p className="text-xs font-bold text-slate-900">{agreement.terms.cropType || '—'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Land Area</p>
+                    <p className="text-xs font-bold text-slate-900">
+                      {agreement.terms.landArea
+                        ? `${agreement.terms.landArea} ${agreement.terms.landAreaUnit ?? 'hectares'}`
+                        : '—'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Revenue Share</p>
+                    <p className="text-xs font-bold text-slate-900">
+                      {agreement.terms.revenueShare != null ? `${agreement.terms.revenueShare}% to cluster` : '—'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Term</p>
+                    <p className="text-xs font-bold text-slate-900">
+                      {agreement.startDate ? new Date(agreement.startDate).toLocaleDateString() : '—'}
+                      {' → '}
+                      {agreement.endDate ? new Date(agreement.endDate).toLocaleDateString() : '—'}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
           {canShowSignatureCard && (
             <motion.div variants={item}>
               <Card className="border border-primary/20 shadow-md shadow-primary/5 bg-primary/5 rounded-lg overflow-hidden">

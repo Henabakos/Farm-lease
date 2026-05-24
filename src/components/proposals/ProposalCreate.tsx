@@ -55,6 +55,11 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
     repaymentPeriod: '',
     collateral: '',
     location: '',
+    cropType: '',
+    landArea: '',
+    landAreaUnit: 'hectares',
+    revenueShare: '',
+    expectedStartDate: '',
   });
 
   // Handle pre-selected cluster from router state
@@ -162,6 +167,11 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
           interestRate: formData.interestRate ? Number(formData.interestRate) : undefined,
           repaymentPeriod: formData.repaymentPeriod || undefined,
           collateral: formData.collateral || undefined,
+          cropType: formData.cropType || undefined,
+          landArea: formData.landArea ? Number(formData.landArea) : undefined,
+          landAreaUnit: formData.landArea ? formData.landAreaUnit : undefined,
+          revenueShare: formData.revenueShare ? Number(formData.revenueShare) : undefined,
+          expectedStartDate: formData.expectedStartDate || undefined,
         },
         documents: docs.map((d) => ({
           storage_key: d.storage_key,
@@ -330,6 +340,99 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
                     onChange={handleInputChange}
                     className="h-9 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium pl-3"
                   />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+              <CardHeader className="p-5 border-b border-slate-100 bg-slate-50/50">
+                <CardTitle className="text-base font-bold tracking-tight">Farming Plan</CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">
+                  Tell the cluster what you intend to grow and on how much land.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="cropType" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">
+                      Crop Type
+                    </Label>
+                    <Input
+                      id="cropType"
+                      name="cropType"
+                      placeholder="e.g., Maize, Teff, Coffee"
+                      value={formData.cropType}
+                      onChange={handleInputChange}
+                      className="h-9 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium pl-3"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="expectedStartDate" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">
+                      Expected Start Date
+                    </Label>
+                    <Input
+                      id="expectedStartDate"
+                      name="expectedStartDate"
+                      type="date"
+                      value={formData.expectedStartDate}
+                      onChange={handleInputChange}
+                      className="h-9 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium pl-3"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="landArea" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">
+                      Land Area
+                    </Label>
+                    <Input
+                      id="landArea"
+                      name="landArea"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="e.g., 25"
+                      value={formData.landArea}
+                      onChange={handleInputChange}
+                      className="h-9 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium pl-3"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">Unit</Label>
+                    <Select
+                      value={formData.landAreaUnit}
+                      onValueChange={(val) => setFormData((prev) => ({ ...prev, landAreaUnit: val }))}
+                    >
+                      <SelectTrigger className="h-9 bg-slate-50 border-slate-200 rounded-md focus:ring-primary/20 text-xs font-medium pl-3">
+                        <SelectValue placeholder="Unit" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-md border-slate-200">
+                        <SelectItem value="hectares" className="text-xs font-medium">Hectares</SelectItem>
+                        <SelectItem value="acres" className="text-xs font-medium">Acres</SelectItem>
+                        <SelectItem value="sqm" className="text-xs font-medium">Square meters</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="revenueShare" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">
+                    Revenue Share Offered to Cluster (%)
+                  </Label>
+                  <Input
+                    id="revenueShare"
+                    name="revenueShare"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    placeholder="e.g., 30"
+                    value={formData.revenueShare}
+                    onChange={handleInputChange}
+                    className="h-9 bg-slate-50 border-slate-200 rounded-md focus-visible:ring-primary/20 focus-visible:bg-white transition-all text-xs font-medium pl-3"
+                  />
+                  <p className="text-[10px] text-slate-400 font-medium ml-1">
+                    The cluster representative will negotiate this with farmers before accepting.
+                  </p>
                 </div>
               </CardContent>
             </Card>
