@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import { useClusters } from "@/src/hooks/useClusters";
 import { mapClusterFromApi, mapPaymentFromApi } from "@/src/lib/apiMappers";
 import { paymentVerificationService } from "@/src/services/payment-verification";
+import { KycReviewTab } from "./KycReviewTab";
 import { authAPI, paymentsAPI } from "@/src/services/api";
 import { useStore } from "@/src/store/useStore";
 import {
@@ -56,6 +57,7 @@ import {
     RefreshCw,
     Search,
     Shield,
+    ShieldCheck,
     Trash2,
     UserPlus,
     Users,
@@ -135,7 +137,7 @@ export const AdminDashboard: React.FC = () => {
         "ALL" | "DISBURSEMENT" | "REPAYMENT" | "FEE"
     >("ALL");
     const [activeTab, setActiveTab] = useState<
-        "USERS" | "CLUSTERS" | "PAYMENTS" | "CONTRACTS" | "AI"
+        "USERS" | "CLUSTERS" | "PAYMENTS" | "KYC" | "CONTRACTS" | "AI"
     >("USERS");
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [actionType, setActionType] = useState<
@@ -651,6 +653,13 @@ export const AdminDashboard: React.FC = () => {
                                         Payments
                                     </TabsTrigger>
                                     <TabsTrigger
+                                        value="KYC"
+                                        className="rounded-sm px-4 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all gap-1.5"
+                                    >
+                                        <ShieldCheck className="w-3 h-3" />
+                                        KYC
+                                    </TabsTrigger>
+                                    <TabsTrigger
                                         value="CONTRACTS"
                                         className="rounded-sm px-4 h-full font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all gap-1.5"
                                     >
@@ -1026,6 +1035,7 @@ export const AdminDashboard: React.FC = () => {
                                             )}
                                         </div>
                                     )}
+                                    {activeTab === "KYC" && <KycReviewTab />}
                                     {activeTab === "AI" && <AdminAIPanel />}
                                 </motion.div>
                             </AnimatePresence>
