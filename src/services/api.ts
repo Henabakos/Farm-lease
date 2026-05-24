@@ -239,6 +239,7 @@ export const agreementsAPI = {
 export const paymentsAPI = {
   getAll: (filters?: any) => api.get('/payments', { params: filters }),
   getById: (id: string) => api.get(`/payments/${id}`),
+  getStats: () => api.get('/payments/stats'),
   create: (data: any) => api.post('/payments', data),
   process: (id: string, data: any) =>
     api.post(`/payments/${id}/process`, typeof data === 'string' ? { storage_key: data, file_name: data, mime_type: 'application/pdf', file_size: 1000 } : data),
@@ -247,6 +248,7 @@ export const paymentsAPI = {
   refund: (id: string, reason?: string) =>
     api.post(`/payments/${id}/refund`, { reason })
 };
+
 
 // Messages API
 export const messagesAPI = {
