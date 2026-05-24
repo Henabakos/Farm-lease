@@ -47,7 +47,7 @@ const item = {
 };
 
 export function AgreementList({ onSelectAgreement }: { onSelectAgreement: (agreement: Agreement) => void }) {
-  const { agreements: apiAgreements, isLoading } = useAgreements();
+  const { agreements: apiAgreements, isLoading, downloadAgreement } = useAgreements();
   const agreements = Array.isArray(apiAgreements) ? apiAgreements.map((a) => mapAgreementFromApi(a as unknown as Record<string, unknown>)) : [];
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -180,7 +180,11 @@ export function AgreementList({ onSelectAgreement }: { onSelectAgreement: (agree
                           <Eye className="w-4 h-4" />
                           <span>View & Sign</span>
                         </Button>
-                        <Button variant="outline" className="w-full h-9 rounded-md gap-2 font-bold text-xs uppercase tracking-wider border-slate-200 bg-white hover:bg-slate-50 transition-all">
+                        <Button
+                          variant="outline"
+                          className="w-full h-9 rounded-md gap-2 font-bold text-xs uppercase tracking-wider border-slate-200 bg-white hover:bg-slate-50 transition-all"
+                          onClick={() => downloadAgreement(agreement.id, agreement.title)}
+                        >
                           <Download className="w-4 h-4" />
                           <span>Download PDF</span>
                         </Button>
