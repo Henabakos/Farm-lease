@@ -50,7 +50,7 @@ export function ClusterDetail({ cluster, onBack }: { cluster: Cluster, onBack: (
   const [showPlotDialog, setShowPlotDialog] = useState(false);
   const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null);
 
-  const canManageCluster = uiRole === 'ADMIN' || uiRole === 'CLUSTER_REP';
+  const canManageCluster = uiRole === 'ADMIN' || (uiRole === 'CLUSTER_REP' && cluster.ownerId === user?.id);
   const canVerify = uiRole === 'ADMIN';
   const canCreateProposal = uiRole === 'INVESTOR';
 

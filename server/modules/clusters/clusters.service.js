@@ -57,22 +57,31 @@ function pickCreate(input) {
 
 export async function list(query, viewer) {
     const { page, pageSize, q, region, ownerId, status } = query;
-    // Non-admins see ACTIVE clusters plus their own.
+    // Role-based visibility:
+    //   - ADMIN: see all clusters
+    //   - CLUSTER_REP: only clusters they own (represent)
+    //   - FARMER: only clusters they are active members of
+    //   - INVESTOR: only ACTIVE clusters
+    let visibilityFilter = {};
+    if (isAdmin(viewer)) {
+        visibilityFilter = {};
+    } else if (viewer.role === "CLUSTER_REP") {
+        visibilityFilter = { ownerId: viewer.id };
+    } else if (viewer.role === "FARMER") {
+        visibilityFilter = {
+            memberships: {
+                some: { userId: viewer.id, isActive: true },
+            },
+        };
+    } else if (viewer.role === "INVESTOR") {
+        visibilityFilter = { status: "ACTIVE" };
+    } else {
+        visibilityFilter = { status: "ACTIVE" };
+    }
+
     const where = {
         AND: [
-            isAdmin(viewer)
-                ? {}
-                : {
-                      OR: [
-                          { status: "ACTIVE" },
-                          { ownerId: viewer.id },
-                          {
-                              memberships: {
-                                  some: { userId: viewer.id, isActive: true },
-                              },
-                          },
-                      ],
-                  },
+            visibilityFilter,
             status ? { status } : {},
             ownerId ? { ownerId } : {},
             region ? { region: { equals: region, mode: "insensitive" } } : {},
@@ -140,8 +149,31 @@ async function loadOrThrow(id, { withRels = false } = {}) {
     return cluster;
 }
 
-export async function getById(id, _viewer) {
+export async function getById(id, viewer) {
     const c = await loadOrThrow(id, { withRels: true });
+    // Role-based access check:
+    //   - ADMIN: can view any cluster
+    //   - CLUSTER_REP: can only view clusters they own
+    //   - FARMER: can only view clusters they are active members of
+    //   - INVESTOR: can only view ACTIVE clusters
+    if (!isAdmin(viewer)) {
+        if (viewer.role === "CLUSTER_REP") {
+            if (c.ownerId !== viewer.id) {
+                throw new ForbiddenError("You can only view clusters you represent");
+            }
+        } else if (viewer.role === "FARMER") {
+            const membership = await prisma.clusterMembership.findUnique({
+                where: { userId_clusterId: { userId: viewer.id, clusterId: id } },
+            });
+            if (!membership || !membership.isActive) {
+                throw new ForbiddenError("You can only view clusters you are a member of");
+            }
+        } else if (viewer.role === "INVESTOR") {
+            if (c.status !== "ACTIVE") {
+                throw new ForbiddenError("You can only view active clusters");
+            }
+        }
+    }
     return toDto({
         ...c,
         _verified: c.boundaries?.some(
@@ -253,6 +285,14 @@ export async function listMembers(clusterId, viewer) {
 
 export async function removeMember(clusterId, userId, viewer) {
     const cluster = await loadOrThrow(clusterId);
+    // FARMER and INVESTOR cannot remove members
+    if (viewer.role === 'FARMER' || viewer.role === 'INVESTOR') {
+        throw new ForbiddenError('Only the cluster owner or admin can remove members');
+    }
+    // CLUSTER_REP can only remove members from clusters they own
+    if (viewer.role === 'CLUSTER_REP' && cluster.ownerId !== viewer.id) {
+        throw new ForbiddenError('You can only remove members from clusters you represent');
+    }
     if (cluster.ownerId !== viewer.id && !isAdmin(viewer)) {
         throw new ForbiddenError(
             "Only the cluster owner or admin can remove members",
@@ -274,8 +314,16 @@ export async function removeMember(clusterId, userId, viewer) {
 
 export async function inviteMember(clusterId, input, role, viewer) {
   const cluster = await loadOrThrow(clusterId);
-  if (cluster.ownerId !== viewer.id && !isAdmin(viewer) && viewer.role !== 'CLUSTER_REP') {
+  // FARMER and INVESTOR cannot invite members
+  if (viewer.role === 'FARMER' || viewer.role === 'INVESTOR') {
     throw new ForbiddenError('Only cluster owner, admin, or cluster rep can invite members');
+  }
+  // CLUSTER_REP can only invite to clusters they own
+  if (viewer.role === 'CLUSTER_REP' && cluster.ownerId !== viewer.id) {
+    throw new ForbiddenError('You can only invite members to clusters you represent');
+  }
+  if (cluster.ownerId !== viewer.id && !isAdmin(viewer)) {
+    throw new ForbiddenError('Only cluster owner or admin can invite members');
   }
 
   const targetUser = input?.userId
@@ -330,13 +378,20 @@ export async function inviteMember(clusterId, input, role, viewer) {
 
 export async function updateMemberRole(clusterId, userId, role, viewer) {
     const cluster = await loadOrThrow(clusterId);
+    // FARMER and INVESTOR cannot update member roles
+    if (viewer.role === 'FARMER' || viewer.role === 'INVESTOR') {
+        throw new ForbiddenError('Only cluster owner, admin, or cluster rep can update member roles');
+    }
+    // CLUSTER_REP can only update roles in clusters they own
+    if (viewer.role === 'CLUSTER_REP' && cluster.ownerId !== viewer.id) {
+        throw new ForbiddenError('You can only update member roles in clusters you represent');
+    }
     if (
         cluster.ownerId !== viewer.id &&
-        !isAdmin(viewer) &&
-        viewer.role !== "CLUSTER_REP"
+        !isAdmin(viewer)
     ) {
         throw new ForbiddenError(
-            "Only cluster owner, admin, or cluster rep can update member roles",
+            "Only cluster owner or admin can update member roles",
         );
     }
     if (userId === cluster.ownerId) {

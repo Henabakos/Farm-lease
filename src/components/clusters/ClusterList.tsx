@@ -65,6 +65,7 @@ export function ClusterList({ onSelectCluster }: { onSelectCluster: (cluster: Cl
   });
 
   const canCreateCluster = uiRole === 'ADMIN' || uiRole === 'CLUSTER_REP';
+  const canManageCluster = uiRole === 'ADMIN' || uiRole === 'CLUSTER_REP';
 
   if (isLoading && clusters.length === 0) {
     return (
@@ -187,11 +188,11 @@ export function ClusterList({ onSelectCluster }: { onSelectCluster: (cluster: Cl
                 </div>
 
                 <div className="mt-auto pt-2">
-                  <Button 
+                  <Button
                     className="w-full h-10 rounded-md bg-slate-50 hover:bg-primary text-slate-700 hover:text-white border border-slate-200 hover:border-primary transition-all duration-300 font-semibold text-sm gap-2 shadow-sm"
                     onClick={() => onSelectCluster(cluster)}
                   >
-                    <span>Manage Cluster</span>
+                    <span>{canManageCluster ? 'Manage Cluster' : 'View Details'}</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
                   </Button>
                 </div>
@@ -207,9 +208,14 @@ export function ClusterList({ onSelectCluster }: { onSelectCluster: (cluster: Cl
             <Search className="w-6 h-6 text-slate-300" />
           </div>
           <h3 className="text-lg font-bold text-foreground">No clusters found</h3>
-          <p className="text-slate-500 text-sm mt-1 max-w-md mx-auto">Try adjusting your filters or search query to find what you're looking for.</p>
-          <Button 
-            variant="link" 
+          <p className="text-slate-500 text-sm mt-1 max-w-md mx-auto">
+            {uiRole === 'FARMER' ? "You aren't part of any clusters yet." :
+             uiRole === 'CLUSTER_REP' ? "You don't represent any clusters yet." :
+             uiRole === 'INVESTOR' ? "No active clusters available for investment." :
+             "Try adjusting your filters or search query to find what you're looking for."}
+          </p>
+          <Button
+            variant="link"
             className="mt-4 text-primary font-semibold text-sm hover:no-underline hover:text-primary/80"
             onClick={() => { setSearchQuery(''); setRegionFilter('all'); setVerifiedFilter('all'); }}
           >
