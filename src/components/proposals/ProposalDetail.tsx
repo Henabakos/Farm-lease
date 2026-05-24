@@ -66,23 +66,127 @@ function StatusBadge({ status }: { status: ProposalStatus }) {
   }
 }
 
+function formatHistoryAction(action: string): string {
+  const labels: Record<string, string> = {
+    CREATED: 'Created proposal',
+    UPDATED: 'Updated proposal',
+    PUBLISHED: 'Submitted proposal',
+    REVIEWED: 'Reviewed proposal',
+    ACCEPTED: 'Accepted proposal',
+    REJECTED: 'Rejected proposal',
+    COUNTERED: 'Sent counter-offer',
+    WITHDRAWN: 'Withdrawn proposal',
+    EXPIRED: 'Expired proposal',
+  };
+
+  return labels[action] ?? action.replace(/_/g, ' ').toLowerCase();
+}
+
+function formatHistorySummary(details: ProposalHistoryEntry['details']): string | null {
+  if (!details) return null;
+  if (typeof details === 'string') return details;
+  if (typeof details !== 'object') return String(details);
+
+  const parts: string[] = [];
+  const proposedAmount = (details as any).proposedAmount ?? (details as any).proposed_amount;
+  if (proposedAmount != null) parts.push(`Amount: $${Number(proposedAmount).toLocaleString()}`);
+
+  const reason = (details as any).reason;
+  if (reason) parts.push(`Reason: ${String(reason)}`);
+
+  const proposedTerms = (details as any).proposedTerms ?? (details as any).proposed_terms;
+  if (proposedTerms && typeof proposedTerms === 'object') {
+    const interestRate = proposedTerms.interestRate ?? proposedTerms.interest_rate;
+    const repaymentPeriod = proposedTerms.repaymentPeriod ?? proposedTerms.repayment_period;
+    if (interestRate != null) parts.push(`Interest: ${Number(interestRate)}%`);
+    if (repaymentPeriod) parts.push(`Repayment: ${String(repaymentPeriod)}`);
+  }
+
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+function humanizeHistoryKey(key: string): string {
+  return key
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatHistoryValue(value: unknown): string {
+  if (value == null || value === '') return 'Not provided';
+  if (typeof value === 'number') return Number.isFinite(value) ? value.toLocaleString() : 'Not provided';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (Array.isArray(value)) return value.length > 0 ? value.map((item) => formatHistoryValue(item)).join(', ') : 'None';
+  if (typeof value === 'object') return 'See nested details';
+  return String(value);
+}
+
+function renderHistoryDetails(details: ProposalHistoryEntry['details']) {
+  if (!details || typeof details !== 'object' || Array.isArray(details)) return null;
+
+  const entries = Object.entries(details as Record<string, unknown>).filter(([, value]) => value !== undefined && value !== null && value !== '');
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="mt-3 rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-slate-100 bg-slate-50/70">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Details</p>
+          <p className="text-[11px] text-slate-500">Structured summary of the action.</p>
+        </div>
+        <Badge variant="outline" className="bg-white text-slate-500 border-slate-200 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md">
+          {entries.length} fields
+        </Badge>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-slate-100">
+        {entries.map(([key, value]) => {
+          const isNested = value && typeof value === 'object' && !Array.isArray(value);
+          return (
+            <div key={key} className="bg-white px-3 py-3 min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{humanizeHistoryKey(key)}</p>
+              {isNested ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {Object.entries(value as Record<string, unknown>)
+                    .filter(([, nestedValue]) => nestedValue !== undefined && nestedValue !== null && nestedValue !== '')
+                    .map(([nestedKey, nestedValue]) => (
+                      <div key={nestedKey} className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2 min-w-0">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{humanizeHistoryKey(nestedKey)}</p>
+                        <p className="mt-1 text-xs font-semibold text-slate-900 wrap-break-word">{formatHistoryValue(nestedValue)}</p>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p className="mt-1 text-sm font-semibold text-slate-900 wrap-break-word">{formatHistoryValue(value)}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function ProposalDetail({
   proposal,
   onBack,
   onNegotiate,
+  onUpdateProposal,
 }: {
   proposal: Proposal;
   onBack: () => void;
   onNegotiate: () => void;
+  onUpdateProposal: (updated: Partial<Proposal>) => void;
 }) {
   const { user } = useAuth();
-  const { acceptProposal, rejectProposal, publishProposal, getHistory } = useProposals();
+  const { acceptProposal, rejectProposal, withdrawProposal, publishProposal, reviewProposal, getHistory } = useProposals();
   const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'history'>('overview');
   const [history, setHistory] = useState<ProposalHistoryEntry[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isActing, setIsActing] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawReason, setWithdrawReason] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -115,16 +219,18 @@ export function ProposalDetail({
 
   const apiStatus = proposal.apiStatus ?? 'published';
   const isDraft = apiStatus === 'draft';
-  const isTerminal = apiStatus === 'accepted' || apiStatus === 'rejected' || apiStatus === 'expired';
+  const isTerminal = apiStatus === 'accepted' || apiStatus === 'rejected' || apiStatus === 'withdrawn' || apiStatus === 'expired';
 
-  const canPublish = isDraft && (isInvestor || user?.role === 'ADMIN');
-  const canActOnProposal = !isDraft && !isTerminal && (isCounterparty || user?.role === 'ADMIN');
-  const canNegotiate = !isDraft && !isTerminal;
+  const canPublish = isDraft && isInvestor;
+  const canWithdraw = !isDraft && !isTerminal && isInvestor;
+  const canActOnProposal = !isDraft && !isTerminal && isCounterparty;
+  const canNegotiate = !isDraft && !isTerminal && (isInvestor || isCounterparty);
 
   const handleAccept = async () => {
     setIsActing(true);
     try {
-      await acceptProposal(proposal.id);
+      const updated = await acceptProposal(proposal.id, proposal.version);
+      onUpdateProposal(updated);
     } finally {
       setIsActing(false);
     }
@@ -133,7 +239,18 @@ export function ProposalDetail({
   const handlePublish = async () => {
     setIsActing(true);
     try {
-      await publishProposal(proposal.id);
+      const updated = await publishProposal(proposal.id, proposal.version);
+      onUpdateProposal(updated);
+    } finally {
+      setIsActing(false);
+    }
+  };
+
+  const handleReview = async () => {
+    setIsActing(true);
+    try {
+      const updated = await reviewProposal(proposal.id, proposal.version);
+      onUpdateProposal(updated);
     } finally {
       setIsActing(false);
     }
@@ -142,9 +259,22 @@ export function ProposalDetail({
   const handleReject = async () => {
     setIsActing(true);
     try {
-      await rejectProposal(proposal.id, rejectReason.trim() || undefined);
+      const updated = await rejectProposal(proposal.id, rejectReason.trim() || undefined, proposal.version);
+      onUpdateProposal(updated);
       setShowRejectModal(false);
       setRejectReason('');
+    } finally {
+      setIsActing(false);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    setIsActing(true);
+    try {
+      const updated = await withdrawProposal(proposal.id, withdrawReason.trim() || undefined, proposal.version);
+      onUpdateProposal(updated);
+      setShowWithdrawModal(false);
+      setWithdrawReason('');
     } finally {
       setIsActing(false);
     }
@@ -181,7 +311,7 @@ export function ProposalDetail({
               className="gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95"
             >
               {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-              <span>Publish</span>
+              <span>Submit</span>
             </Button>
           )}
           {canNegotiate && (
@@ -194,8 +324,28 @@ export function ProposalDetail({
               <span>Negotiate</span>
             </Button>
           )}
+          {canWithdraw && (
+            <Button
+              variant="outline"
+              disabled={isActing}
+              className="text-slate-600 hover:bg-slate-50 border-slate-200 gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95"
+              onClick={() => setShowWithdrawModal(true)}
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              <span>Withdraw</span>
+            </Button>
+          )}
           {canActOnProposal && (
             <>
+              <Button
+                variant="outline"
+                disabled={isActing}
+                className="gap-2 h-9 px-4 rounded-md text-[10px] font-bold uppercase tracking-wider border-slate-200 bg-white shadow-sm transition-all active:scale-95"
+                onClick={handleReview}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Counter-offer</span>
+              </Button>
               <Button
                 variant="outline"
                 disabled={isActing}
@@ -347,7 +497,7 @@ export function ProposalDetail({
                             <FileText className="w-3.5 h-3.5 text-primary" />
                           </div>
                           <div>
-                            <p className="text-[11px] font-bold text-slate-900 truncate max-w-[160px]">{doc.name}</p>
+                            <p className="text-[11px] font-bold text-slate-900 truncate max-w-40">{doc.name}</p>
                             <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">{doc.size} • {doc.type}</p>
                           </div>
                         </div>
@@ -387,16 +537,20 @@ export function ProposalDetail({
                         </div>
                         <div className="flex-1 space-y-0.5">
                           <div className="flex items-center justify-between">
-                            <p className="text-xs font-bold text-slate-900">{h.action.replace(/_/g, ' ')}</p>
+                            <p className="text-xs font-bold text-slate-900">{formatHistoryAction(h.action)}</p>
                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
                               {new Date(h.created_at).toLocaleString()}
                             </p>
                           </div>
-                          {h.details && (
-                            <pre className="text-[11px] bg-slate-50 p-2.5 rounded-md mt-2 border border-slate-100 text-slate-600 font-mono overflow-x-auto whitespace-pre-wrap">
-                              {typeof h.details === 'string' ? h.details : JSON.stringify(h.details, null, 2)}
-                            </pre>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">
+                            {formatHistoryAction(h.action)} recorded in the proposal timeline.
+                          </p>
+                          {formatHistorySummary(h.details) && (
+                            <p className="text-[11px] text-slate-600 leading-relaxed">
+                              {formatHistorySummary(h.details)}
+                            </p>
                           )}
+                          {renderHistoryDetails(h.details)}
                         </div>
                       </div>
                     ))}
@@ -464,6 +618,38 @@ export function ProposalDetail({
             <Button variant="destructive" onClick={handleReject} disabled={isActing}>
               {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <XCircle className="w-3.5 h-3.5 mr-2" />}
               Reject Proposal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showWithdrawModal} onOpenChange={setShowWithdrawModal}>
+        <DialogContent className="sm:max-w-105 rounded-lg border-slate-200">
+          <DialogHeader>
+            <DialogTitle>Withdraw proposal</DialogTitle>
+            <DialogDescription>
+              The counterparty will be notified and negotiation will stop.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="withdrawReason" className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Reason
+            </Label>
+            <Textarea
+              id="withdrawReason"
+              value={withdrawReason}
+              onChange={(e) => setWithdrawReason(e.target.value)}
+              rows={4}
+              placeholder="Optional reason..."
+              className="text-xs"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowWithdrawModal(false)} disabled={isActing}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleWithdraw} disabled={isActing}>
+              {isActing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Withdraw'}
             </Button>
           </DialogFooter>
         </DialogContent>

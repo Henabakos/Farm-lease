@@ -149,8 +149,8 @@ export const clustersAPI = {
   listMembers: (id: string) => api.get(`/clusters/${id}/members`),
   removeMember: (id: string, memberId: string) =>
     api.delete(`/clusters/${id}/members/${memberId}`),
-  inviteMember: (id: string, email: string, role?: string) =>
-    api.post(`/clusters/${id}/members/invite`, { email, role }),
+  inviteMember: (id: string, data: { email?: string; userId?: string; role?: string }) =>
+    api.post(`/clusters/${id}/members/invite`, data),
   updateMemberRole: (id: string, userId: string, role: string) =>
     api.patch(`/clusters/${id}/members/${userId}/role`, { role }),
   verify: (id: string) => api.post(`/clusters/${id}/verify`)
@@ -163,15 +163,13 @@ export const plotsAPI = {
   update: (id: string, data: any) => api.patch(`/plots/${id}`, data),
   delete: (id: string) => api.delete(`/plots/${id}`)
 };
-
-// Resources API
 export const resourcesAPI = {
   getAll: (filters?: { category?: string; cropType?: string; search?: string }) =>
     api.get('/resources', { params: filters }),
   getById: (id: string) => api.get(`/resources/${id}`),
   create: (data: any) => api.post('/resources', data),
-  update: (id: string, data: any) => api.patch(`/resources/${id}`, data),
-  delete: (id: string) => api.delete(`/resources/${id}`)
+  update: (id: string, data: any) => api.put(`/resources/${id}`, data),
+  delete: (id: string) => api.delete(`/resources/${id}`),
 };
 
 // Provider Requests API
@@ -190,13 +188,23 @@ export const proposalsAPI = {
   getById: (id: string) => api.get(`/proposals/${id}`),
   getHistory: (id: string) => api.get(`/proposals/${id}/history`),
   create: (data: any) => api.post('/proposals', data),
-  update: (id: string, data: any) => api.put(`/proposals/${id}`, data),
-  publish: (id: string) => api.post(`/proposals/${id}/publish`),
-  accept: (id: string) => api.post(`/proposals/${id}/accept`),
-  reject: (id: string, reason?: string) =>
-    api.post(`/proposals/${id}/reject`, { reason }),
-  negotiate: (id: string, data: { proposedAmount: number; proposedTerms?: any; message?: string }) =>
-    api.post(`/proposals/${id}/negotiate`, data)
+  update: (id: string, data: any, expectedVersion?: number) =>
+    api.put(`/proposals/${id}`, expectedVersion != null ? { ...data, expectedVersion } : data),
+  publish: (id: string, expectedVersion?: number) =>
+    api.post(`/proposals/${id}/publish`, expectedVersion != null ? { expectedVersion } : {}),
+  review: (id: string, expectedVersion?: number) =>
+    api.post(`/proposals/${id}/review`, expectedVersion != null ? { expectedVersion } : {}),
+  accept: (id: string, expectedVersion?: number) =>
+    api.post(`/proposals/${id}/accept`, expectedVersion != null ? { expectedVersion } : {}),
+  reject: (id: string, reason?: string, expectedVersion?: number) =>
+    api.post(`/proposals/${id}/reject`, expectedVersion != null ? { reason, expectedVersion } : { reason }),
+  withdraw: (id: string, reason?: string, expectedVersion?: number) =>
+    api.post(`/proposals/${id}/withdraw`, expectedVersion != null ? { reason, expectedVersion } : { reason }),
+  getNegotiations: (id: string) => api.get(`/proposals/${id}/negotiations`),
+  negotiate: (id: string, data: { proposedAmount?: number; proposedTerms?: any; message?: string; expectedVersion?: number }) =>
+    api.post(`/proposals/${id}/negotiate`, data),
+  sendNegotiationMessage: (id: string, data: { proposedAmount?: number; proposedTerms?: any; message?: string }) =>
+    api.post(`/negotiations/${id}/messages`, data)
 };
 
 // Agreements API
@@ -205,6 +213,10 @@ export const agreementsAPI = {
   getById: (id: string) => api.get(`/agreements/${id}`),
   create: (data: any) => api.post('/agreements', data),
   update: (id: string, data: any) => api.put(`/agreements/${id}`, data),
+  sign: (id: string, data: { method?: 'TYPED' | 'DRAWN'; signature_data?: string }) =>
+    api.post(`/agreements/${id}/sign`, data),
+  download: (id: string) =>
+    api.get(`/agreements/${id}/download`, { responseType: 'blob' }),
   terminate: (id: string, reason?: string) =>
     api.post(`/agreements/${id}/terminate`, { reason })
 };
@@ -214,8 +226,8 @@ export const paymentsAPI = {
   getAll: (filters?: any) => api.get('/payments', { params: filters }),
   getById: (id: string) => api.get(`/payments/${id}`),
   create: (data: any) => api.post('/payments', data),
-  process: (id: string, transactionId: string) =>
-    api.post(`/payments/${id}/process`, { transactionId }),
+  process: (id: string, data: any) =>
+    api.post(`/payments/${id}/process`, typeof data === 'string' ? { storage_key: data, file_name: data, mime_type: 'application/pdf', file_size: 1000 } : data),
   verify: (id: string, data: any) =>
     api.post(`/payments/${id}/verify`, data),
   refund: (id: string, reason?: string) =>

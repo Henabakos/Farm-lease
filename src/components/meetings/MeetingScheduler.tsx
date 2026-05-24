@@ -421,6 +421,7 @@ function MeetingRow({
   onUpdateStatus,
   onDelete,
 }: {
+  key?: React.Key;
   meeting: MeetingDto;
   onUpdateStatus: (s: 'scheduled' | 'in-progress' | 'completed' | 'cancelled') => Promise<unknown>;
   onDelete: () => Promise<unknown>;

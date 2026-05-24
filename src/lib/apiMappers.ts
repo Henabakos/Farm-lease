@@ -29,6 +29,10 @@ export function uiRoleToApi(role: UserRole): ApiRole {
 }
 
 export function apiRoleToUi(role: ApiRole | string): UserRole {
+  const normalized = String(role).toUpperCase();
+  if (normalized === 'INVESTOR' || normalized === 'FARMER' || normalized === 'CLUSTER_REP' || normalized === 'ADMIN') {
+    return normalized as UserRole;
+  }
   if (role in API_TO_UI_ROLE) return API_TO_UI_ROLE[role as ApiRole];
   return 'FARMER';
 }
@@ -56,6 +60,7 @@ const PROPOSAL_STATUS_MAP: Record<string, ProposalStatus> = {
   negotiating: 'NEGOTIATING',
   accepted: 'APPROVED',
   rejected: 'REJECTED',
+  withdrawn: 'REJECTED',
   expired: 'REJECTED',
 };
 
@@ -72,6 +77,7 @@ export function mapProposalFromApi(row: Record<string, unknown>): Proposal {
     ? String(row.target_user_id ?? '')
     : String(row.cluster_id ?? '');
   const terms = (row.terms as Record<string, unknown>) || {};
+  const documents = Array.isArray(row.documents) ? row.documents as Record<string, unknown>[] : [];
   return {
     id: String(row.id),
     title: String(row.title),
@@ -87,10 +93,15 @@ export function mapProposalFromApi(row: Record<string, unknown>): Proposal {
       ? `${row.lease_term_months} months`
       : 'TBD',
     status,
+    version: Number(row.version ?? 0),
     // Raw backend status preserved so consumers can branch on draft/published/etc.
     apiStatus: rawStatus as Proposal['apiStatus'],
     createdAt: String(row.created_at ?? new Date().toISOString()),
-    documents: [],
+    documents: documents.map((doc) => ({
+      name: String(doc.file_name ?? doc.fileName ?? doc.storage_key ?? 'Document'),
+      size: doc.file_size != null ? `${Math.ceil(Number(doc.file_size) / 1024)} KB` : '',
+      type: String(doc.mime_type ?? doc.mimeType ?? 'application/octet-stream'),
+    })),
     terms: {
       interestRate: Number(terms.interestRate ?? terms.interest_rate ?? 0),
       repaymentPeriod: String(terms.repaymentPeriod ?? terms.repayment_period ?? 'Monthly'),
@@ -102,6 +113,7 @@ export function mapProposalFromApi(row: Record<string, unknown>): Proposal {
 
 const AGREEMENT_STATUS_MAP: Record<string, AgreementStatus> = {
   draft: 'PENDING',
+  pending_signatures: 'PENDING',
   active: 'SIGNED',
   completed: 'SIGNED',
   terminated: 'REJECTED',
@@ -109,8 +121,12 @@ const AGREEMENT_STATUS_MAP: Record<string, AgreementStatus> = {
 };
 
 export function mapAgreementFromApi(row: Record<string, unknown>): Agreement {
-  const status = AGREEMENT_STATUS_MAP[String(row.status)] || 'PENDING';
+  const rawStatus = String(row.status ?? 'draft').toLowerCase() as AgreementWorkflowStatus;
+  const status = AGREEMENT_STATUS_MAP[rawStatus] || 'PENDING';
   const terms = (row.terms as Record<string, unknown>) || {};
+  const clauses = Array.isArray(row.clauses) ? (row.clauses as Record<string, unknown>[]) : [];
+  const signatures = Array.isArray(row.signatures) ? (row.signatures as Record<string, unknown>[]) : [];
+
   return {
     id: String(row.id),
     proposalId: String(row.proposal_id),
@@ -120,13 +136,27 @@ export function mapAgreementFromApi(row: Record<string, unknown>): Agreement {
     targetName: String(row.tenant_name || 'Tenant'),
     amount: Number(row.monthly_amount ?? row.total_amount ?? 0),
     status,
+    apiStatus: rawStatus,
     createdAt: String(row.created_at ?? new Date().toISOString()),
     signedAt: row.signed_at ? String(row.signed_at) : undefined,
-    clauses: [],
+    clauses: clauses.map((clause, index) => ({
+      id: String(clause.id ?? `${row.id}-clause-${index}`),
+      title: String(clause.title ?? 'Clause'),
+      content: String(clause.content ?? clause.body ?? ''),
+      isEditable: Boolean(clause.isEditable ?? clause.is_editable ?? false),
+    })),
+    signatures: signatures.map((signature, index) => ({
+      id: String(signature.id ?? `${row.id}-signature-${index}`),
+      signerId: String(signature.signer_id ?? signature.signerId ?? ''),
+      method: String(signature.method ?? 'TYPED') as AgreementSignature['method'],
+      signedAt: String(signature.signed_at ?? signature.signedAt ?? new Date().toISOString()),
+    })),
     terms: {
-      interestRate: Number(terms.interest_rate ?? 0),
-      repaymentPeriod: String(row.payment_frequency || 'monthly'),
+      interestRate: Number(terms.interestRate ?? terms.interest_rate ?? 0),
+      repaymentPeriod: String(terms.repaymentPeriod ?? terms.repayment_period ?? 'monthly'),
+      collateral: terms.collateral ? String(terms.collateral) : undefined,
     },
+    history: [],
   };
 }
 

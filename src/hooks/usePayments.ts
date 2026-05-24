@@ -105,6 +105,23 @@ export const usePayments = () => {
     }
   }, []);
 
+  const verifyPayment = useCallback(async (id: string, data: { decision?: 'APPROVED' | 'REJECTED' | 'ESCALATED'; reviewer_notes?: string }) => {
+    try {
+      setIsLoading(true);
+      const response = await paymentsAPI.verify(id, data);
+      setPayments(prev => prev.map(p => p.id === id ? response.data : p));
+      toast.success(data.decision === 'REJECTED' ? 'Payment rejected' : 'Payment verified successfully');
+      return response.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to verify payment';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchPayments();
   }, [fetchPayments]);
@@ -117,6 +134,7 @@ export const usePayments = () => {
     getPayment,
     createPayment,
     processPayment,
-    refundPayment
+    refundPayment,
+    verifyPayment
   };
 };

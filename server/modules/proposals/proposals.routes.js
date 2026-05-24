@@ -25,6 +25,11 @@ router.get('/:id/history',
   asyncHandler(async (req, res) => res.json(await s.history(req.params.id, req.user))),
 );
 
+router.get('/:id/negotiations',
+  validate({ params: v.uuidParam }),
+  asyncHandler(async (req, res) => res.json(await s.negotiations(req.params.id, req.user))),
+);
+
 router.post('/',
   requirePermission(PERMISSIONS.PROPOSAL_CREATE),
   validate({ body: v.createProposalSchema }),
@@ -37,14 +42,19 @@ router.put('/:id',
 );
 
 router.post('/:id/publish',
-  validate({ params: v.uuidParam }),
-  asyncHandler(async (req, res) => res.json(await s.publish(req.params.id, req.user))),
+  validate({ params: v.uuidParam, body: v.versionOnlySchema }),
+  asyncHandler(async (req, res) => res.json(await s.publish(req.params.id, req.user, req.body))),
+);
+
+router.post('/:id/review',
+  validate({ params: v.uuidParam, body: v.versionOnlySchema }),
+  asyncHandler(async (req, res) => res.json(await s.review(req.params.id, req.user, req.body))),
 );
 
 router.post('/:id/accept',
   requirePermission(PERMISSIONS.PROPOSAL_ACCEPT),
-  validate({ params: v.uuidParam }),
-  asyncHandler(async (req, res) => res.json(await s.accept(req.params.id, req.user))),
+  validate({ params: v.uuidParam, body: v.versionOnlySchema }),
+  asyncHandler(async (req, res) => res.json(await s.accept(req.params.id, req.user, req.body))),
 );
 
 router.post('/:id/reject',
@@ -57,6 +67,18 @@ router.post('/:id/negotiate',
   requirePermission(PERMISSIONS.PROPOSAL_NEGOTIATE),
   validate({ params: v.uuidParam, body: v.negotiateSchema }),
   asyncHandler(async (req, res) => res.status(201).json(await s.negotiate(req.params.id, req.body, req.user))),
+);
+
+router.post('/:id/negotiations/messages',
+  requirePermission(PERMISSIONS.PROPOSAL_NEGOTIATE),
+  validate({ params: v.uuidParam, body: v.negotiateSchema }),
+  asyncHandler(async (req, res) => res.status(201).json(await s.negotiate(req.params.id, req.body, req.user))),
+);
+
+router.post('/:id/withdraw',
+  requirePermission(PERMISSIONS.PROPOSAL_WITHDRAW),
+  validate({ params: v.uuidParam, body: v.withdrawSchema }),
+  asyncHandler(async (req, res) => res.json(await s.withdraw(req.params.id, req.body, req.user))),
 );
 
 export default router;

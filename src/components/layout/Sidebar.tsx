@@ -35,24 +35,24 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
-  { title: 'Proposals', icon: FileText, path: '/proposals', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
-  { title: 'Agreements', icon: ShieldCheck, path: '/agreements', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
-  { title: 'Payments', icon: Wallet, path: '/payments', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
+  { title: 'Clusters', icon: Map, path: '/clusters', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
+  { title: 'Proposals', icon: FileText, path: '/proposals', roles: ['INVESTOR', 'CLUSTER_REP', 'ADMIN'] },
+  { title: 'Agreements', icon: ShieldCheck, path: '/agreements', roles: ['INVESTOR', 'CLUSTER_REP', 'ADMIN'] },
+  { title: 'Payments', icon: Wallet, path: '/payments', roles: ['INVESTOR', 'CLUSTER_REP', 'ADMIN'] },
   { title: 'Messages', icon: MessageSquare, path: '/messages', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
   { title: 'Meetings', icon: Calendar, path: '/meetings', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
   { title: 'Analytics', icon: BarChart3, path: '/analytics', roles: ['INVESTOR', 'ADMIN'] },
   { title: 'Admin Panel', icon: ShieldAlert, path: '/admin', roles: ['ADMIN'] },
   { title: 'Audit Logs', icon: History, path: '/audit-logs', roles: ['ADMIN'] },
   { title: 'Resources', icon: Briefcase, path: '/resources', roles: ['FARMER', 'CLUSTER_REP', 'ADMIN', 'INVESTOR'] },
-  { title: 'Clusters', icon: Map, path: '/clusters', roles: ['CLUSTER_REP', 'ADMIN', 'INVESTOR'] },
 ];
 
 export function Sidebar({ className }: { className?: string }) {
-  const { user, logout } = useRole();
+  const { user, logout, canAccess } = useRole();
   const location = useLocation();
   const [collapsed, setCollapsed] = React.useState(false);
 
-  const filteredNavItems = NAV_ITEMS.filter(item => item.roles.includes(user.role));
+  const filteredNavItems = NAV_ITEMS.filter((item) => canAccess(item.roles));
 
   return (
     <aside className={cn(

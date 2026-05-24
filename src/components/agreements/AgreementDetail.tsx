@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Agreement, Clause, AgreementStatus } from '@/src/types';
+import { Agreement, Clause, AgreementStatus, AgreementWorkflowStatus } from '@/src/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/src/store/useStore';
+import { useAgreements } from '@/src/hooks/useAgreements';
+import { mapAgreementFromApi } from '@/src/lib/apiMappers';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 
@@ -55,32 +57,58 @@ const item = {
 export function AgreementDetail({ 
   agreement, 
   onBack, 
-  onSign 
+  onSign,
+  onUpdateAgreement,
 }: { 
   agreement: Agreement, 
   onBack: () => void,
-  onSign?: (id: string) => void
+  onSign?: (agreement: Agreement) => void,
+  onUpdateAgreement?: (agreement: Agreement) => void,
 }) {
-  const { user, signAgreement } = useStore();
+  const { user } = useStore();
+  const { signAgreement: apiSignAgreement, updateAgreement: apiUpdateAgreement, downloadAgreement: apiDownloadAgreement } = useAgreements();
   const [clauses, setClauses] = useState<Clause[]>(agreement.clauses.length > 0 ? agreement.clauses : DEFAULT_CLAUSES);
   const [isSigning, setIsSigning] = useState(false);
   const [signedName, setSignedName] = useState('');
   const [isEditingTerms, setIsEditingTerms] = useState(false);
   const [terms, setTerms] = useState({ ...agreement.terms });
+  const workflowStatus: AgreementWorkflowStatus = agreement.apiStatus ?? (agreement.status === 'SIGNED' ? 'ACTIVE' : 'DRAFT');
+  const capturedSignatures = agreement.signatures ?? [];
 
   const handleClauseChange = (id: string, content: string) => {
     setClauses(clauses.map(c => c.id === id ? { ...c, content } : c));
   };
 
-  const handleSign = () => {
+  const handleSaveTerms = async () => {
+    try {
+      const updated = await apiUpdateAgreement(agreement.id, {
+        terms,
+        clauses: clauses.map((clause) => ({
+          title: clause.title,
+          body: clause.content,
+          isEditable: clause.isEditable,
+        })),
+      });
+      const mapped = mapAgreementFromApi(updated as Record<string, unknown>);
+      onUpdateAgreement?.(mapped);
+      setIsEditingTerms(false);
+      toast.success('Agreement draft updated');
+    } catch {
+      // handled by hook toast
+    }
+  };
+
+  const handleSign = async () => {
     if (!signedName.trim()) return;
     setIsSigning(true);
-    setTimeout(() => {
-      signAgreement(agreement.id);
+    try {
+      const updated = await apiSignAgreement(agreement.id, { method: 'TYPED', signature_data: signedName });
+      const mapped = mapAgreementFromApi(updated as Record<string, unknown>);
       setIsSigning(false);
-      toast.success('Agreement signed successfully');
-      if (onSign) onSign(agreement.id);
-    }, 1500);
+      if (onSign) onSign(mapped);
+    } catch (err) {
+      setIsSigning(false);
+    }
   };
 
   const getStatusBadge = (status: AgreementStatus) => {
@@ -94,10 +122,31 @@ export function AgreementDetail({
     }
   };
 
-  const canSign = agreement.status === 'PENDING' && 
-                  ((user.role === 'INVESTOR') || 
-                   (user.role === 'FARMER' && agreement.farmerId === user.id) || 
-                   (user.role === 'CLUSTER_REP' && agreement.clusterId === user.id));
+  const getWorkflowBadge = (status: AgreementWorkflowStatus) => {
+    switch (status) {
+      case 'DRAFT':
+        return <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 gap-1.5 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><FileText className="w-3 h-3" /> Draft</Badge>;
+      case 'PENDING_SIGNATURES':
+        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1.5 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><Clock className="w-3 h-3" /> Awaiting Payment</Badge>;
+      case 'ACTIVE':
+        return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1.5 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><CheckCircle2 className="w-3 h-3" /> Active</Badge>;
+      case 'COMPLETED':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 gap-1.5 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><CheckCircle2 className="w-3 h-3" /> Completed</Badge>;
+      case 'TERMINATED':
+      case 'DISPUTED':
+        return <Badge variant="outline" className="bg-destructive/5 text-destructive border-destructive/10 gap-1.5 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider"><XCircle className="w-3 h-3" /> {status.toLowerCase()}</Badge>;
+    }
+  };
+
+  const canEdit = (workflowStatus === 'DRAFT' || workflowStatus === 'PENDING_SIGNATURES') && (
+    user.role === 'INVESTOR' ||
+    user.role === 'CLUSTER_REP' ||
+    user.role === 'ADMIN'
+  );
+  const canSign = (workflowStatus === 'DRAFT' || workflowStatus === 'PENDING_SIGNATURES') && (
+    (capturedSignatures.length === 0 && user.role === 'CLUSTER_REP') ||
+    (capturedSignatures.length === 1 && user.role === 'INVESTOR')
+  );
 
   return (
     <motion.div 
@@ -120,6 +169,7 @@ export function AgreementDetail({
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">{agreement.title}</h1>
               {getStatusBadge(agreement.status)}
+              {getWorkflowBadge(workflowStatus)}
             </div>
             <p className="text-slate-500 text-xs mt-1">
               Contract ID: <span className="font-mono text-primary font-bold">{agreement.id.toUpperCase()}</span> • Created on {new Date(agreement.createdAt).toLocaleDateString()}
@@ -127,11 +177,11 @@ export function AgreementDetail({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2 h-9 px-4 rounded-md border-slate-200 bg-white hover:bg-slate-50 transition-all text-xs font-bold uppercase tracking-wider">
+          <Button variant="outline" className="gap-2 h-9 px-4 rounded-md border-slate-200 bg-white hover:bg-slate-50 transition-all text-xs font-bold uppercase tracking-wider" onClick={() => apiDownloadAgreement(agreement.id, agreement.title)}>
             <Download className="w-3.5 h-3.5" />
             <span>Download Draft</span>
           </Button>
-          {agreement.status === 'PENDING' && (
+          {workflowStatus === 'DRAFT' && (
             <Button variant="outline" className="text-destructive border-destructive/10 hover:bg-destructive/5 gap-2 h-9 px-4 rounded-md transition-all text-xs font-bold uppercase tracking-wider">
               <XCircle className="w-3.5 h-3.5" />
               <span>Reject</span>
@@ -185,11 +235,11 @@ export function AgreementDetail({
                         </Badge>
                       )}
                     </div>
-                    {clause.isEditable && agreement.status === 'PENDING' ? (
+                    {clause.isEditable && canEdit && isEditingTerms ? (
                       <Textarea 
                         value={clause.content}
                         onChange={(e) => handleClauseChange(clause.id, e.target.value)}
-                        className="min-h-[100px] bg-slate-50 border-slate-200 focus:border-primary/40 focus:ring-primary/10 rounded-md transition-all resize-none text-sm leading-relaxed"
+                        className="min-h-25 bg-slate-50 border-slate-200 focus:border-primary/40 focus:ring-primary/10 rounded-md transition-all resize-none text-sm leading-relaxed"
                       />
                     ) : (
                       <p className="text-sm text-slate-600 leading-relaxed pl-4 border-l-2 border-slate-100 group-hover:border-primary/20 transition-all">
@@ -202,35 +252,21 @@ export function AgreementDetail({
 
               <Separator className="my-10 bg-slate-100" />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div className="space-y-4">
-                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Investor Signature</p>
-                  <div className="h-20 border-b border-slate-200 flex items-end pb-2 italic font-serif text-2xl text-slate-700 bg-slate-50/50 rounded-t-md px-4">
-                    {agreement.investorName}
-                  </div>
-                  <div className="px-1">
-                    <p className="text-sm font-bold text-slate-900">{agreement.investorName}</p>
-                    <p className="text-[10px] text-slate-500">Signed on {new Date(agreement.createdAt).toLocaleDateString()}</p>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-4 rounded-md border border-slate-200 bg-slate-50/50 space-y-2">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Signature Progress</p>
+                  <p className="text-sm font-bold text-slate-900">{capturedSignatures.length} of 2 signatures captured</p>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    {workflowStatus === 'PENDING_SIGNATURES'
+                      ? 'Both parties have signed. The agreement is now waiting for payment verification.'
+                      : 'The agreement remains editable until both parties complete the review and signing flow.'}
+                  </p>
                 </div>
 
-                <div className="space-y-4">
-                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Target Signature</p>
-                  {agreement.status === 'SIGNED' ? (
-                    <div className="space-y-4">
-                      <div className="h-20 border-b border-slate-200 flex items-end pb-2 italic font-serif text-2xl text-slate-700 bg-slate-50/50 rounded-t-md px-4">
-                        {agreement.targetName}
-                      </div>
-                      <div className="px-1">
-                        <p className="text-sm font-bold text-slate-900">{agreement.targetName}</p>
-                        <p className="text-[10px] text-slate-500">Signed on {new Date(agreement.signedAt!).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="h-20 border border-dashed border-slate-200 rounded-md flex items-center justify-center text-slate-300 italic text-sm bg-slate-50/30">
-                      Awaiting Signature
-                    </div>
-                  )}
+                <div className="p-4 rounded-md border border-slate-200 bg-white space-y-2">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Latest Revision</p>
+                  <p className="text-sm font-bold text-slate-900">{workflowStatus === 'DRAFT' ? 'Draft in review' : 'Ready for activation'}</p>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">Edits to clauses or terms reset signatures and require both parties to confirm the updated draft again.</p>
                 </div>
               </div>
             </CardContent>
@@ -243,7 +279,7 @@ export function AgreementDetail({
               <CardHeader className="pb-3 px-5 pt-5">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Investment Terms</CardTitle>
-                  {agreement.status === 'PENDING' && (
+                  {workflowStatus !== 'ACTIVE' && workflowStatus !== 'COMPLETED' && (
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -305,13 +341,13 @@ export function AgreementDetail({
                   </div>
                 </div>
 
-                {isEditingTerms && (
+                {isEditingTerms && canEdit && (
                   <Button 
                     className="w-full h-9 gap-2 rounded-md shadow-sm transition-all text-xs font-bold uppercase tracking-wider" 
-                    onClick={() => setIsEditingTerms(false)}
+                    onClick={handleSaveTerms}
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    Save Terms
+                    Save Changes
                   </Button>
                 )}
               </CardContent>

@@ -9,6 +9,21 @@ const baseTerms = z.object({
   roi: z.coerce.number().min(0).max(1000).optional(),
 }).passthrough();
 
+const documentSchema = z.object({
+  storage_key: z.string().min(1).max(512).optional(),
+  storageKey: z.string().min(1).max(512).optional(),
+  file_name: z.string().min(1).max(255).optional(),
+  fileName: z.string().min(1).max(255).optional(),
+  mime_type: z.string().min(1).max(255).optional(),
+  mimeType: z.string().min(1).max(255).optional(),
+  file_size: z.coerce.number().int().nonnegative().optional(),
+  fileSize: z.coerce.number().int().nonnegative().optional(),
+}).passthrough();
+
+const versionSchema = z.object({
+  expectedVersion: z.coerce.number().int().nonnegative().optional(),
+}).passthrough();
+
 export const createProposalSchema = z.object({
   title: z.string().trim().min(2).max(200),
   description: z.string().trim().max(10_000).optional(),
@@ -28,14 +43,16 @@ export const createProposalSchema = z.object({
   roi: z.coerce.number().min(0).max(1000).optional(),
   location: z.string().trim().max(255).optional(),
   terms: baseTerms.optional(),
+  documents: z.array(documentSchema).max(20).optional(),
   expires_at: z.string().datetime().optional(),
   expiresAt:  z.string().datetime().optional(),
+  expectedVersion: z.coerce.number().int().nonnegative().optional(),
 });
 
 export const updateProposalSchema = createProposalSchema.partial();
 
 export const listProposalsQuery = z.object({
-  status: z.enum(['DRAFT', 'PUBLISHED', 'NEGOTIATING', 'ACCEPTED', 'REJECTED', 'EXPIRED']).optional(),
+  status: z.enum(['DRAFT', 'PUBLISHED', 'NEGOTIATING', 'ACCEPTED', 'REJECTED', 'WITHDRAWN', 'EXPIRED']).optional(),
   clusterId: z.string().uuid().optional(),
   cluster_id: z.string().uuid().optional(),
   page: z.coerce.number().int().positive().default(1),
@@ -47,11 +64,20 @@ export const negotiateSchema = z.object({
   proposedAmount:  z.coerce.number().positive().optional(),
   proposedTerms: baseTerms.optional(),
   message: z.string().trim().max(5000).optional(),
-}).refine((v) => v.proposed_amount != null || v.proposedAmount != null, {
-  message: 'proposedAmount is required',
-  path: ['proposedAmount'],
+  expectedVersion: z.coerce.number().int().nonnegative().optional(),
+}).refine((v) => v.proposed_amount != null || v.proposedAmount != null || Boolean(v.message), {
+  message: 'proposedAmount or message is required',
+  path: ['message'],
 });
 
 export const rejectSchema = z.object({
   reason: z.string().trim().max(2000).optional(),
+  expectedVersion: z.coerce.number().int().nonnegative().optional(),
 });
+
+export const withdrawSchema = z.object({
+  reason: z.string().trim().max(2000).optional(),
+  expectedVersion: z.coerce.number().int().nonnegative().optional(),
+});
+
+export const versionOnlySchema = versionSchema;

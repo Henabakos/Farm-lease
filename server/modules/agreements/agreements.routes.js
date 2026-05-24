@@ -20,6 +20,17 @@ router.get('/:id',
   asyncHandler(async (req, res) => res.json(await s.getById(req.params.id, req.user))),
 );
 
+router.get('/:id/download',
+  validate({ params: v.uuidParam }),
+  asyncHandler(async (req, res) => {
+    const agreement = await s.getById(req.params.id, req.user);
+    const pdfBuffer = s.generatePdfBuffer(agreement);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="agreement-${agreement.id}.pdf"`);
+    res.send(pdfBuffer);
+  }),
+);
+
 router.post('/',
   requirePermission(PERMISSIONS.AGREEMENT_DRAFT),
   validate({ body: v.createAgreementSchema }),
