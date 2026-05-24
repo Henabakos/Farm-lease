@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
+import { requireVerified } from '../../middleware/verification.js';
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/asyncHandler.js';
 import { PERMISSIONS } from '../rbac/permissions.js';
@@ -44,6 +45,7 @@ router.put('/:id',
 
 router.post('/:id/sign',
   requirePermission(PERMISSIONS.AGREEMENT_SIGN),
+  requireVerified,
   validate({ params: v.uuidParam, body: v.signAgreementSchema }),
   asyncHandler(async (req, res) => res.json(await s.sign(req.params.id, req.body, req.user))),
 );

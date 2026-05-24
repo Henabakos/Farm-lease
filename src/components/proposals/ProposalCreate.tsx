@@ -24,6 +24,9 @@ import { toast } from 'sonner';
 import { clustersAPI, usersAPI } from '@/src/services/api';
 import { uploadFile, type UploadedFile } from '@/src/services/files';
 import { useProposals } from '@/src/hooks/useProposals';
+import { useAuth } from '@/src/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
 
 interface TargetOption {
   id: string;
@@ -34,6 +37,9 @@ interface TargetOption {
 
 export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSubmit?: () => void }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user: authUser } = useAuth();
+  const isVerified = authUser?.role === 'ADMIN' || authUser?.verification_status === 'verified';
   const { createProposal, publishProposal } = useProposals();
   const [targetType, setTargetType] = useState<'FARMER' | 'CLUSTER'>('CLUSTER');
   const [targets, setTargets] = useState<TargetOption[]>([]);
@@ -134,6 +140,10 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
 
   const submit = async (e: React.FormEvent, publish: boolean) => {
     e.preventDefault();
+    if (!isVerified) {
+      toast.error('Verify your identity before creating a proposal');
+      return;
+    }
     if (!formData.targetId) {
       toast.error('Please select a target');
       return;
@@ -209,6 +219,30 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
           </p>
         </div>
       </div>
+
+      {!isVerified && (
+        <Card className="border border-amber-200 bg-amber-50 shadow-sm rounded-lg">
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-1">
+              <p className="text-xs font-bold text-amber-800">Identity verification required</p>
+              <p className="text-[11px] text-amber-700 font-medium leading-relaxed">
+                You need to verify your identity (selfie + national ID) before you can create or publish a proposal.
+                {authUser?.verification_status === 'pending' ? ' Your documents are pending admin review.' : ''}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 px-3 text-[10px] font-bold uppercase tracking-wider border-amber-300 text-amber-700 hover:bg-amber-100"
+              onClick={() => navigate('/profile')}
+              type="button"
+            >
+              Verify Identity
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <form onSubmit={(e) => submit(e, true)} className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -613,7 +647,7 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
             <div className="space-y-3">
               <Button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !isVerified}
                 className="w-full h-10 gap-2 text-[11px] font-bold uppercase tracking-wider rounded-md bg-primary hover:bg-primary/90 shadow-sm transition-all active:scale-95"
               >
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
@@ -622,7 +656,7 @@ export function ProposalCreate({ onBack, onSubmit }: { onBack: () => void; onSub
               <Button
                 type="button"
                 variant="outline"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !isVerified}
                 onClick={(e) => submit(e, false)}
                 className="w-full h-10 text-[11px] font-bold uppercase tracking-wider rounded-md border-slate-200 bg-white shadow-sm transition-all active:scale-95"
               >
