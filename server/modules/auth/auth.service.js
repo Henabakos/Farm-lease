@@ -197,6 +197,32 @@ export async function verifyEmail({ token }) {
 }
 
 // ----------------------------------------------------------------------------
+// resendVerification — re-issue an email verification token for the caller.
+// Idempotent and enumeration-safe: always returns success even if the email
+// is unknown or already verified.
+// ----------------------------------------------------------------------------
+export async function resendVerification({ email }) {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (user && !user.emailVerifiedAt && user.status !== 'DELETED' && user.status !== 'SUSPENDED') {
+    const verifyToken = await issueVerificationToken(user.id, 'EMAIL_VERIFICATION');
+    await prisma.outbox.create({
+      data: {
+        eventType: 'email.verification.send',
+        aggregateType: 'User',
+        aggregateId: user.id,
+        payload: {
+          to: user.email,
+          userId: user.id,
+          fullName: user.fullName,
+          verifyUrl: `${env.CLIENT_URL}/verify-email?token=${verifyToken}`,
+        },
+      },
+    });
+  }
+  return { message: 'If your email is registered and unverified, a new verification link has been sent.' };
+}
+
+// ----------------------------------------------------------------------------
 // requestPasswordReset
 // ----------------------------------------------------------------------------
 export async function requestPasswordReset({ email }) {

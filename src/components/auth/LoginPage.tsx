@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { motion } from 'motion/react';
 
 export function LoginPage({ onSwitch, onBack }: { onSwitch: () => void, onBack: () => void }) {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -76,7 +78,7 @@ export function LoginPage({ onSwitch, onBack }: { onSwitch: () => void, onBack: 
           <motion.div className="space-y-1.5">
             <div className="flex items-center justify-between ml-1">
               <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Password</Label>
-              <Button variant="link" type="button" className="px-0 font-bold text-[10px] h-auto text-primary hover:no-underline hover:text-primary/80 uppercase tracking-wider" onClick={() => setIsForgotPasswordOpen(true)}>
+              <Button variant="link" type="button" onClick={() => navigate('/forgot-password')} className="px-0 font-bold text-[10px] h-auto text-primary hover:no-underline hover:text-primary/80 uppercase tracking-wider">
                 Forgot password?
               </Button>
             </div>
