@@ -262,7 +262,16 @@ export const messagesAPI = {
   sendMessage: (data: any) => api.post('/messages', data),
   markAsRead: (id: string) => api.put(`/messages/${id}/read`),
   markAllAsRead: (conversationId: string) =>
-    api.put(`/messages/conversation/${conversationId}/read-all`)
+    api.put(`/messages/conversation/${conversationId}/read-all`),
+  // Invitation flow
+  sendInvitation: (data: { receiverId: string; message?: string }) =>
+    api.post('/messages/invitations', data),
+  getPendingInvitations: () =>
+    api.get('/messages/invitations/pending'),
+  acceptInvitation: (id: string) =>
+    api.post(`/messages/invitations/${id}/accept`),
+  declineInvitation: (id: string) =>
+    api.post(`/messages/invitations/${id}/decline`),
 };
 
 // Notifications API

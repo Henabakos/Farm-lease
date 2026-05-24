@@ -14,6 +14,7 @@ import {
 import { useAuth } from '@/src/contexts/AuthContext';
 import { ConversationList, type ConversationDto } from './ConversationList';
 import { ChatWindow, type ChatMessage } from './ChatWindow';
+import { InvitationBadge } from './InvitationBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -213,33 +214,45 @@ export function MessagingPage() {
   };
 
   // ---- New conversation ------------------------------------------------
-  const handleStartConversation = async (otherUserId: string) => {
+  const handleStartConversation = async (otherUserId: string, greetingMessage?: string) => {
     try {
-      const res = await messagesAPI.getOrCreateConversation({ otherUserId });
-      const convo: ConversationDto = res.data;
-      setConversations((prev) => {
-        if (prev.some((c) => c.id === convo.id)) return prev;
-        return [convo, ...prev];
-      });
-      setSearchParams({ conversation: convo.id });
+      await messagesAPI.sendInvitation({ receiverId: otherUserId, message: greetingMessage });
       setNewConvoOpen(false);
-    } catch {
-      toast.error('Failed to start conversation');
+      toast.success('Message request sent! They\'ll be notified.');
+    } catch (err: any) {
+      const code = err.response?.data?.code;
+      if (code === 'CONVERSATION_EXISTS') {
+        toast.info('You already have a conversation with this user');
+        setNewConvoOpen(false);
+      } else if (code === 'INVITATION_PENDING') {
+        toast.info('You already sent a request to this user');
+        setNewConvoOpen(false);
+      } else {
+        toast.error(err.response?.data?.error || 'Failed to send request');
+      }
     }
   };
+
+  const handleConversationActivated = useCallback((conversationId: string) => {
+    fetchConversations();
+    setSearchParams({ conversation: conversationId });
+  }, [fetchConversations, setSearchParams]);
 
   const selectedConvo = conversations.find((c) => c.id === selectedId) ?? null;
 
   return (
     <div className="flex h-[calc(100vh-120px)] -m-6 overflow-hidden">
-      <div className="w-80 shrink-0">
-        <ConversationList
-          conversations={conversations}
-          selectedId={selectedId ?? undefined}
-          isLoading={isLoadingList}
-          onSelect={(id) => setSearchParams({ conversation: id })}
-          onNewConversation={() => setNewConvoOpen(true)}
-        />
+      <div className="w-80 shrink-0 flex flex-col h-full">
+        <InvitationBadge onAccepted={handleConversationActivated} />
+        <div className="flex-1 overflow-hidden">
+          <ConversationList
+            conversations={conversations}
+            selectedId={selectedId ?? undefined}
+            isLoading={isLoadingList}
+            onSelect={(id) => setSearchParams({ conversation: id })}
+            onNewConversation={() => setNewConvoOpen(true)}
+          />
+        </div>
       </div>
       <div className="flex-1">
         {selectedConvo && authUser ? (
@@ -291,17 +304,21 @@ function NewConversationDialog({
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onSelect: (userId: string) => void;
+  onSelect: (userId: string, message?: string) => void;
 }) {
   const { user: authUser } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<UserSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null);
+  const [greetingMessage, setGreetingMessage] = useState('');
 
   useEffect(() => {
     if (!open) {
       setQuery('');
       setResults([]);
+      setSelectedUser(null);
+      setGreetingMessage('');
       return;
     }
     const handle = setTimeout(async () => {
@@ -319,69 +336,132 @@ function NewConversationDialog({
     return () => clearTimeout(handle);
   }, [open, query, authUser]);
 
+  const handleSendRequest = () => {
+    if (selectedUser) {
+      onSelect(selectedUser.id, greetingMessage || undefined);
+    }
+  };
+
+  const handleBack = () => {
+    setSelectedUser(null);
+    setGreetingMessage('');
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden">
         <DialogHeader className="p-4 border-b">
-          <DialogTitle className="text-base font-bold">Start a new conversation</DialogTitle>
+          <DialogTitle className="text-base font-bold">
+            {selectedUser ? 'Send message request' : 'Start a new conversation'}
+          </DialogTitle>
           <DialogDescription className="text-xs">
-            Search by name or email and pick a user to message.
+            {selectedUser
+              ? `Send a message request to ${userDisplayName(selectedUser)}`
+              : 'Search by name or email and pick a user to message.'}
           </DialogDescription>
         </DialogHeader>
         <div className="p-4 space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <Input
-              autoFocus
-              placeholder="Search users..."
-              className="pl-9 h-9 text-sm"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            {query && (
-              <button
-                type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
-                onClick={() => setQuery('')}
-                aria-label="Clear"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-          <div className="max-h-72 overflow-y-auto -mx-2">
-            {isLoading ? (
-              <div className="p-6 text-center text-xs text-slate-400 font-bold uppercase tracking-wider">
-                Searching...
+          {!selectedUser ? (
+            <>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <Input
+                  autoFocus
+                  placeholder="Search users..."
+                  className="pl-9 h-9 text-sm"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+                {query && (
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                    onClick={() => setQuery('')}
+                    aria-label="Clear"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
-            ) : results.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-400 font-bold uppercase tracking-wider">
-                No users found
+              <div className="max-h-72 overflow-y-auto -mx-2">
+                {isLoading ? (
+                  <div className="p-6 text-center text-xs text-slate-400 font-bold uppercase tracking-wider">
+                    Searching...
+                  </div>
+                ) : results.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-slate-400 font-bold uppercase tracking-wider">
+                    No users found
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-slate-100">
+                    {results.map((u) => (
+                      <li key={u.id}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedUser(u)}
+                          className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-left"
+                        >
+                          <div className="w-9 h-9 rounded-md bg-slate-50 border border-slate-200 flex items-center justify-center">
+                            <User className="w-4 h-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-slate-900 truncate">{userDisplayName(u)}</p>
+                            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+                              {u.role?.replace('_', ' ')}
+                            </p>
+                          </div>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {results.map((u) => (
-                  <li key={u.id}>
-                    <button
-                      type="button"
-                      onClick={() => onSelect(u.id)}
-                      className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-left"
-                    >
-                      <div className="w-9 h-9 rounded-md bg-slate-50 border border-slate-200 flex items-center justify-center">
-                        <User className="w-4 h-4 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-900 truncate">{userDisplayName(u)}</p>
-                        <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
-                          {u.role?.replace('_', ' ')}
-                        </p>
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-md border border-slate-200">
+                <div className="w-9 h-9 rounded-md bg-white border border-slate-200 flex items-center justify-center">
+                  <User className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-900 truncate">{userDisplayName(selectedUser)}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+                    {selectedUser.role?.replace('_', ' ')}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+                  Add a greeting message (optional)
+                </label>
+                <textarea
+                  value={greetingMessage}
+                  onChange={(e) => setGreetingMessage(e.target.value)}
+                  placeholder="Hi, I'd like to start a conversation..."
+                  className="w-full min-h-[80px] p-3 text-sm border border-slate-200 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  maxLength={500}
+                />
+                <p className="text-[10px] text-slate-400 mt-1 text-right">
+                  {greetingMessage.length}/500
+                </p>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={handleBack}
+                  className="flex-1"
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={handleSendRequest}
+                  className="flex-1"
+                >
+                  Send Request
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>

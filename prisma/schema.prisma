@@ -85,6 +85,8 @@ model User {
   conversations2     Conversation[]     @relation("ConversationUser2")
   providerRequests    ProviderRequest[]
   conversationReads   ConversationRead[]
+  invitationsSent     ConversationInvitation[] @relation("InvitationSender")
+  invitationsReceived ConversationInvitation[] @relation("InvitationReceiver")
   notifications       Notification[]     @relation("NotificationRecipient")
   notificationsActed  Notification[]     @relation("NotificationActor")
   meetingsHosted      Meeting[]          @relation("MeetingHost")
@@ -781,7 +783,7 @@ model Conversation {
   messages      Message[]
   reads         ConversationRead[]
 
-  @@unique([user1Id, user2Id, context, relatedId])
+  @@unique([user1Id, user2Id, context])
   @@index([lastMessageAt])
 }
 
@@ -825,6 +827,32 @@ model ConversationRead {
   lastReadMessageId String?    @db.Uuid
 
   @@unique([conversationId, userId])
+}
+
+// ============================================================================
+// CONVERSATION INVITATIONS
+// ============================================================================
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model ConversationInvitation {
+  id          String             @id @default(uuid()) @db.Uuid
+  senderId    String             @db.Uuid
+  sender      User               @relation("InvitationSender",   fields: [senderId],   references: [id], onDelete: Cascade)
+  receiverId  String             @db.Uuid
+  receiver    User               @relation("InvitationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  message     String?
+  status      InvitationStatus   @default(PENDING)
+  createdAt   DateTime           @default(now()) @db.Timestamptz()
+  updatedAt   DateTime           @updatedAt @db.Timestamptz()
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId, status])
+  @@index([senderId, status])
 }
 
 // ============================================================================

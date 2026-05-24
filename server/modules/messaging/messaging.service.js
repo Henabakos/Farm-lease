@@ -11,9 +11,9 @@
 // Emits `message.created` onto the outbox so the realtime broadcaster can
 // push to the `messages:<conversationId>` Socket.IO room.
 import { prisma } from '../../db/prisma.js';
-import { ForbiddenError, NotFoundError, ValidationError } from '../../shared/errors.js';
+import { ForbiddenError, NotFoundError, ValidationError, ConflictError } from '../../shared/errors.js';
 import { paginate, paginated } from '../../shared/pagination.js';
-import { recordOutbox } from '../../events/bus.js';
+import { recordOutbox, emitLocal } from '../../events/bus.js';
 
 function canonicalPair(a, b) {
   return a < b ? [a, b] : [b, a];
@@ -199,4 +199,155 @@ export async function markAllRead(conversationId, viewer) {
     create: { conversationId, userId: viewer.id, lastReadAt: new Date() },
   });
   return { message: 'All marked read' };
+}
+
+// ── Invitation helpers ─────────────────────────────────────────────────────
+
+/**
+ * SENDER: Send a conversation invitation to another user.
+ * Rules:
+ * - Cannot invite yourself.
+ * - Cannot invite if a PENDING or ACCEPTED invitation already exists in either direction.
+ * - Cannot invite if a conversation already exists between the two.
+ */
+export async function sendInvitation(senderId, { receiverId, message }) {
+  if (senderId === receiverId) {
+    throw new ValidationError('Cannot invite yourself');
+  }
+
+  const receiver = await prisma.user.findUnique({ where: { id: receiverId }, select: { id: true } });
+  if (!receiver) throw new NotFoundError('User not found');
+
+  // Check for existing invitation in either direction
+  const existing = await prisma.conversationInvitation.findFirst({
+    where: {
+      status: { in: ['PENDING', 'ACCEPTED'] },
+      OR: [
+        { senderId, receiverId },
+        { senderId: receiverId, receiverId: senderId },
+      ],
+    },
+  });
+  if (existing?.status === 'ACCEPTED') {
+    throw new ConflictError('A conversation already exists with this user', 'CONVERSATION_EXISTS');
+  }
+  if (existing?.status === 'PENDING') {
+    throw new ConflictError('An invitation is already pending', 'INVITATION_PENDING');
+  }
+
+  const invitation = await prisma.conversationInvitation.create({
+    data: { senderId, receiverId, message: message ?? null },
+    include: {
+      sender: { select: { id: true, fullName: true, role: true, avatarUrl: true } },
+    },
+  });
+
+  // Notify receiver via Socket.IO
+  emitLocal('invitation.sent', {
+    invitationId: invitation.id,
+    receiverId,
+    senderId,
+    senderName: invitation.sender.fullName,
+  });
+
+  return invitation;
+}
+
+/**
+ * RECEIVER: List pending invitations addressed to me.
+ */
+export async function listPendingInvitations(viewerId) {
+  const rows = await prisma.conversationInvitation.findMany({
+    where: { receiverId: viewerId, status: 'PENDING' },
+    include: {
+      sender: { select: { id: true, fullName: true, role: true, avatarUrl: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+  return rows;
+}
+
+/**
+ * RECEIVER: Accept a pending invitation → creates the conversation.
+ */
+export async function acceptInvitation(viewerId, invitationId) {
+  const inv = await prisma.conversationInvitation.findUnique({ where: { id: invitationId } });
+  if (!inv) throw new NotFoundError('Invitation not found');
+  if (inv.receiverId !== viewerId) throw new ForbiddenError('Not your invitation');
+  if (inv.status !== 'PENDING') throw new ConflictError('Invitation is no longer pending');
+
+  // Accept + create conversation atomically
+  let conversation;
+  try {
+    const [, convo] = await prisma.$transaction([
+      prisma.conversationInvitation.update({
+        where: { id: invitationId },
+        data: { status: 'ACCEPTED' },
+      }),
+      prisma.conversation.upsert({
+        where: {
+          user1Id_user2Id_context: {
+            user1Id: inv.senderId < viewerId ? inv.senderId : viewerId,
+            user2Id: inv.senderId < viewerId ? viewerId : inv.senderId,
+            context: 'GENERAL',
+          },
+        },
+        update: {},
+        create: {
+          user1Id: inv.senderId < viewerId ? inv.senderId : viewerId,
+          user2Id: inv.senderId < viewerId ? viewerId : inv.senderId,
+          context: 'GENERAL',
+        },
+      }),
+    ]);
+    conversation = convo;
+  } catch (err) {
+    console.error('Failed to accept invitation:', err);
+    throw new ValidationError('Failed to create conversation');
+  }
+
+  // Fetch full conversation DTO for both parties
+  const full = await prisma.conversation.findUnique({
+    where: { id: conversation.id },
+    include: {
+      user1: { select: { id: true, fullName: true, role: true, avatarUrl: true } },
+      user2: { select: { id: true, fullName: true, role: true, avatarUrl: true } },
+    },
+  });
+
+  if (!full) {
+    throw new NotFoundError('Conversation not found after creation');
+  }
+
+  // Notify sender that their invitation was accepted
+  try {
+    emitLocal('invitation.accepted', {
+      invitationId,
+      senderId: inv.senderId,
+      receiverId: viewerId,
+      conversationId: conversation.id,
+    });
+  } catch (err) {
+    console.error('Failed to emit invitation.accepted event:', err);
+    // Don't throw - the conversation was created successfully
+  }
+
+  return convoDto(full, viewerId);
+}
+
+/**
+ * RECEIVER: Decline a pending invitation.
+ */
+export async function declineInvitation(viewerId, invitationId) {
+  const inv = await prisma.conversationInvitation.findUnique({ where: { id: invitationId } });
+  if (!inv) throw new NotFoundError('Invitation not found');
+  if (inv.receiverId !== viewerId) throw new ForbiddenError('Not your invitation');
+  if (inv.status !== 'PENDING') throw new ConflictError('Invitation is no longer pending');
+
+  await prisma.conversationInvitation.update({
+    where: { id: invitationId },
+    data: { status: 'DECLINED' },
+  });
+
+  return { success: true };
 }
