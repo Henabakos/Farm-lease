@@ -90,7 +90,6 @@ export function PaymentList({
   const { role, isAdmin, isClusterRep } = useRole();
   const isInvestor = role === 'INVESTOR';
   const { payments: apiPayments, isLoading } = usePayments();
-  console.log(apiPayments)
   const apiPaymentRows: Array<Record<string, unknown>> = Array.isArray(apiPayments)
     ? (apiPayments as Array<Record<string, unknown>>)
     : Array.isArray((apiPayments as { data?: unknown } | undefined)?.data)
@@ -127,31 +126,6 @@ export function PaymentList({
     const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
-
-  if (payments.length === 0) {
-    return (
-      <motion.div className="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md bg-slate-50 text-slate-400">
-          <FileText className="h-5 w-5" />
-        </div>
-        <h2 className="text-base font-bold tracking-tight text-slate-900">No payments yet</h2>
-        <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
-          {isInvestor
-            ? 'Payments appear here once you have a fully-signed agreement. Open the agreement and click "Upload Payment Receipt" to schedule the initial disbursement.'
-            : 'Payments will appear here once they are created for your account.'}
-        </p>
-        {isInvestor && (
-          <Button
-            className="mt-5 h-9 gap-2 px-4 rounded-md text-xs font-bold uppercase tracking-wider"
-            onClick={() => (window.location.href = '/agreements')}
-          >
-            <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>Go to Agreements</span>
-          </Button>
-        )}
-      </motion.div>
-    );
-  }
 
   const isAdminOrRep = isAdmin || isClusterRep;
 
@@ -223,7 +197,28 @@ export function PaymentList({
           </motion.div>
 
           <motion.div variants={container} className="grid grid-cols-1 gap-4">
-            {filteredPayments.map((payment) => (
+            {filteredPayments.length === 0 ? (
+              <motion.div variants={item} className="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md bg-slate-50 text-slate-400">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <h2 className="text-base font-bold tracking-tight text-slate-900">No payments yet</h2>
+                <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
+                  {payments.length === 0 && isInvestor
+                    ? 'Payments appear here once you have a fully-signed agreement. Open the agreement and click "Upload Payment Receipt" to schedule the initial disbursement.'
+                    : 'Try adjusting your filters or search query.'}
+                </p>
+                {payments.length === 0 && isInvestor && (
+                  <Button
+                    className="mt-5 h-9 gap-2 px-4 rounded-md text-xs font-bold uppercase tracking-wider"
+                    onClick={() => (window.location.href = '/agreements')}
+                  >
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                    <span>Go to Agreements</span>
+                  </Button>
+                )}
+              </motion.div>
+            ) : filteredPayments.map((payment) => (
               <motion.div key={payment.id} variants={item}>
                 <Card className="group hover:shadow-md transition-all duration-300 border border-slate-200 bg-white overflow-hidden rounded-lg">
                   <CardContent className="p-0">
