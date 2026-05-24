@@ -83,7 +83,7 @@ export function buildApp() {
     app.use(requestId());
     app.use(
         pinoHttp({
-            logger: pinoHttpLogger,
+            logger: logger,
             genReqId: (req) => req.id,
             customLogLevel: (_req, res, err) => {
                 if (err || res.statusCode >= 500) return "error";
