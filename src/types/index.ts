@@ -145,6 +145,9 @@ export interface Payment {
     submittedAt?: string;
     verifiedAt?: string;
     receiptUrl?: string;
+    receiptStorageKey?: string;
+    receiptMimeType?: string;
+    receiptFileSize?: number;
     receiptCount?: number;
     verificationDecision?: "PENDING" | "APPROVED" | "REJECTED" | "ESCALATED";
     notes?: string;
