@@ -304,6 +304,10 @@ function AppContent() {
                                 setSelectedPayment(p);
                                 navigate(`/payments/${p.id}/review`);
                             }}
+                            onViewReceipt={(p) => {
+                                setReceiptPayment(p);
+                                setShowReceiptModal(true);
+                            }}
                         />
                     }
                 />

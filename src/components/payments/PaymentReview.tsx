@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Payment } from '@/src/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useStore } from '@/src/store/useStore';
 import { usePayments } from '@/src/hooks/usePayments';
+import { getSignedDownloadUrl } from '@/src/services/files';
 import { toast } from 'sonner';
 
 export function PaymentReview({ 
@@ -46,6 +47,27 @@ export function PaymentReview({
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
+  const [receiptPreviewUrl, setReceiptPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadReceiptUrl() {
+      if (!payment.receiptStorageKey) {
+        setReceiptPreviewUrl(null);
+        return;
+      }
+      try {
+        const url = await getSignedDownloadUrl(payment.receiptStorageKey);
+        if (mounted) setReceiptPreviewUrl(url);
+      } catch {
+        if (mounted) setReceiptPreviewUrl(null);
+      }
+    }
+    loadReceiptUrl();
+    return () => {
+      mounted = false;
+    };
+  }, [payment.receiptStorageKey]);
 
   const handleVerify = async () => {
     setIsVerifying(true);
@@ -88,7 +110,12 @@ export function PaymentReview({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="h-9 gap-2 text-[10px] font-bold uppercase tracking-wider rounded-md border-slate-200 bg-white shadow-sm transition-all active:scale-95">
+          <Button
+            variant="outline"
+            className="h-9 gap-2 text-[10px] font-bold uppercase tracking-wider rounded-md border-slate-200 bg-white shadow-sm transition-all active:scale-95"
+            disabled={!receiptPreviewUrl}
+            onClick={() => receiptPreviewUrl && window.open(receiptPreviewUrl, '_blank', 'noopener,noreferrer')}
+          >
             <Download className="w-3.5 h-3.5" />
             <span>Download Receipt</span>
           </Button>
@@ -102,11 +129,13 @@ export function PaymentReview({
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-bold tracking-tight">Receipt Preview</CardTitle>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md hover:bg-slate-100 transition-all active:scale-95">
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Zoom</span>
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md hover:bg-slate-100 transition-all active:scale-95">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md hover:bg-slate-100 transition-all active:scale-95"
+                    disabled={!receiptPreviewUrl}
+                    onClick={() => receiptPreviewUrl && window.open(receiptPreviewUrl, '_blank', 'noopener,noreferrer')}
+                  >
                     <ExternalLink className="w-3.5 h-3.5" />
                     <span>Open in New Tab</span>
                   </Button>
@@ -114,26 +143,26 @@ export function PaymentReview({
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="aspect-[3/4] bg-slate-50 flex flex-col items-center justify-center text-center p-12 space-y-6">
-                <div className="w-20 h-20 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm border border-primary/5">
-                  <FileText className="w-10 h-10 text-primary" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-lg font-bold text-slate-900 tracking-tight">Receipt: {payment.receiptUrl}</h3>
-                  <p className="text-xs text-slate-500 max-w-[300px] leading-relaxed font-medium">
-                    This is a simulated preview of the uploaded document. In a real application, the PDF or image would be rendered here.
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-4 w-full max-w-[400px]">
-                  <div className="p-4 rounded-md bg-white border border-slate-100 text-left space-y-1 shadow-sm">
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">File Type</p>
-                    <p className="text-xs font-bold text-slate-700">PDF Document</p>
+              <div className="aspect-[3/4] bg-slate-50 flex flex-col items-center justify-center text-center p-4 space-y-4">
+                {receiptPreviewUrl && payment.receiptMimeType?.startsWith('image/') ? (
+                  <img src={receiptPreviewUrl} alt={payment.receiptUrl ?? 'Payment receipt'} className="h-full max-h-[720px] w-full object-contain rounded-md border border-slate-200 bg-white" />
+                ) : receiptPreviewUrl ? (
+                  <iframe title={payment.receiptUrl ?? 'Payment receipt'} src={receiptPreviewUrl} className="h-full min-h-[720px] w-full rounded-md border border-slate-200 bg-white" />
+                ) : (
+                  <div className="space-y-6">
+                    <div className="w-20 h-20 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm border border-primary/5 mx-auto">
+                      <FileText className="w-10 h-10 text-primary" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-bold text-slate-900 tracking-tight">Receipt: {payment.receiptUrl ?? 'No receipt file'}</h3>
+                      <p className="text-xs text-slate-500 max-w-[300px] leading-relaxed font-medium">
+                        {payment.receiptStorageKey
+                          ? 'Unable to load a signed preview URL. Try opening the receipt again.'
+                          : 'No receipt file is attached to this payment yet.'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="p-4 rounded-md bg-white border border-slate-100 text-left space-y-1 shadow-sm">
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">File Size</p>
-                    <p className="text-xs font-bold text-slate-700">1.2 MB</p>
-                  </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>

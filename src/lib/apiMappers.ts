@@ -225,6 +225,7 @@ export function mapPaymentFromApi(row: Record<string, unknown>): Payment {
     const receipts = Array.isArray(row.receipts)
         ? (row.receipts as Record<string, unknown>[])
         : [];
+    const latestReceipt = receipts[0];
     const rawType = String(
         row.type ?? row.payment_type ?? "repayment",
     ).toLowerCase();
@@ -277,9 +278,24 @@ export function mapPaymentFromApi(row: Record<string, unknown>): Payment {
         receiptUrl:
             String(row.receipt_url ?? "") ||
             String(
-                (receipts[0]?.file_name ?? receipts[0]?.storage_key) || "",
+                (latestReceipt?.file_name ?? latestReceipt?.storage_key) || "",
             ) ||
             undefined,
+        receiptStorageKey: latestReceipt?.storage_key
+            ? String(latestReceipt.storage_key)
+            : row.receipt_storage_key
+              ? String(row.receipt_storage_key)
+              : undefined,
+        receiptMimeType: latestReceipt?.mime_type
+            ? String(latestReceipt.mime_type)
+            : row.receipt_mime_type
+              ? String(row.receipt_mime_type)
+              : undefined,
+        receiptFileSize: latestReceipt?.file_size
+            ? Number(latestReceipt.file_size)
+            : row.receipt_file_size
+              ? Number(row.receipt_file_size)
+              : undefined,
         receiptCount:
             receipts.length || Number(row.receipt_count ?? 0) || undefined,
         verificationDecision,
