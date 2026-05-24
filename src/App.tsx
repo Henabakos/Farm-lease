@@ -23,10 +23,17 @@ import { ProposalDetail } from "@/src/components/proposals/ProposalDetail";
 import { NegotiationView } from "@/src/components/proposals/NegotiationView";
 import { AgreementList } from "@/src/components/agreements/AgreementList";
 import { AgreementDetail } from "@/src/components/agreements/AgreementDetail";
+import { AdminAgreementView } from "@/src/components/agreements/AdminAgreementView";
+import { InvestorAgreementView } from "@/src/components/agreements/InvestorAgreementView";
+import { RepresentativeAgreementView } from "@/src/components/agreements/RepresentativeAgreementView";
+import { FarmerAgreementView } from "@/src/components/agreements/FarmerAgreementView";
 import { PaymentList } from "@/src/components/payments/PaymentList";
 import { PaymentSubmit } from "@/src/components/payments/PaymentSubmit";
 import { PaymentReview } from "@/src/components/payments/PaymentReview";
 import { PaymentDetail } from "@/src/components/payments/PaymentDetail";
+import { AdminPaymentView } from "@/src/components/payments/AdminPaymentView";
+import { InvestorPaymentView } from "@/src/components/payments/InvestorPaymentView";
+import { RepresentativePaymentView } from "@/src/components/payments/RepresentativePaymentView";
 import { MessagingPage } from "@/src/components/messaging/MessagingPage";
 import { MeetingScheduler } from "@/src/components/meetings/MeetingScheduler";
 import { AIChatbot } from "@/src/components/ai/AIChatbot";
@@ -257,12 +264,41 @@ function AppContent() {
                 <Route
                     path="/agreements"
                     element={
-                        <AgreementList
-                            onSelectAgreement={(a) => {
-                                setSelectedAgreement(a);
-                                navigate(`/agreements/${a.id}`);
-                            }}
-                        />
+                        AGREEMENT_ACCESS_ROLES.includes(role) ? (
+                            role === "ADMIN" ? (
+                                <AdminAgreementView
+                                    onSelectAgreement={(a) => {
+                                        setSelectedAgreement(a);
+                                        navigate(`/agreements/${a.id}`);
+                                    }}
+                                />
+                            ) : role === "INVESTOR" ? (
+                                <InvestorAgreementView
+                                    onSelectAgreement={(a) => {
+                                        setSelectedAgreement(a);
+                                        navigate(`/agreements/${a.id}`);
+                                    }}
+                                />
+                            ) : role === "CLUSTER_REP" ? (
+                                <RepresentativeAgreementView
+                                    onSelectAgreement={(a) => {
+                                        setSelectedAgreement(a);
+                                        navigate(`/agreements/${a.id}`);
+                                    }}
+                                />
+                            ) : role === "FARMER" ? (
+                                <FarmerAgreementView
+                                    onSelectAgreement={(a) => {
+                                        setSelectedAgreement(a);
+                                        navigate(`/agreements/${a.id}`);
+                                    }}
+                                />
+                            ) : (
+                                <Navigate to="/dashboard" replace />
+                            )
+                        ) : (
+                            <Navigate to="/dashboard" replace />
+                        )
                     }
                 />
                 <Route
