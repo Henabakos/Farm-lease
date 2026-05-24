@@ -300,12 +300,14 @@ function AppContent() {
                                 setSelectedPayment(p);
                                 navigate(`/payments/${p.id}`);
                             }}
-                            onSubmitPayment={(p) =>
-                                navigate(`/payments/${p.id}/submit`)
-                            }
-                            onReviewPayment={(p) =>
-                                navigate(`/payments/${p.id}/review`)
-                            }
+                            onSubmitPayment={(p) => {
+                                setSelectedPayment(p);
+                                navigate(`/payments/${p.id}/submit`);
+                            }}
+                            onReviewPayment={(p) => {
+                                setSelectedPayment(p);
+                                navigate(`/payments/${p.id}/review`);
+                            }}
                         />
                     }
                 />
