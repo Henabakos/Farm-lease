@@ -164,7 +164,13 @@ async function autoDraftAgreement(tx, proposal) {
   if (existing) return existing;
 
   const terms = proposal.terms && typeof proposal.terms === 'object' ? proposal.terms : {};
-  const startDate = terms.startDate ? new Date(terms.startDate) : new Date();
+  const startDate = terms.startDate
+    ? new Date(terms.startDate)
+    : terms.expectedStartDate
+      ? new Date(terms.expectedStartDate)
+      : terms.expected_start_date
+        ? new Date(terms.expected_start_date)
+        : new Date();
   const leaseMonths = proposal.leaseTermMonths ?? Number(terms.durationMonths ?? terms.leaseTermMonths ?? 12);
   const endDate = terms.endDate ? new Date(terms.endDate) : addMonths(startDate, leaseMonths);
   const totalAmount = proposal.proposedAmount;

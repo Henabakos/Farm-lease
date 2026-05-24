@@ -135,11 +135,14 @@ export async function create(body, viewer) {
     ? agreement.proposal.targetUserId
     : agreement.cluster?.ownerId;
   if (!receiverId) throw new ConflictError('Agreement has no payment receiver');
-  if (![receiverId].includes(viewer.id) && !isAdmin(viewer)) {
-    throw new ForbiddenError('Only the agreement receiver can schedule payments');
-  }
   // Payer = the proposing investor; receiver = cluster owner or target farmer.
   const payerId = agreement.proposal.investorId;
+  // Either party (or admin) may initiate the payment record. The receiver
+  // typically schedules repayments; the payer (investor) typically initiates
+  // the initial DISBURSEMENT so they can immediately submit a receipt.
+  if (viewer.id !== receiverId && viewer.id !== payerId && !isAdmin(viewer)) {
+    throw new ForbiddenError('Only the agreement parties can schedule payments');
+  }
 
   const payment = await prisma.payment.create({
     data: {
@@ -191,9 +194,18 @@ export async function submitReceipt(id, body, viewer) {
         uploadedById: viewer.id,
       },
     });
+    const bankReference = body.bank_reference ?? body.bankReference ?? null;
+    const submissionNotes = body.notes ?? null;
+    const mergedNotes = [submissionNotes, bankReference ? `Bank reference: ${bankReference}` : null]
+      .filter(Boolean)
+      .join('\n') || null;
     await tx.payment.update({
       where: { id },
-      data: { status: 'SUBMITTED', paidAt: new Date() },
+      data: {
+        status: 'SUBMITTED',
+        paidAt: new Date(),
+        ...(mergedNotes ? { notes: mergedNotes } : {}),
+      },
     });
     await tx.paymentVerification.upsert({
       where: { paymentId: id },

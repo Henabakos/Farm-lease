@@ -59,11 +59,23 @@ export interface Proposal {
   // (publish, accept, negotiate, ...) are valid in the current state.
   apiStatus?: 'draft' | 'published' | 'negotiating' | 'accepted' | 'rejected' | 'withdrawn' | 'expired';
   createdAt: string;
-  documents: { name: string; size: string; type: string }[];
+  documents: {
+    id?: string;
+    name: string;
+    size: string;
+    type: string;
+    storageKey?: string;
+    mimeType?: string;
+  }[];
   terms: {
     interestRate: number;
     repaymentPeriod: string;
     collateral?: string;
+    cropType?: string;
+    landArea?: number;
+    landAreaUnit?: string;
+    revenueShare?: number;
+    expectedStartDate?: string;
   };
   history: {
     date: string;
@@ -120,7 +132,16 @@ export interface Agreement {
     interestRate: number;
     repaymentPeriod: string;
     collateral?: string;
+    cropType?: string;
+    landArea?: number;
+    landAreaUnit?: string;
+    revenueShare?: number;
+    expectedStartDate?: string;
   };
+  startDate?: string;
+  endDate?: string;
+  totalAmount?: number;
+  currency?: string;
 }
 
 export type PaymentStatus =
@@ -145,6 +166,9 @@ export interface Payment {
     submittedAt?: string;
     verifiedAt?: string;
     receiptUrl?: string;
+    receiptStorageKey?: string;
+    receiptMimeType?: string;
+    receiptFileSize?: number;
     receiptCount?: number;
     verificationDecision?: "PENDING" | "APPROVED" | "REJECTED" | "ESCALATED";
     notes?: string;

@@ -22,6 +22,9 @@ export const submitReceiptSchema = z.object({
   file_size:   z.coerce.number().int().nonnegative(),
   perceptual_hash: z.string().min(8).max(128).optional(),
   extracted_fields: z.record(z.any()).optional(),
+  bank_reference: z.string().trim().max(120).optional(),
+  bankReference:  z.string().trim().max(120).optional(),
+  notes: z.string().trim().max(2000).optional(),
 });
 
 export const verifySchema = z.object({

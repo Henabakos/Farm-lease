@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Agreement, Clause, AgreementStatus, AgreementWorkflowStatus } from '@/src/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,12 +23,14 @@ import {
   AlertCircle,
   TrendingUp,
   Calendar,
-  DollarSign
+  DollarSign,
+  Upload
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useStore } from '@/src/store/useStore';
+import { useAuth } from '@/src/contexts/AuthContext';
 import { useAgreements } from '@/src/hooks/useAgreements';
 import { mapAgreementFromApi } from '@/src/lib/apiMappers';
+import { paymentsAPI } from '@/src/services/api';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 
@@ -65,14 +68,17 @@ export function AgreementDetail({
   onSign?: (agreement: Agreement) => void,
   onUpdateAgreement?: (agreement: Agreement) => void,
 }) {
-  const { user } = useStore();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { signAgreement: apiSignAgreement, updateAgreement: apiUpdateAgreement, downloadAgreement: apiDownloadAgreement } = useAgreements();
   const [clauses, setClauses] = useState<Clause[]>(agreement.clauses.length > 0 ? agreement.clauses : DEFAULT_CLAUSES);
   const [isSigning, setIsSigning] = useState(false);
   const [signedName, setSignedName] = useState('');
   const [isEditingTerms, setIsEditingTerms] = useState(false);
+  const [isPreparingReceipt, setIsPreparingReceipt] = useState(false);
   const [terms, setTerms] = useState({ ...agreement.terms });
-  const workflowStatus: AgreementWorkflowStatus = agreement.apiStatus ?? (agreement.status === 'SIGNED' ? 'ACTIVE' : 'DRAFT');
+  const rawWorkflowStatus = agreement.apiStatus ?? (agreement.status === 'SIGNED' ? 'ACTIVE' : 'DRAFT');
+  const workflowStatus: AgreementWorkflowStatus = String(rawWorkflowStatus).toUpperCase() as AgreementWorkflowStatus;
   const capturedSignatures = agreement.signatures ?? [];
 
   const handleClauseChange = (id: string, content: string) => {
@@ -111,6 +117,33 @@ export function AgreementDetail({
     }
   };
 
+  const handleUploadReceipt = async () => {
+    setIsPreparingReceipt(true);
+    try {
+      // 1) Look for an existing payment tied to this agreement.
+      const existing = await paymentsAPI.getAll({ agreementId: agreement.id });
+      const rows = (Array.isArray(existing.data?.data) ? existing.data.data : existing.data) as Array<Record<string, unknown>>;
+      const hasPending = rows.some((p) => String(p.status ?? '').toLowerCase() === 'pending');
+
+      if (!hasPending) {
+        // None found — create one now (server allows either party).
+        await paymentsAPI.create({
+          agreementId: agreement.id,
+          amount: agreement.amount,
+          type: 'DISBURSEMENT',
+          notes: 'Initial lease disbursement',
+        });
+      }
+      toast.success('Payment ready — submit your receipt from the Payments tab.');
+      navigate('/payments');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || 'Failed to prepare payment receipt upload';
+      toast.error(msg);
+    } finally {
+      setIsPreparingReceipt(false);
+    }
+  };
+
   const getStatusBadge = (status: AgreementStatus) => {
     switch (status) {
       case 'PENDING':
@@ -138,15 +171,16 @@ export function AgreementDetail({
     }
   };
 
+  const currentUserRole = user?.role;
+  const currentUserId = user?.id;
   const canEdit = (workflowStatus === 'DRAFT' || workflowStatus === 'PENDING_SIGNATURES') && (
-    user.role === 'INVESTOR' ||
-    user.role === 'CLUSTER_REP' ||
-    user.role === 'ADMIN'
+    currentUserRole === 'INVESTOR' ||
+    currentUserRole === 'CLUSTER_REP' ||
+    currentUserRole === 'ADMIN'
   );
-  const canSign = (workflowStatus === 'DRAFT' || workflowStatus === 'PENDING_SIGNATURES') && (
-    (capturedSignatures.length === 0 && user.role === 'CLUSTER_REP') ||
-    (capturedSignatures.length === 1 && user.role === 'INVESTOR')
-  );
+  const hasSigned = Boolean(currentUserId) && capturedSignatures.some((signature) => signature.signerId === currentUserId);
+  const canShowSignatureCard = workflowStatus === 'DRAFT' || workflowStatus === 'PENDING_SIGNATURES';
+  const canSign = canShowSignatureCard && Boolean(user) && !hasSigned;
 
   return (
     <motion.div 
@@ -168,7 +202,6 @@ export function AgreementDetail({
           <div>
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">{agreement.title}</h1>
-              {getStatusBadge(agreement.status)}
               {getWorkflowBadge(workflowStatus)}
             </div>
             <p className="text-slate-500 text-xs mt-1">
@@ -181,6 +214,25 @@ export function AgreementDetail({
             <Download className="w-3.5 h-3.5" />
             <span>Download Draft</span>
           </Button>
+          {workflowStatus === 'PENDING_SIGNATURES' && (
+            <Button
+              className="gap-2 h-9 px-4 rounded-md transition-all text-xs font-bold uppercase tracking-wider shadow-sm"
+              onClick={handleUploadReceipt}
+              disabled={isPreparingReceipt}
+            >
+              {isPreparingReceipt ? (
+                <>
+                  <Clock className="w-3.5 h-3.5 animate-spin" />
+                  <span>Preparing...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Payment Receipt</span>
+                </>
+              )}
+            </Button>
+          )}
           {workflowStatus === 'DRAFT' && (
             <Button variant="outline" className="text-destructive border-destructive/10 hover:bg-destructive/5 gap-2 h-9 px-4 rounded-md transition-all text-xs font-bold uppercase tracking-wider">
               <XCircle className="w-3.5 h-3.5" />
@@ -354,7 +406,45 @@ export function AgreementDetail({
             </Card>
           </motion.div>
 
-          {canSign && (
+          <motion.div variants={item}>
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+              <CardHeader className="pb-3 px-5 pt-5">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Farming Plan</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 px-5 pb-5">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Crop</p>
+                    <p className="text-xs font-bold text-slate-900">{agreement.terms.cropType || '—'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Land Area</p>
+                    <p className="text-xs font-bold text-slate-900">
+                      {agreement.terms.landArea
+                        ? `${agreement.terms.landArea} ${agreement.terms.landAreaUnit ?? 'hectares'}`
+                        : '—'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Revenue Share</p>
+                    <p className="text-xs font-bold text-slate-900">
+                      {agreement.terms.revenueShare != null ? `${agreement.terms.revenueShare}% to cluster` : '—'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Term</p>
+                    <p className="text-xs font-bold text-slate-900">
+                      {agreement.startDate ? new Date(agreement.startDate).toLocaleDateString() : '—'}
+                      {' → '}
+                      {agreement.endDate ? new Date(agreement.endDate).toLocaleDateString() : '—'}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {canShowSignatureCard && (
             <motion.div variants={item}>
               <Card className="border border-primary/20 shadow-md shadow-primary/5 bg-primary/5 rounded-lg overflow-hidden">
                 <CardHeader className="bg-primary/10 py-4 px-5">
@@ -373,10 +463,11 @@ export function AgreementDetail({
                     <Label htmlFor="sign-name" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-0.5">Type your full name to sign</Label>
                     <Input 
                       id="sign-name" 
-                      placeholder={user.name} 
+                      placeholder={user?.full_name || user?.email || 'Your full name'} 
                       className="bg-white border-slate-200 focus:border-primary focus:ring-primary/10 rounded-md h-10 text-sm font-medium px-4 transition-all"
                       value={signedName}
                       onChange={(e) => setSignedName(e.target.value)}
+                      disabled={hasSigned}
                     />
                   </div>
 
@@ -392,13 +483,18 @@ export function AgreementDetail({
 
                   <Button 
                     className="w-full h-10 gap-2 text-xs font-bold uppercase tracking-wider rounded-md shadow-md shadow-primary/20 transition-all" 
-                    disabled={!signedName.trim() || isSigning}
+                    disabled={!signedName.trim() || isSigning || hasSigned}
                     onClick={handleSign}
                   >
                     {isSigning ? (
                       <>
                         <Clock className="w-4 h-4 animate-spin" />
                         Processing...
+                      </>
+                    ) : hasSigned ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        Already Signed
                       </>
                     ) : (
                       <>

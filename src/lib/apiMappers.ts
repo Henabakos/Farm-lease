@@ -7,6 +7,8 @@ import type {
     ProposalStatus,
     AgreementStatus,
     PaymentStatus,
+    AgreementWorkflowStatus,
+    AgreementSignature,
 } from "@/src/types";
 
 export type ApiRole = "owner" | "tenant" | "admin";
@@ -110,6 +112,32 @@ export function mapProposalFromApi(row: Record<string, unknown>): Proposal {
             ? String(row.target_user_id ?? "")
             : String(row.cluster_id ?? "");
     const terms = (row.terms as Record<string, unknown>) || {};
+    const rawDocs = Array.isArray(row.documents)
+        ? (row.documents as Record<string, unknown>[])
+        : [];
+    const formatBytes = (bytes: number) => {
+        if (!Number.isFinite(bytes) || bytes <= 0) return "—";
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
+    const documents = rawDocs.map((d) => {
+        const fileName = String(d.file_name ?? d.fileName ?? "Document");
+        const mimeType = String(d.mime_type ?? d.mimeType ?? "");
+        const fileSize = Number(d.file_size ?? d.fileSize ?? 0);
+        const storageKey = d.storage_key ?? d.storageKey;
+        return {
+            id: d.id ? String(d.id) : undefined,
+            name: fileName,
+            size: formatBytes(fileSize),
+            type:
+                mimeType.split("/").pop()?.toUpperCase() ||
+                fileName.split(".").pop()?.toUpperCase() ||
+                "FILE",
+            storageKey: storageKey ? String(storageKey) : undefined,
+            mimeType: mimeType || undefined,
+        };
+    });
     return {
         id: String(row.id),
         title: String(row.title),
@@ -128,7 +156,7 @@ export function mapProposalFromApi(row: Record<string, unknown>): Proposal {
         // Raw backend status preserved so consumers can branch on draft/published/etc.
         apiStatus: rawStatus as Proposal["apiStatus"],
         createdAt: String(row.created_at ?? new Date().toISOString()),
-        documents: [],
+        documents,
         terms: {
             interestRate: Number(
                 terms.interestRate ?? terms.interest_rate ?? 0,
@@ -137,6 +165,11 @@ export function mapProposalFromApi(row: Record<string, unknown>): Proposal {
                 terms.repaymentPeriod ?? terms.repayment_period ?? "Monthly",
             ),
             collateral: terms.collateral ? String(terms.collateral) : undefined,
+            cropType: terms.cropType ?? terms.crop_type ? String(terms.cropType ?? terms.crop_type) : undefined,
+            landArea: terms.landArea ?? terms.land_area ? Number(terms.landArea ?? terms.land_area) : undefined,
+            landAreaUnit: terms.landAreaUnit ?? terms.land_area_unit ? String(terms.landAreaUnit ?? terms.land_area_unit) : undefined,
+            revenueShare: terms.revenueShare ?? terms.revenue_share ? Number(terms.revenueShare ?? terms.revenue_share) : undefined,
+            expectedStartDate: terms.expectedStartDate ?? terms.expected_start_date ? String(terms.expectedStartDate ?? terms.expected_start_date) : undefined,
         },
         history: [],
     };
@@ -144,6 +177,7 @@ export function mapProposalFromApi(row: Record<string, unknown>): Proposal {
 
 const AGREEMENT_STATUS_MAP: Record<string, AgreementStatus> = {
     draft: "PENDING",
+    pending_signatures: "PENDING",
     active: "SIGNED",
     completed: "SIGNED",
     terminated: "REJECTED",
@@ -151,8 +185,12 @@ const AGREEMENT_STATUS_MAP: Record<string, AgreementStatus> = {
 };
 
 export function mapAgreementFromApi(row: Record<string, unknown>): Agreement {
-    const status = AGREEMENT_STATUS_MAP[String(row.status)] || "PENDING";
+    const rawStatus = String(row.status ?? "draft").toLowerCase() as AgreementWorkflowStatus;
+    const status = AGREEMENT_STATUS_MAP[rawStatus] || "PENDING";
     const terms = (row.terms as Record<string, unknown>) || {};
+    const clauses = Array.isArray(row.clauses) ? (row.clauses as Record<string, unknown>[]) : [];
+    const signatures = Array.isArray(row.signatures) ? (row.signatures as Record<string, unknown>[]) : [];
+
     return {
         id: String(row.id),
         proposalId: String(row.proposal_id),
@@ -162,13 +200,35 @@ export function mapAgreementFromApi(row: Record<string, unknown>): Agreement {
         targetName: String(row.tenant_name || "Tenant"),
         amount: Number(row.monthly_amount ?? row.total_amount ?? 0),
         status,
+        apiStatus: rawStatus.toUpperCase() as AgreementWorkflowStatus,
         createdAt: String(row.created_at ?? new Date().toISOString()),
         signedAt: row.signed_at ? String(row.signed_at) : undefined,
-        clauses: [],
+        clauses: clauses.map((clause, index) => ({
+            id: String(clause.id ?? `${row.id}-clause-${index}`),
+            title: String(clause.title ?? "Clause"),
+            content: String(clause.content ?? clause.body ?? ""),
+            isEditable: Boolean(clause.isEditable ?? clause.is_editable ?? false),
+        })),
+        signatures: signatures.map((signature, index) => ({
+            id: String(signature.id ?? `${row.id}-signature-${index}`),
+            signerId: String(signature.signer_id ?? signature.signerId ?? ""),
+            method: String(signature.method ?? "TYPED") as AgreementSignature["method"],
+            signedAt: String(signature.signed_at ?? signature.signedAt ?? new Date().toISOString()),
+        })),
         terms: {
-            interestRate: Number(terms.interest_rate ?? 0),
-            repaymentPeriod: String(row.payment_frequency || "monthly"),
+            interestRate: Number(terms.interestRate ?? terms.interest_rate ?? 0),
+            repaymentPeriod: String(terms.repaymentPeriod ?? terms.repayment_period ?? row.payment_frequency ?? "monthly"),
+            collateral: terms.collateral ? String(terms.collateral) : undefined,
+            cropType: terms.cropType ?? terms.crop_type ? String(terms.cropType ?? terms.crop_type) : undefined,
+            landArea: terms.landArea ?? terms.land_area ? Number(terms.landArea ?? terms.land_area) : undefined,
+            landAreaUnit: terms.landAreaUnit ?? terms.land_area_unit ? String(terms.landAreaUnit ?? terms.land_area_unit) : undefined,
+            revenueShare: terms.revenueShare ?? terms.revenue_share ? Number(terms.revenueShare ?? terms.revenue_share) : undefined,
+            expectedStartDate: terms.expectedStartDate ?? terms.expected_start_date ? String(terms.expectedStartDate ?? terms.expected_start_date) : undefined,
         },
+        startDate: row.start_date ? String(row.start_date) : undefined,
+        endDate: row.end_date ? String(row.end_date) : undefined,
+        totalAmount: row.total_amount != null ? Number(row.total_amount) : undefined,
+        currency: row.currency ? String(row.currency) : undefined,
     };
 }
 
@@ -205,6 +265,7 @@ export function mapPaymentFromApi(row: Record<string, unknown>): Payment {
     const receipts = Array.isArray(row.receipts)
         ? (row.receipts as Record<string, unknown>[])
         : [];
+    const latestReceipt = receipts[0];
     const rawType = String(
         row.type ?? row.payment_type ?? "repayment",
     ).toLowerCase();
@@ -257,9 +318,24 @@ export function mapPaymentFromApi(row: Record<string, unknown>): Payment {
         receiptUrl:
             String(row.receipt_url ?? "") ||
             String(
-                (receipts[0]?.file_name ?? receipts[0]?.storage_key) || "",
+                (latestReceipt?.file_name ?? latestReceipt?.storage_key) || "",
             ) ||
             undefined,
+        receiptStorageKey: latestReceipt?.storage_key
+            ? String(latestReceipt.storage_key)
+            : row.receipt_storage_key
+              ? String(row.receipt_storage_key)
+              : undefined,
+        receiptMimeType: latestReceipt?.mime_type
+            ? String(latestReceipt.mime_type)
+            : row.receipt_mime_type
+              ? String(row.receipt_mime_type)
+              : undefined,
+        receiptFileSize: latestReceipt?.file_size
+            ? Number(latestReceipt.file_size)
+            : row.receipt_file_size
+              ? Number(row.receipt_file_size)
+              : undefined,
         receiptCount:
             receipts.length || Number(row.receipt_count ?? 0) || undefined,
         verificationDecision,

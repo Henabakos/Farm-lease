@@ -87,15 +87,19 @@ export function PaymentList({
   onReviewPayment: (payment: Payment) => void,
   onViewReceipt?: (payment: Payment) => void
 }) {
-  const { isAdmin, isClusterRep } = useRole();
+  const { role, isAdmin, isClusterRep } = useRole();
+  const isInvestor = role === 'INVESTOR';
   const { payments: apiPayments, isLoading } = usePayments();
-  const payments = apiPayments.length > 0
-    ? apiPayments.map((p) => mapPaymentFromApi(p as unknown as Record<string, unknown>))
-    : MOCK_PAYMENTS_FALLBACK;
+  const apiPaymentRows: Array<Record<string, unknown>> = Array.isArray(apiPayments)
+    ? (apiPayments as Array<Record<string, unknown>>)
+    : Array.isArray((apiPayments as { data?: unknown } | undefined)?.data)
+      ? ((apiPayments as unknown as { data: Array<Record<string, unknown>> }).data)
+      : [];
+  const payments: Payment[] = apiPaymentRows.map((payment) => mapPaymentFromApi(payment));
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  if (isLoading && apiPayments.length === 0) {
+  if (isLoading) {
     return (
       <motion.div className="flex items-center justify-center py-24">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -116,10 +120,10 @@ export function PaymentList({
     }
   };
 
-  const filteredPayments = payments.filter(p => {
-    const matchesSearch = p.agreementTitle.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+  const filteredPayments = payments.filter((payment) => {
+    const matchesSearch = payment.agreementTitle.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          payment.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -172,7 +176,7 @@ export function PaymentList({
                       placeholder="Search by agreement or payment ID..." 
                       className="pl-9 bg-white border-slate-200 focus-visible:ring-primary/20 h-9 rounded-md text-xs transition-all"
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                     />
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -193,7 +197,28 @@ export function PaymentList({
           </motion.div>
 
           <motion.div variants={container} className="grid grid-cols-1 gap-4">
-            {filteredPayments.map((payment) => (
+            {filteredPayments.length === 0 ? (
+              <motion.div variants={item} className="rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md bg-slate-50 text-slate-400">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <h2 className="text-base font-bold tracking-tight text-slate-900">No payments yet</h2>
+                <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
+                  {payments.length === 0 && isInvestor
+                    ? 'Payments appear here once you have a fully-signed agreement. Open the agreement and click "Upload Payment Receipt" to schedule the initial disbursement.'
+                    : 'Try adjusting your filters or search query.'}
+                </p>
+                {payments.length === 0 && isInvestor && (
+                  <Button
+                    className="mt-5 h-9 gap-2 px-4 rounded-md text-xs font-bold uppercase tracking-wider"
+                    onClick={() => (window.location.href = '/agreements')}
+                  >
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                    <span>Go to Agreements</span>
+                  </Button>
+                )}
+              </motion.div>
+            ) : filteredPayments.map((payment) => (
               <motion.div key={payment.id} variants={item}>
                 <Card className="group hover:shadow-md transition-all duration-300 border border-slate-200 bg-white overflow-hidden rounded-lg">
                   <CardContent className="p-0">
@@ -257,7 +282,7 @@ export function PaymentList({
                             <ShieldCheck className="w-3.5 h-3.5" />
                             <span>Review Receipt</span>
                           </Button>
-                        ) : uiRole === 'INVESTOR' && payment.status === 'PENDING' ? (
+                        ) : isInvestor && payment.status === 'PENDING' ? (
                           <Button 
                             className="w-full h-9 rounded-md gap-2 text-xs font-bold uppercase tracking-wider" 
                             onClick={() => onSubmitPayment(payment)}

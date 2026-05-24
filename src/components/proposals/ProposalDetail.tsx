@@ -11,6 +11,7 @@ import {
   XCircle,
   MessageSquare,
   FileText,
+  Download,
   History,
   DollarSign,
   Calendar,
@@ -33,6 +34,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { getSignedDownloadUrl } from '@/src/services/files';
+import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 
 function StatusBadge({ status }: { status: ProposalStatus }) {
@@ -475,6 +478,47 @@ export function ProposalDetail({
                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">ROI</p>
                       <p className="text-xs font-bold text-slate-900">{proposal.roi ? `${proposal.roi}%` : '—'}</p>
                     </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Revenue Share</p>
+                      <p className="text-xs font-bold text-slate-900">
+                        {proposal.terms.revenueShare != null ? `${proposal.terms.revenueShare}% to cluster` : '—'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Expected Start</p>
+                      <p className="text-xs font-bold text-slate-900">
+                        {proposal.terms.expectedStartDate
+                          ? new Date(proposal.terms.expectedStartDate).toLocaleDateString()
+                          : '—'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-400">Farming Plan</CardTitle>
+                  <CardDescription className="text-xs">Crop and land area committed by the investor.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Crop Type</p>
+                      <p className="text-xs font-bold text-slate-900">{proposal.terms.cropType || '—'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Land Area</p>
+                      <p className="text-xs font-bold text-slate-900">
+                        {proposal.terms.landArea
+                          ? `${proposal.terms.landArea} ${proposal.terms.landAreaUnit ?? 'hectares'}`
+                          : '—'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Location</p>
+                      <p className="text-xs font-bold text-slate-900">{proposal.location || '—'}</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -490,19 +534,65 @@ export function ProposalDetail({
               <CardContent>
                 {proposal.documents.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {proposal.documents.map((doc, i) => (
-                      <div key={i} className="p-3 rounded-md border border-slate-100 bg-slate-50 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center">
-                            <FileText className="w-3.5 h-3.5 text-primary" />
+                    {proposal.documents.map((doc, i) => {
+                      const openSigned = async (mode: 'view' | 'download') => {
+                        if (!doc.storageKey) {
+                          toast.error('Document is missing a storage reference');
+                          return;
+                        }
+                        try {
+                          const url = await getSignedDownloadUrl(doc.storageKey);
+                          if (mode === 'download') {
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = doc.name;
+                            a.rel = 'noopener noreferrer';
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                          } else {
+                            window.open(url, '_blank', 'noopener,noreferrer');
+                          }
+                        } catch {
+                          toast.error('Could not load document');
+                        }
+                      };
+                      return (
+                        <div key={doc.id ?? i} className="p-3 rounded-md border border-slate-100 bg-slate-50 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center shrink-0">
+                              <FileText className="w-3.5 h-3.5 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-bold text-slate-900 truncate">{doc.name}</p>
+                              <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">{doc.size} • {doc.type}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-[11px] font-bold text-slate-900 truncate max-w-40">{doc.name}</p>
-                            <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">{doc.size} • {doc.type}</p>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-600 hover:bg-white"
+                              onClick={() => openSigned('view')}
+                              disabled={!doc.storageKey}
+                            >
+                              <FileText className="w-3 h-3 mr-1" />
+                              View
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider text-primary hover:bg-primary/5"
+                              onClick={() => openSigned('download')}
+                              disabled={!doc.storageKey}
+                            >
+                              <Download className="w-3 h-3 mr-1" />
+                              Download
+                            </Button>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="py-10 text-center text-xs text-slate-400 font-bold uppercase tracking-wider">
