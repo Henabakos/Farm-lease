@@ -9,7 +9,7 @@
 //                              ↘ FAILED        (extraction / embedding error)
 //   • Document deletion: cascades to chunks (Prisma onDelete) and removes
 //     the underlying object from storage.
-//   • Vector retrieval over `KbChunk.embedding` (pgvector cosine).
+//   • Vector retrieval over `KbDocumentChunk.embedding` (pgvector cosine).
 //   • Chat: assemble retrieval context + system prompt → LlmPort.chat.
 //
 // Authorization summary (enforced here, not at the gateway):
@@ -241,7 +241,7 @@ export async function getDocumentDownloadUrl(docId, viewer) {
  * Cosine-similarity retrieval over pgvector. We pass the embedding as a JSON
  * array literal — pgvector accepts the `[...]::vector` cast natively.
  */
-export async function retrieve({ query, knowledgeBaseIds, topK = 6 }, viewer) {
+export async function retrieve({ query, knowledgeBaseIds, topK = 10 }, viewer) {
   if (!query || !query.trim()) return [];
   const [queryVec] = await embed([query]);
   if (!queryVec) return [];
@@ -259,9 +259,11 @@ export async function retrieve({ query, knowledgeBaseIds, topK = 6 }, viewer) {
   const rows = await prisma.$queryRawUnsafe(
     `
     SELECT c.id, c."documentId", c."chunkIndex", c.content, c.metadata,
+           kb.name AS "kbName",
            1 - (c.embedding <=> $1::vector) AS similarity
-    FROM "KbChunk" c
+    FROM "KbDocumentChunk" c
     JOIN "KbDocument" d ON d.id = c."documentId"
+    JOIN "KnowledgeBase" kb ON kb.id = d."knowledgeBaseId"
     WHERE d."knowledgeBaseId" = ANY($2::uuid[])
       AND d.status = 'INDEXED'
       AND c.embedding IS NOT NULL
@@ -295,10 +297,13 @@ async function accessibleKbIdsFor(viewer) {
 
 // ---------------------------------------------------------------- Chat
 const SYSTEM_PROMPT = `You are Farm Lease's professional agricultural investment assistant.
-You answer questions about lease proposals, agreements, payments, cluster operations,
-and general agronomy. Be concise, data-driven, and cite sources from the provided
-context when relevant. If the answer is not in the provided context, say so and
-suggest who to contact. Use markdown for formatting.`;
+Your task is to answer user questions about investments, lease proposals, agreements, payments, cluster operations, and agronomy based on the provided technical documentation.
+
+INSTRUCTIONS:
+- Answer ONLY based on the provided context chunks.
+- If the answer is not found in the context, state that you do not have enough information based on the documents. Do not hallucinate or use external knowledge.
+- Reference your sources clearly in your response (e.g., "According to Source 1...").
+- Keep your tone professional, concise, and data-driven.`;
 
 export async function answerChat({ chatId, message, knowledgeBaseIds }, viewer) {
   // 1. Persist user message + retrieve history.
@@ -319,19 +324,23 @@ export async function answerChat({ chatId, message, knowledgeBaseIds }, viewer) 
   });
 
   // 2. Retrieve context chunks.
-  const chunks = await retrieve({ query: message, knowledgeBaseIds, topK: 6 }, viewer);
+  logger.debug({ message, knowledgeBaseIds }, 'Retrieving chunks for chat');
+  const chunks = await retrieve({ query: message, knowledgeBaseIds, topK: 8 }, viewer);
+  logger.debug({ count: chunks.length }, 'Chunks retrieved');
   const context = chunks
-    .map((c, i) => `[Source ${i + 1}]\n${c.content}`)
-    .join('\n\n---\n\n');
+    .map((c, i) => `--- SOURCE ${i + 1} (From Knowledge Base: ${c.kbName}) ---\n${c.content}`)
+    .join('\n\n');
 
-  // 3. Build prompt: system + last N turns + retrieved context + new question.
+  // 3. Build prompt: system (instructions + context) + history + new question.
   const history = chatRow.messages.map((m) => ({
     role: m.role.toLowerCase(),
     content: m.content,
   }));
   const messages = [
-    { role: 'system', content: SYSTEM_PROMPT },
-    ...(context ? [{ role: 'system', content: `Context:\n${context}` }] : []),
+    { 
+      role: 'system', 
+      content: `${SYSTEM_PROMPT}\n\n${context ? `### CONTEXT:\n${context}` : 'No relevant document context found.'}`
+    },
     ...history,
     { role: 'user', content: message },
   ];
@@ -339,7 +348,9 @@ export async function answerChat({ chatId, message, knowledgeBaseIds }, viewer) 
   // 4. Call the LLM.
   let answer = '';
   try {
+    logger.debug({ messages }, 'Sending request to LLM');
     const res = await chat(messages, { temperature: 0.2, maxTokens: 1024 });
+    logger.debug({ res }, 'Received response from LLM');
     answer = res.content || '';
   } catch (err) {
     logger.error({ err }, 'LLM chat failed');
@@ -349,6 +360,7 @@ export async function answerChat({ chatId, message, knowledgeBaseIds }, viewer) 
   const citations = chunks.map((c, i) => ({
     index: i + 1,
     document_id: c.documentId,
+    kb_name: c.kbName,
     chunk_id: c.id,
     similarity: Number(c.similarity ?? 0).toFixed(3),
     snippet: String(c.content).slice(0, 220),
@@ -372,6 +384,246 @@ export async function answerChat({ chatId, message, knowledgeBaseIds }, viewer) 
     citations,
     created_at: saved.createdAt.toISOString(),
   };
+}
+
+/**
+ * Generate AI-powered insights or recommendations for a user (e.g. an investor)
+ * based on the Knowledge Base content.
+ */
+export async function getAiInsights({ userId, topic, knowledgeBaseIds }, viewer) {
+  const query = topic || 'investment opportunities and risk analysis';
+  const chunks = await retrieve({ query, knowledgeBaseIds, topK: 10 }, viewer);
+  
+  if (chunks.length === 0) {
+    return { 
+      insights: "No relevant documents found in the selected knowledge bases to generate insights.",
+      data_driven: false 
+    };
+  }
+
+  const context = chunks.map((c, i) => `--- SOURCE ${i + 1} (KB: ${c.kbName}) ---\n${c.content}`).join('\n\n');
+  const messages = [
+    { 
+      role: 'system', 
+      content: `You are an expert Agricultural Investment Analyst. 
+      Analyze the provided documents and provide a structured risk and opportunity assessment.
+      Structure:
+      1. Key Opportunities
+      2. Risk Assessment
+      3. Strategic Recommendations` 
+    },
+    { role: 'user', content: `Analyze the following context for: ${query}\n\nRELEVANT DOCUMENT CONTEXT:\n${context}` }
+  ];
+
+  try {
+    const res = await chat(messages, { temperature: 0.1, maxTokens: 1500 });
+    return {
+      topic: query,
+      insights: res.content,
+      source_count: chunks.length,
+      data_driven: true
+    };
+  } catch (err) {
+    logger.error({ err }, 'AI insights failed');
+    throw new Error('Failed to generate AI insights');
+  }
+}
+
+/**
+ * Perform semantic analysis for analytics data.
+ */
+export async function analyzeLeaseTrends({ knowledgeBaseIds }, viewer) {
+  const query = "economic trends, lease rates, soil health impacts, and market conditions";
+  const chunks = await retrieve({ query, knowledgeBaseIds, topK: 8 }, viewer);
+  
+  const context = chunks.map((c, i) => `--- SOURCE ${i + 1} (KB: ${c.kbName}) ---\n${c.content}`).join('\n\n');
+  const messages = [
+    { 
+      role: 'system', 
+      content: 'You are a Data Scientist specializing in Agriculture. Summarize key lease and market trends from the metadata and documents.' 
+    },
+    { role: 'user', content: `Summarize trends based on this context:\n\n${context}` }
+  ];
+
+  const res = await chat(messages, { temperature: 0.3 });
+  return { trends: res.content };
+}
+
+/**
+ * Generates an investment advisory report for a specific cluster.
+ * @param {Object} params
+ * @param {string} params.clusterId
+ * @param {string} params.focus - The user's focus (e.g., ROI, Sustainability, Crop Type)
+ * @param {string[]} [params.knowledgeBaseIds]
+ * @param {Object} viewer
+ */
+export async function getAdvisoryReport({ clusterId, focus, knowledgeBaseIds }, viewer) {
+  // 1. Fetch Cluster Data
+  const cluster = await prisma.cluster.findUnique({
+    where: { id: clusterId },
+    include: {
+      agreements: {
+        where: { status: 'ACTIVE' },
+        select: { totalAmount: true, startDate: true, endDate: true }
+      },
+      proposals: {
+        where: { status: 'PUBLISHED' },
+        select: { proposedAmount: true }
+      },
+      _count: { select: { memberships: { where: { isActive: true } }, plots: true } }
+    }
+  });
+
+  if (!cluster) throw new NotFoundError('Cluster not found');
+
+  // 2. Prepare Context from Knowledge Base
+  const searchResult = await retrieve(
+    { query: focus, knowledgeBaseIds, topK: 5 },
+    viewer
+  );
+  const kbContext = searchResult.map((c, i) => `--- SOURCE ${i + 1} (KB: ${c.kbName}) ---\n${c.content}`).join('\n\n');
+
+  // 3. Prepare Cluster Context
+  const activeCapital = cluster.agreements.reduce((sum, a) => sum + Number(a.totalAmount), 0);
+  const pendingCapital = cluster.proposals.reduce((sum, p) => sum + Number(p.proposedAmount), 0);
+  
+  const clusterData = `
+    Cluster Name: ${cluster.name}
+    Location: ${cluster.location} (${cluster.region || 'Unknown Region'})
+    Area: ${cluster.areaHectares || 0} hectares
+    Active Investment: ${activeCapital}
+    Pending Proposals: ${pendingCapital}
+    Active Members: ${cluster._count.memberships}
+    Total Plots: ${cluster._count.plots}
+    Description: ${cluster.description || 'No description provided.'}
+  `;
+
+  // 4. Prompt LLM
+  const messages = [
+    {
+      role: 'system',
+      content: `You are an AI Agricultural Investment Advisor. 
+      Your goal is to analyze a specific Farm Cluster and provide a "Best-Fit Business Model" based on the user's focus.
+      
+      User Focus: ${focus}
+      
+      Requirements:
+      - Use the Cluster Stats and the Knowledge Base segments provided.
+      - Calculate potential ROI or scalability if data allows.
+      - Propose a specific crop rotation or business strategy.
+      - Format your response in Markdown with the following headers:
+        # Investment Report: [Cluster Name]
+        ## Strategic Fit
+        ## Estimated Financial Performance
+        ## Recommended Strategy
+        ## Risk Mitigation`
+    },
+    {
+      role: 'user',
+      content: `Cluster Data:\n${clusterData}\n\nSupporting Technical Knowledge:\n${kbContext || 'No relevant knowledge base segments found.'}`
+    }
+  ];
+
+  try {
+    const res = await chat(messages, { temperature: 0.2, maxTokens: 2000 });
+    const reportContent = res.content;
+
+    // 5. Save to database history
+    const savedReport = await prisma.advisoryReport.create({
+      data: {
+        userId: viewer.id,
+        clusterId,
+        focus,
+        report: reportContent,
+        sourceCount: searchResult.length
+      }
+    });
+
+    return {
+      id: savedReport.id,
+      cluster_id: clusterId,
+      focus,
+      report: reportContent,
+      stats: {
+        activeCapital,
+        pendingCapital,
+        area: cluster.areaHectares
+      },
+      source_count: searchResult.length,
+      timestamp: savedReport.createdAt
+    };
+  } catch (err) {
+    logger.error({ err, clusterId }, 'Advisory report generation failed');
+    throw new Error('Could not generate advisory report');
+  }
+}
+
+/**
+ * Lists history of advisory reports for a cluster.
+ */
+export async function listAdvisoryHistory(clusterId, viewer) {
+  return await prisma.advisoryReport.findMany({
+    where: { clusterId },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+/**
+ * Generates predictive analytics for a hypothetical investment.
+ */
+export async function getPredictiveAnalytics({ landSize, budget, region, knowledgeBaseIds }, viewer) {
+  // 1. Retrieve technical context for the region and general agricultural trends
+  const query = `Agricultural yield and ROI for ${region} region with ${landSize} hectares and ${budget} USD budget.`;
+  const chunks = await retrieve({ query, knowledgeBaseIds, topK: 5 }, viewer);
+  const context = chunks.map((c, i) => `--- SOURCE ${i + 1} (KB: ${c.kbName}) ---\n${c.content}`).join('\n\n');
+
+  // 2. Build precision prompt for JSON output
+  const messages = [
+    {
+      role: 'system',
+      content: `You are a Precise Agricultural Data Scientist. 
+      Based on the provided context and inputs, calculate realistic predictive metrics.
+      Return ONLY a JSON object with these exact keys:
+      {
+        "yield": number, 
+        "roi": number, 
+        "cost": number, 
+        "confidence": number, 
+        "risks": string[],
+        "reasoning": string 
+      }
+      Yield in tons, ROI in percentage, cost in USD, confidence 0-100.`
+    },
+    {
+      role: 'user',
+      content: `Inputs: Land Size: ${landSize}ha, Budget: $${budget}, Region: ${region}.
+      Technical Context:
+      ${context || 'No specific regional data found. Use general agricultural models.'}`
+    }
+  ];
+
+  try {
+    const res = await chat(messages, { temperature: 0.1, responseFormat: { type: 'json_object' } });
+    const prediction = JSON.parse(res.content);
+    return {
+      ...prediction,
+      landSize,
+      budget,
+      region,
+      timestamp: new Date().toISOString()
+    };
+  } catch (err) {
+    logger.error({ err }, 'Predictive analytics failed');
+    // Fallback if AI fails or doesn't return JSON
+    return {
+      yield: Math.round(landSize * 45),
+      roi: 15,
+      cost: budget * 0.8,
+      confidence: 70,
+      risks: ['Market Volatility'],
+      reasoning: 'Fallback calculation used due to processing error.'
+    };
+  }
 }
 
 export async function getChatHistory(chatId, viewer) {

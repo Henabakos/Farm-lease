@@ -67,6 +67,17 @@ function AppContent() {
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [receiptPayment, setReceiptPayment] = useState<Payment | null>(null);
 
+  // Check if current path is reset-password or login
+  const isResetPasswordPage = location.pathname === '/reset-password';
+  const isLoginPage = location.pathname === '/login';
+
+  // Handle login route - set authView to LOGIN
+  React.useEffect(() => {
+    if (isLoginPage && !isAuthenticated) {
+      setAuthView('LOGIN');
+    }
+  }, [isLoginPage, isAuthenticated, setAuthView]);
+
 //   const guardRoute = (element: React.ReactElement, allowedRoles?: UserRole[]) => {
 //     if (!allowedRoles) return element;
 //     if (!role) return <Navigate to="/dashboard" replace />;
@@ -124,6 +135,7 @@ function AppContent() {
       setCurrentView(matchedView[1]);
     }
   }, [location.pathname, setCurrentView]);
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-linear-to-br from-background via-background to-muted/30">

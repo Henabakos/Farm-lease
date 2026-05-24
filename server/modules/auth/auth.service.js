@@ -228,22 +228,32 @@ export async function resendVerification({ email }) {
 export async function requestPasswordReset({ email }) {
   const user = await prisma.user.findUnique({ where: { email } });
 
+  logger.info({ email, userExists: !!user, userStatus: user?.status, devMode: env.DEV_LOG_EMAIL_TOKENS }, 'Password reset request');
+
   // Always return success regardless of whether the email exists to avoid
   // user-enumeration. The email worker silently no-ops on unknown addresses.
   if (user && (user.status === 'ACTIVE' || user.status === 'PENDING_APPROVAL')) {
     const token = await issueVerificationToken(user.id, 'PASSWORD_RESET');
-    await prisma.outbox.create({
-      data: {
-        eventType: 'email.password_reset.send',
-        aggregateType: 'User',
-        aggregateId: user.id,
-        payload: {
-          to: user.email,
-          userId: user.id,
-          resetUrl: `${env.CLIENT_URL}/reset-password?token=${token}`,
+    const resetUrl = `${env.CLIENT_URL}/reset-password?token=${token}`;
+
+    // In development mode, log the token to console instead of sending email
+    if (env.DEV_LOG_EMAIL_TOKENS) {
+      logger.info({ userId: user.id, email: user.email, resetUrl, token }, 'PASSWORD RESET TOKEN (Development Mode)');
+      return { message: 'If an account exists for that email, a reset link has been sent.', resetUrl };
+    } else {
+      await prisma.outbox.create({
+        data: {
+          eventType: 'email.password_reset.send',
+          aggregateType: 'User',
+          aggregateId: user.id,
+          payload: {
+            to: user.email,
+            userId: user.id,
+            resetUrl,
+          },
         },
-      },
-    });
+      });
+    }
   }
   return { message: 'If an account exists for that email, a reset link has been sent.' };
 }

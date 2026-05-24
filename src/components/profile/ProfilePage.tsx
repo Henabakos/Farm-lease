@@ -5,21 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Calendar, 
-  Shield, 
-  Edit, 
-  Sprout, 
-  TrendingUp, 
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Shield,
+  Edit,
+  Sprout,
+  TrendingUp,
   Map,
   CheckCircle2,
   ExternalLink,
   ArrowUpRight,
-  Users
+  Users,
+  Key
 } from 'lucide-react';
 import { EditProfileModal } from './EditProfileModal';
 import { IdentityVerificationCard } from './IdentityVerificationCard';
@@ -299,6 +300,12 @@ export function ProfilePage() {
                 <CardTitle className="text-base font-bold tracking-tight text-slate-900">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="p-5 pt-4 space-y-2">
+                <Button variant="ghost" className="w-full justify-start gap-3 h-10 rounded-md px-3 hover:bg-slate-50 hover:text-primary transition-all group border border-transparent hover:border-slate-200" onClick={() => setIsChangePasswordDialogOpen(true)}>
+                  <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+                    <Key className="w-3.5 h-3.5 text-primary/70" />
+                  </div>
+                  <span className="font-bold text-[11px] uppercase tracking-wider text-slate-700">Change Password</span>
+                </Button>
                 <Button variant="ghost" className="w-full justify-start gap-3 h-10 rounded-md px-3 hover:bg-slate-50 hover:text-primary transition-all group border border-transparent hover:border-slate-200">
                   <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
                     <Shield className="w-3.5 h-3.5 text-primary/70" />
@@ -323,9 +330,14 @@ export function ProfilePage() {
         </div>
       </div>
 
-      <EditProfileModal 
-        open={isEditModalOpen} 
-        onOpenChange={setIsEditModalOpen} 
+      <EditProfileModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+      />
+
+      <ChangePasswordDialog
+        open={isChangePasswordDialogOpen}
+        onOpenChange={setIsChangePasswordDialogOpen}
       />
     </motion.div>
   );

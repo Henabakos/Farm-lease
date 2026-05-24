@@ -3,7 +3,7 @@
 //
 // Note: Gemini's native embedding output dimensionality differs from OpenAI's
 // 1536; if you switch providers you must run a migration that re-indexes
-// the `KbChunk.embedding` column with the correct vector size.
+// the `KbDocumentChunk.embedding` column with the correct vector size.
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { env } from '../../config/env.js';
 import { ExternalServiceError } from '../../shared/errors.js';

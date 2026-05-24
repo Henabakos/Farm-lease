@@ -84,4 +84,37 @@ export const aiAPI = {
     api.post<AiCitation[]>('/ai/search', data),
   listChats: () => api.get('/ai/chats'),
   getChat: (id: string) => api.get(`/ai/chats/${id}`),
+
+  // Investment Advisory
+  getAdvisoryReport: (data: {
+    cluster_id: string;
+    focus: string;
+    knowledge_base_ids?: string[];
+  }) => api.post<{
+    cluster_id: string;
+    focus: string;
+    report: string;
+    stats: {
+      activeCapital: number;
+      pendingCapital: number;
+      area: number;
+    };
+  }>('/ai/advisory', data),
+
+  getAdvisoryHistory: (clusterId: string) => 
+    api.get<any[]>(`/ai/advisory/history/${clusterId}`),
+
+  getPredictiveAnalytics: (data: {
+    landSize: number;
+    budget: number;
+    region: string;
+    knowledge_base_ids?: string[];
+  }) => api.post<{
+    yield: number;
+    roi: number;
+    cost: number;
+    confidence: number;
+    risks: string[];
+    reasoning: string;
+  }>('/ai/predictive-analytics', data),
 };

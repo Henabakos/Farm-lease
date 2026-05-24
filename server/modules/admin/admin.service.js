@@ -138,24 +138,36 @@ export async function listAuditLogs(filters) {
   const { page, limit } = filters;
   const where = buildAuditWhere(filters);
 
-  const [total, items] = await Promise.all([
-    prisma.auditLog.count({ where }),
-    prisma.auditLog.findMany({
-      where,
-      include: {
-        user: {
-          select: { id: true, email: true, fullName: true, role: true },
+  try {
+    const [total, items] = await Promise.all([
+      prisma.auditLog.count({ where }),
+      prisma.auditLog.findMany({
+        where,
+        include: {
+          user: {
+            select: { id: true, email: true, fullName: true, role: true },
+          },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-      ...paginate({ page, pageSize: limit }),
-    }),
-  ]);
+        orderBy: { createdAt: 'desc' },
+        ...paginate({ page, pageSize: limit }),
+      }),
+    ]);
 
-  return {
-    items,
-    pagination: { page, limit, total, pages: Math.ceil(total / limit) },
-  };
+    return {
+      items,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    };
+  } catch (error) {
+    console.error('Error fetching audit logs:', error);
+    // If the table doesn't exist, return empty results
+    if (error.code === 'P2021') {
+      return {
+        items: [],
+        pagination: { page, limit, total: 0, pages: 0 },
+      };
+    }
+    throw error;
+  }
 }
 
 /**

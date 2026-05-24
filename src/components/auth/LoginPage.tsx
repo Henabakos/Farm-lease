@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AuthLayout } from './AuthLayout';
+import { ForgotPasswordDialog } from './ForgotPasswordDialog';
 import { Loader2, AlertCircle, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { motion } from 'motion/react';
@@ -18,6 +19,7 @@ export function LoginPage({ onSwitch, onBack }: { onSwitch: () => void, onBack: 
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,6 +163,11 @@ export function LoginPage({ onSwitch, onBack }: { onSwitch: () => void, onBack: 
           </p>
         </form>
       </motion.div>
+
+      <ForgotPasswordDialog
+        open={isForgotPasswordOpen}
+        onOpenChange={setIsForgotPasswordOpen}
+      />
     </AuthLayout>
   );
 }

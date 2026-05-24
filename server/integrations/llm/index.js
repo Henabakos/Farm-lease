@@ -7,8 +7,9 @@ import * as gemini from './gemini.js';
 import * as voyage from './voyage.js';
 import * as groq from './groq.js';
 import * as ollama from './ollama.js';
+import * as lmstudio from './lmstudio.js';
 
-const impl = env.AI_LLM_PROVIDER === 'gemini' ? gemini : env.AI_LLM_PROVIDER === 'voyage' ? voyage : env.AI_LLM_PROVIDER === 'groq' ? groq : env.AI_LLM_PROVIDER === 'ollama' ? ollama : openai;
+const impl = env.AI_LLM_PROVIDER === 'gemini' ? gemini : env.AI_LLM_PROVIDER === 'voyage' ? voyage : env.AI_LLM_PROVIDER === 'groq' ? groq : env.AI_LLM_PROVIDER === 'ollama' ? ollama : env.AI_LLM_PROVIDER === 'lmstudio' ? lmstudio : openai;
 
 export const chat       = (...args) => impl.chat(...args);
 export const chatStream = (...args) => impl.chatStream(...args);

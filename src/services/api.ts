@@ -87,7 +87,9 @@ api.interceptors.response.use(
       url.includes('/auth/login') ||
       url.includes('/auth/register') ||
       url.includes('/auth/refresh') ||
-      url.includes('/auth/logout');
+      url.includes('/auth/logout') ||
+      url.includes('/auth/forgot-password') ||
+      url.includes('/auth/reset-password');
 
     if (status === 401 && original && !original._retry && !isAuthCall) {
       original._retry = true;
@@ -287,9 +289,9 @@ export const meetingsAPI = {
 export const analyticsAPI = {
   logEvent: (data: any) => api.post('/analytics/events', data),
   getDashboard: () => api.get('/analytics/dashboard'),
-  getRevenue: (months?: number) =>
-    api.get('/analytics/revenue', { params: { months } }),
-  getPaymentStats: () => api.get('/analytics/payments'),
+  getPaymentStatsByMonth: (months?: number) =>
+    api.get('/analytics/payments/by-month', { params: { months } }),
+  getTopClusters: () => api.get('/analytics/clusters/top'),
   getClusterStats: (clusterId: string) =>
     api.get(`/analytics/clusters/${clusterId}`)
 };
