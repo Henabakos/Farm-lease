@@ -1,45 +1,36 @@
-import { AdminDashboard } from "@/src/components/admin/AdminDashboard";
-import { AuditLogs } from "@/src/components/admin/AuditLogs";
-import { ClusterDetailPage } from "@/src/components/admin/ClusterDetailPage";
-import { UserDetailPage } from "@/src/components/admin/UserDetailPage";
-import { AgreementDetail } from "@/src/components/agreements/AgreementDetail";
-import { AgreementList } from "@/src/components/agreements/AgreementList";
-import { AIChatbot } from "@/src/components/ai/AIChatbot";
-import { AnalyticsDashboard } from "@/src/components/analytics/AnalyticsDashboard";
-import { LoginPage } from "@/src/components/auth/LoginPage";
-import { RegisterPage } from "@/src/components/auth/RegisterPage";
-import { ClusterDetail } from "@/src/components/clusters/ClusterDetail";
-import { ClusterList } from "@/src/components/clusters/ClusterList";
-import { DashboardOverview } from "@/src/components/dashboard/DashboardOverview";
-import { LandingPage } from "@/src/components/landing/LandingPage";
-import { DashboardLayout } from "@/src/components/layout/DashboardLayout";
-import { MeetingScheduler } from "@/src/components/meetings/MeetingScheduler";
-import { MessagingPage } from "@/src/components/messaging/MessagingPage";
-import { PaymentDetail } from "@/src/components/payments/PaymentDetail";
-import { PaymentList } from "@/src/components/payments/PaymentList";
-import { PaymentReview } from "@/src/components/payments/PaymentReview";
-import { PaymentSubmit } from "@/src/components/payments/PaymentSubmit";
-import { ProfilePage } from "@/src/components/profile/ProfilePage";
-import { SettingsPage } from "@/src/components/profile/SettingsPage";
-import { NegotiationView } from "@/src/components/proposals/NegotiationView";
-import { ProposalCreate } from "@/src/components/proposals/ProposalCreate";
-import { ProposalDetail } from "@/src/components/proposals/ProposalDetail";
-import { ProposalList } from "@/src/components/proposals/ProposalList";
-import { ResourceRecommendations } from "@/src/components/resources/ResourceRecommendations";
-import { AuthProvider, useAuth } from "@/src/contexts/AuthContext";
-import { NotificationProvider } from "@/src/contexts/NotificationContext";
-import { RoleProvider, useRole } from "@/src/contexts/RoleContext";
-import { useStore } from "@/src/store/useStore";
-import { Payment, UserRole } from "@/src/types";
-import React, { useState } from "react";
-import {
-    BrowserRouter,
-    Navigate,
-    Route,
-    Routes,
-    useLocation,
-    useNavigate,
-} from "react-router-dom";
+import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, Link, useNavigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from '@/src/contexts/AuthContext';
+import { RoleProvider, useRole } from '@/src/contexts/RoleContext';
+import { NotificationProvider } from '@/src/contexts/NotificationContext';
+import { DashboardLayout } from '@/src/components/layout/DashboardLayout';
+import { LoginPage } from '@/src/components/auth/LoginPage';
+import { RegisterPage } from '@/src/components/auth/RegisterPage';
+import { ProfilePage } from '@/src/components/profile/ProfilePage';
+import { ClusterList } from '@/src/components/clusters/ClusterList';
+import { ClusterDetail } from '@/src/components/clusters/ClusterDetail';
+import { ProposalList } from '@/src/components/proposals/ProposalList';
+import { ProposalCreate } from '@/src/components/proposals/ProposalCreate';
+import { ProposalDetail } from '@/src/components/proposals/ProposalDetail';
+import { NegotiationView } from '@/src/components/proposals/NegotiationView';
+import { AgreementList } from '@/src/components/agreements/AgreementList';
+import { AgreementDetail } from '@/src/components/agreements/AgreementDetail';
+import { PaymentList } from '@/src/components/payments/PaymentList';
+import { PaymentSubmit } from '@/src/components/payments/PaymentSubmit';
+import { PaymentReview } from '@/src/components/payments/PaymentReview';
+import { PaymentDetail } from '@/src/components/payments/PaymentDetail';
+import { MessagingPage } from '@/src/components/messaging/MessagingPage';
+import { MeetingScheduler } from '@/src/components/meetings/MeetingScheduler';
+import { AnalyticsDashboard } from '@/src/components/analytics/AnalyticsDashboard';
+import { AIChatbot } from '@/src/components/ai/AIChatbot';
+import { AdminDashboard } from '@/src/components/admin/AdminDashboard';
+import { AuditLogs } from '@/src/components/admin/AuditLogs';
+import { SettingsPage } from '@/src/components/profile/SettingsPage';
+import { ResourceRecommendations } from '@/src/components/resources/ResourceRecommendations';
+import { DashboardOverview } from '@/src/components/dashboard/DashboardOverview';
+import { LandingPage } from '@/src/components/landing/LandingPage';
+import { Payment, UserRole } from '@/src/types';
+import { useStore } from '@/src/store/useStore';
 
 function AppContent() {
     const {
@@ -90,6 +81,23 @@ function AppContent() {
   const PAYMENT_REVIEW_ROLES: UserRole[] = ['CLUSTER_REP', 'ADMIN'];
   const INVESTOR_OR_ADMIN: UserRole[] = ['INVESTOR', 'ADMIN'];
 
+  const guardRoute = (element: React.ReactElement, allowedRoles?: UserRole[]) => {
+    if (!allowedRoles) return element;
+    if (!role) return <Navigate to="/dashboard" replace />;
+    if (allowedRoles.includes(role)) return element;
+    return <Navigate to="/dashboard" replace />;
+  };
+
+  const ALL_ROLES: UserRole[] = ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'];
+  const CLUSTER_BROWSE_ROLES: UserRole[] = ALL_ROLES;
+  const PROPOSAL_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
+  const PROPOSAL_CREATE_ROLES: UserRole[] = ['INVESTOR'];
+  const AGREEMENT_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
+  const PAYMENT_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
+  const PAYMENT_SUBMIT_ROLES: UserRole[] = ['INVESTOR'];
+  const PAYMENT_REVIEW_ROLES: UserRole[] = ['CLUSTER_REP', 'ADMIN'];
+  const INVESTOR_OR_ADMIN: UserRole[] = ['INVESTOR', 'ADMIN'];
+
   // Sync URL with currentView
   React.useEffect(() => {
     const path = location.pathname;
@@ -112,6 +120,17 @@ function AppContent() {
     if (matchedView) {
       setCurrentView(matchedView[1]);
     }
+  }, [location.pathname, setCurrentView]);
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-linear-to-br from-background via-background to-muted/30">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
     if (!isAuthenticated) {
         return (
