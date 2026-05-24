@@ -301,7 +301,7 @@ function UnifiedMeetingView({
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-6">
       {/* Header */}
-      <motion.div variants={item} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <motion.div variants={item} className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
             {getRoleTitle()} <span className="text-primary">Meetings</span>
@@ -342,30 +342,30 @@ function UnifiedMeetingView({
         <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Calendar */}
           <Card className="lg:col-span-2 border-0 shadow-lg">
-            <CardHeader className="p-6 pb-4 bg-gradient-to-r from-primary to-primary/80">
+            <CardHeader className="p-4 pb-3 bg-gradient-to-r from-primary to-primary/80">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl font-bold text-white">
+                <CardTitle className="text-xl font-bold text-white">
                   {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={prevMonth} className="h-8 w-8 rounded-full hover:bg-white/20 text-white">
-                    <ChevronLeft className="w-5 h-5" />
+                  <Button variant="ghost" size="icon" onClick={prevMonth} className="h-7 w-7 rounded-full hover:bg-white/20 text-white">
+                    <ChevronLeft className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={nextMonth} className="h-8 w-8 rounded-full hover:bg-white/20 text-white">
-                    <ChevronRight className="w-5 h-5" />
+                  <Button variant="ghost" size="icon" onClick={nextMonth} className="h-7 w-7 rounded-full hover:bg-white/20 text-white">
+                    <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-7 mb-4">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-7 mb-3">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                  <div key={d} className="text-center text-sm font-semibold text-slate-500 py-2">{d}</div>
+                  <div key={d} className="text-center text-xs font-semibold text-slate-500 py-1">{d}</div>
                 ))}
               </div>
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-7 gap-1.5">
                 {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                  <div key={`empty-${i}`} className="h-24" />
+                  <div key={`empty-${i}`} className="h-16" />
                 ))}
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                   const day = i + 1;
@@ -376,24 +376,24 @@ function UnifiedMeetingView({
                       key={day}
                       onClick={() => setSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), day))}
                       className={cn(
-                        'h-24 p-2 rounded-xl border-2 transition-all relative group flex flex-col items-start justify-between',
+                        'h-16 p-1.5 rounded-lg border-2 transition-all relative group flex flex-col items-start justify-between',
                         isSelected(day) ? 'bg-primary text-white border-primary shadow-lg scale-105' : 'bg-white border-slate-200 hover:border-primary hover:bg-primary/5',
                         isToday(day) && !isSelected(day) && 'border-primary border-2'
                       )}
                     >
-                      <span className={cn('text-lg font-bold', isSelected(day) ? 'text-white' : 'text-slate-700')}>
+                      <span className={cn('text-sm font-bold', isSelected(day) ? 'text-white' : 'text-slate-700')}>
                         {day}
                       </span>
                       {count > 0 && (
                         <div className={cn('w-full', isSelected(day) ? 'text-white/90' : 'text-primary')}>
-                          <div className="flex items-center gap-1">
-                            <CalendarCheck className="w-3 h-3" />
-                            <span className="text-xs font-bold">{count} meeting{count > 1 ? 's' : ''}</span>
+                          <div className="flex items-center gap-0.5">
+                            <CalendarCheck className="w-2.5 h-2.5" />
+                            <span className="text-[10px] font-bold">{count}</span>
                           </div>
                         </div>
                       )}
                       {isToday(day) && !isSelected(day) && (
-                        <div className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
+                        <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-primary rounded-full" />
                       )}
                     </button>
                   );
@@ -403,60 +403,60 @@ function UnifiedMeetingView({
           </Card>
 
           {/* Selected Day Meetings */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader className="p-6 pb-4 bg-gradient-to-r from-slate-50 to-slate-100">
-              <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5 text-primary" />
+          <Card className="border-0 shadow-lg flex flex-col max-h-[calc(100vh-200px)]">
+            <CardHeader className="p-4 pb-3 bg-gradient-to-r from-slate-50 to-slate-100 shrink-0">
+              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4 text-primary" />
                 Upcoming Meetings
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 space-y-4">
+            <CardContent className="p-4 space-y-2 overflow-y-auto flex-1">
               {isLoading ? (
-                <div className="py-10 flex justify-center">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <div className="py-6 flex justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
                 </div>
               ) : (
                 <>
                   {meetingsOnSelected.length > 0 && (
-                    <p className="text-sm text-slate-500 mb-4">
+                    <p className="text-xs text-slate-500 mb-2">
                       Meetings on {selectedDate.toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' })}:
                     </p>
                   )}
                   {meetingsOnSelected.length > 0 ? (
                     meetingsOnSelected.map(meeting => (
-                      <div key={meeting.id} className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200 hover:shadow-md transition-all">
-                        <div className="flex items-start justify-between mb-3">
+                      <div key={meeting.id} className="p-3 rounded-lg bg-gradient-to-br from-slate-50 to-white border border-slate-200 hover:shadow-md transition-all">
+                        <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
-                            <h4 className="font-bold text-slate-900 mb-1">{meeting.title}</h4>
-                            <div className="flex items-center gap-2 text-sm text-slate-600">
-                              <Clock className="w-4 h-4" />
+                            <h4 className="font-bold text-sm text-slate-900 mb-1">{meeting.title}</h4>
+                            <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                              <Clock className="w-3 h-3" />
                               {new Date(meeting.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           </div>
                           <StatusBadge status={meeting.status} />
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           {meeting.status === 'SCHEDULED' && (
                             <>
-                              <Button size="sm" className="flex-1 bg-primary hover:bg-primary/90" onClick={() => handleStartMeeting(meeting)}>
-                                <Play className="w-3 h-3 mr-1" />
+                              <Button size="sm" className="flex-1 text-xs bg-primary hover:bg-primary/90 h-7" onClick={() => handleStartMeeting(meeting)}>
+                                <Play className="w-2.5 h-2.5 mr-1" />
                                 Start
                               </Button>
                               {isAdmin && (
                                 <>
-                                  <Button size="sm" variant="outline" onClick={() => openRescheduleDialog(meeting)}>
-                                    <CalendarIcon className="w-3 h-3" />
+                                  <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => openRescheduleDialog(meeting)}>
+                                    <CalendarIcon className="w-2.5 h-2.5" />
                                   </Button>
-                                  <Button size="sm" variant="outline" onClick={() => openInviteDialog(meeting)}>
-                                    <Send className="w-3 h-3" />
+                                  <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => openInviteDialog(meeting)}>
+                                    <Send className="w-2.5 h-2.5" />
                                   </Button>
                                 </>
                               )}
                             </>
                           )}
                           {meeting.status === 'ONGOING' && (
-                            <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleStartMeeting(meeting)}>
-                              <Video className="w-3 h-3 mr-1" />
+                            <Button size="sm" className="flex-1 text-xs bg-emerald-600 hover:bg-emerald-700 h-7" onClick={() => handleStartMeeting(meeting)}>
+                              <Video className="w-2.5 h-2.5 mr-1" />
                               Join
                             </Button>
                           )}
@@ -464,49 +464,49 @@ function UnifiedMeetingView({
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-slate-500 mb-4">No meetings on this date.</p>
+                    <p className="text-xs text-slate-500 mb-2">No meetings on this date.</p>
                   )}
                   {meetingsOnSelected.length === 0 && (
-                    <p className="text-sm text-slate-500 mb-4">Here are your upcoming meetings:</p>
+                    <p className="text-xs text-slate-500 mb-2">Here are your upcoming meetings:</p>
                   )}
                   {meetings
                     .filter(m => m.status === 'SCHEDULED' && new Date(m.scheduledAt) >= new Date())
                     .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
                     .slice(0, 5)
                     .map(meeting => (
-                      <div key={meeting.id} className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-200 hover:shadow-md transition-all">
-                        <div className="flex items-start justify-between mb-3">
+                      <div key={meeting.id} className="p-3 rounded-lg bg-gradient-to-br from-slate-50 to-white border border-slate-200 hover:shadow-md transition-all">
+                        <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
-                            <h4 className="font-bold text-slate-900 mb-1">{meeting.title}</h4>
-                            <div className="flex items-center gap-2 text-sm text-slate-600">
-                              <Clock className="w-4 h-4" />
+                            <h4 className="font-bold text-sm text-slate-900 mb-1">{meeting.title}</h4>
+                            <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                              <Clock className="w-3 h-3" />
                               {new Date(meeting.scheduledAt).toLocaleDateString([], { month: 'short', day: 'numeric' })} at {new Date(meeting.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           </div>
                           <StatusBadge status={meeting.status} />
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           {meeting.status === 'SCHEDULED' && (
                             <>
-                              <Button size="sm" className="flex-1 bg-primary hover:bg-primary/90" onClick={() => handleStartMeeting(meeting)}>
-                                <Play className="w-3 h-3 mr-1" />
+                              <Button size="sm" className="flex-1 text-xs bg-primary hover:bg-primary/90 h-7" onClick={() => handleStartMeeting(meeting)}>
+                                <Play className="w-2.5 h-2.5 mr-1" />
                                 Start
                               </Button>
                               {isAdmin && (
                                 <>
-                                  <Button size="sm" variant="outline" onClick={() => openRescheduleDialog(meeting)}>
-                                    <CalendarIcon className="w-3 h-3" />
+                                  <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => openRescheduleDialog(meeting)}>
+                                    <CalendarIcon className="w-2.5 h-2.5" />
                                   </Button>
-                                  <Button size="sm" variant="outline" onClick={() => openInviteDialog(meeting)}>
-                                    <Send className="w-3 h-3" />
+                                  <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => openInviteDialog(meeting)}>
+                                    <Send className="w-2.5 h-2.5" />
                                   </Button>
                                 </>
                               )}
                             </>
                           )}
                           {meeting.status === 'ONGOING' && (
-                            <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleStartMeeting(meeting)}>
-                              <Video className="w-3 h-3 mr-1" />
+                            <Button size="sm" className="flex-1 text-xs bg-emerald-600 hover:bg-emerald-700 h-7" onClick={() => handleStartMeeting(meeting)}>
+                              <Video className="w-2.5 h-2.5 mr-1" />
                               Join
                             </Button>
                           )}
