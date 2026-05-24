@@ -39,7 +39,7 @@ const chatSchema = z.object({
 const retrieveSchema = z.object({
   query: z.string().trim().min(1).max(2000),
   knowledge_base_ids: z.array(z.string().uuid()).optional(),
-  top_k: z.coerce.number().int().min(1).max(20).default(6),
+  top_k: z.coerce.number().int().min(1).max(20).default(8),
 });
 
 const insightSchema = z.object({

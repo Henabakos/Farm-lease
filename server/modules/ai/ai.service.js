@@ -241,7 +241,7 @@ export async function getDocumentDownloadUrl(docId, viewer) {
  * Cosine-similarity retrieval over pgvector. We pass the embedding as a JSON
  * array literal — pgvector accepts the `[...]::vector` cast natively.
  */
-export async function retrieve({ query, knowledgeBaseIds, topK = 6 }, viewer) {
+export async function retrieve({ query, knowledgeBaseIds, topK = 10 }, viewer) {
   if (!query || !query.trim()) return [];
   const [queryVec] = await embed([query]);
   if (!queryVec) return [];
@@ -259,9 +259,11 @@ export async function retrieve({ query, knowledgeBaseIds, topK = 6 }, viewer) {
   const rows = await prisma.$queryRawUnsafe(
     `
     SELECT c.id, c."documentId", c."chunkIndex", c.content, c.metadata,
+           kb.name AS "kbName",
            1 - (c.embedding <=> $1::vector) AS similarity
     FROM "KbDocumentChunk" c
     JOIN "KbDocument" d ON d.id = c."documentId"
+    JOIN "KnowledgeBase" kb ON kb.id = d."knowledgeBaseId"
     WHERE d."knowledgeBaseId" = ANY($2::uuid[])
       AND d.status = 'INDEXED'
       AND c.embedding IS NOT NULL
@@ -295,12 +297,13 @@ async function accessibleKbIdsFor(viewer) {
 
 // ---------------------------------------------------------------- Chat
 const SYSTEM_PROMPT = `You are Farm Lease's professional agricultural investment assistant.
-STRICT INSTRUCTIONS:
-1. Answer ONLY based on the provided context (Source chunks).
-2. If the answer is not contained within the provided context, state clearly that you do not have that information based on the documents. Do NOT use outside knowledge.
-3. Citations: Always mention which [Source X] you are referring to.
-4. Focus: Only answer questions related to lease proposals, agreements, payments, cluster operations, and agronomy as found in the documents.
-5. Tone: Concise, data-driven, and professional.`;
+Your task is to answer user questions about investments, lease proposals, agreements, payments, cluster operations, and agronomy based on the provided technical documentation.
+
+INSTRUCTIONS:
+- Answer ONLY based on the provided context chunks.
+- If the answer is not found in the context, state that you do not have enough information based on the documents. Do not hallucinate or use external knowledge.
+- Reference your sources clearly in your response (e.g., "According to Source 1...").
+- Keep your tone professional, concise, and data-driven.`;
 
 export async function answerChat({ chatId, message, knowledgeBaseIds }, viewer) {
   // 1. Persist user message + retrieve history.
@@ -322,20 +325,22 @@ export async function answerChat({ chatId, message, knowledgeBaseIds }, viewer) 
 
   // 2. Retrieve context chunks.
   logger.debug({ message, knowledgeBaseIds }, 'Retrieving chunks for chat');
-  const chunks = await retrieve({ query: message, knowledgeBaseIds, topK: 6 }, viewer);
+  const chunks = await retrieve({ query: message, knowledgeBaseIds, topK: 8 }, viewer);
   logger.debug({ count: chunks.length }, 'Chunks retrieved');
   const context = chunks
-    .map((c, i) => `[Source ${i + 1}]\n${c.content}`)
-    .join('\n\n---\n\n');
+    .map((c, i) => `--- SOURCE ${i + 1} (From Knowledge Base: ${c.kbName}) ---\n${c.content}`)
+    .join('\n\n');
 
-  // 3. Build prompt: system + last N turns + retrieved context + new question.
+  // 3. Build prompt: system (instructions + context) + history + new question.
   const history = chatRow.messages.map((m) => ({
     role: m.role.toLowerCase(),
     content: m.content,
   }));
   const messages = [
-    { role: 'system', content: SYSTEM_PROMPT },
-    ...(context ? [{ role: 'system', content: `Context:\n${context}` }] : []),
+    { 
+      role: 'system', 
+      content: `${SYSTEM_PROMPT}\n\n${context ? `### CONTEXT:\n${context}` : 'No relevant document context found.'}`
+    },
     ...history,
     { role: 'user', content: message },
   ];
@@ -355,6 +360,7 @@ export async function answerChat({ chatId, message, knowledgeBaseIds }, viewer) 
   const citations = chunks.map((c, i) => ({
     index: i + 1,
     document_id: c.documentId,
+    kb_name: c.kbName,
     chunk_id: c.id,
     similarity: Number(c.similarity ?? 0).toFixed(3),
     snippet: String(c.content).slice(0, 220),
@@ -395,20 +401,18 @@ export async function getAiInsights({ userId, topic, knowledgeBaseIds }, viewer)
     };
   }
 
-  const context = chunks.map((c) => c.content).join('\n\n---\n\n');
+  const context = chunks.map((c, i) => `--- SOURCE ${i + 1} (KB: ${c.kbName}) ---\n${c.content}`).join('\n\n');
   const messages = [
     { 
       role: 'system', 
       content: `You are an expert Agricultural Investment Analyst. 
-      Your task is to provide a structured risk and opportunity assessment based ONLY on the provided document segments.
+      Analyze the provided documents and provide a structured risk and opportunity assessment.
       Structure:
       1. Key Opportunities
       2. Risk Assessment
-      3. Strategic Recommendations
-      
-      STRICTLY grounded in context. Use bullet points.` 
+      3. Strategic Recommendations` 
     },
-    { role: 'user', content: `Analyze the following context for: ${query}\n\nContext:\n${context}` }
+    { role: 'user', content: `Analyze the following context for: ${query}\n\nRELEVANT DOCUMENT CONTEXT:\n${context}` }
   ];
 
   try {
@@ -432,13 +436,13 @@ export async function analyzeLeaseTrends({ knowledgeBaseIds }, viewer) {
   const query = "economic trends, lease rates, soil health impacts, and market conditions";
   const chunks = await retrieve({ query, knowledgeBaseIds, topK: 8 }, viewer);
   
-  const context = chunks.map((c) => c.content).join('\n\n---\n\n');
+  const context = chunks.map((c, i) => `--- SOURCE ${i + 1} (KB: ${c.kbName}) ---\n${c.content}`).join('\n\n');
   const messages = [
     { 
       role: 'system', 
-      content: 'You are a Data Scientist specializing in Agriculture. Summarize key lease and market trends from the metadata and documents. Stay grounded in the provided snippets.' 
+      content: 'You are a Data Scientist specializing in Agriculture. Summarize key lease and market trends from the metadata and documents.' 
     },
-    { role: 'user', content: `Summarize trends:\n\n${context}` }
+    { role: 'user', content: `Summarize trends based on this context:\n\n${context}` }
   ];
 
   const res = await chat(messages, { temperature: 0.3 });
@@ -477,7 +481,7 @@ export async function getAdvisoryReport({ clusterId, focus, knowledgeBaseIds }, 
     { query: focus, knowledgeBaseIds, topK: 5 },
     viewer
   );
-  const kbContext = searchResult.map(c => c.content).join('\n---\n');
+  const kbContext = searchResult.map((c, i) => `--- SOURCE ${i + 1} (KB: ${c.kbName}) ---\n${c.content}`).join('\n\n');
 
   // 3. Prepare Cluster Context
   const activeCapital = cluster.agreements.reduce((sum, a) => sum + Number(a.totalAmount), 0);
@@ -571,7 +575,7 @@ export async function getPredictiveAnalytics({ landSize, budget, region, knowled
   // 1. Retrieve technical context for the region and general agricultural trends
   const query = `Agricultural yield and ROI for ${region} region with ${landSize} hectares and ${budget} USD budget.`;
   const chunks = await retrieve({ query, knowledgeBaseIds, topK: 5 }, viewer);
-  const context = chunks.map((c) => c.content).join('\n---\n');
+  const context = chunks.map((c, i) => `--- SOURCE ${i + 1} (KB: ${c.kbName}) ---\n${c.content}`).join('\n\n');
 
   // 2. Build precision prompt for JSON output
   const messages = [

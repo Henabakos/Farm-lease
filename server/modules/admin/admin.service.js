@@ -138,19 +138,20 @@ export async function listAuditLogs(filters) {
   const { page, limit } = filters;
   const where = buildAuditWhere(filters);
 
-  const [total, items] = await Promise.all([
-    prisma.auditLog.count({ where }),
-    prisma.auditLog.findMany({
-      where,
-      include: {
-        user: {
-          select: { id: true, email: true, fullName: true, role: true },
+  try {
+    const [total, items] = await Promise.all([
+      prisma.auditLog.count({ where }),
+      prisma.auditLog.findMany({
+        where,
+        include: {
+          user: {
+            select: { id: true, email: true, fullName: true, role: true },
+          },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-      ...paginate({ page, pageSize: limit }),
-    }),
-  ]);
+        orderBy: { createdAt: 'desc' },
+        ...paginate({ page, pageSize: limit }),
+      }),
+    ]);
 
     return {
       items,

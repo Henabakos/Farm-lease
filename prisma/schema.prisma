@@ -210,6 +210,7 @@ model Cluster {
   proposals       Proposal[]
   agreements      Agreement[]
   advisoryReports AdvisoryReport[]
+  knowledgeBases  KnowledgeBase[]
 
   @@index([ownerId])
   @@index([status])
@@ -976,8 +977,9 @@ model KnowledgeBase {
   scope       KnowledgeBaseScope  @default(GLOBAL)
   ownerId     String?             @db.Uuid
   owner       User?               @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-  clusterId   String?             @db.Uuid
   description String?
+  clusterId   String?             @db.Uuid
+  cluster     Cluster?            @relation(fields: [clusterId], references: [id], onDelete: SetNull)
   createdAt   DateTime            @default(now()) @db.Timestamptz()
   updatedAt   DateTime            @updatedAt @db.Timestamptz()
 
