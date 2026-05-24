@@ -156,6 +156,9 @@ export const AdminDashboard: React.FC = () => {
     const [reportStartDate, setReportStartDate] = useState("");
     const [reportEndDate, setReportEndDate] = useState("");
     const [isExporting, setIsExporting] = useState(false);
+    const [verificationQueueOpen, setVerificationQueueOpen] = useState(false);
+    const [queuePage, setQueuePage] = useState(1);
+    const queuePageSize = 10;
 
     const filteredUsers = Array.isArray(users)
         ? users.filter(
@@ -186,6 +189,9 @@ export const AdminDashboard: React.FC = () => {
     const pendingClusters = clusters.filter(
         (c) => c.verificationStatus !== "VERIFIED",
     );
+    const pendingUsers = Array.isArray(users)
+        ? users.filter((u) => u.verificationStatus === "PENDING")
+        : [];
     const submittedPayments = payments.filter((p) => p.status === "SUBMITTED");
     const verifiedPayments = payments.filter((p) => p.status === "VERIFIED");
     const rejectedPayments = payments.filter((p) => p.status === "REJECTED");
@@ -1055,6 +1061,7 @@ export const AdminDashboard: React.FC = () => {
                                     </CardTitle>
                                     <Badge className="bg-primary text-white border-none font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider">
                                         {pendingClusters.length +
+                                            pendingUsers.length +
                                             submittedPayments.length}
                                     </Badge>
                                 </div>
@@ -1063,6 +1070,38 @@ export const AdminDashboard: React.FC = () => {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="p-6 pt-0 space-y-3">
+                                {pendingUsers.slice(0, 2).map((user) => (
+                                    <div
+                                        key={user.id}
+                                        className="p-4 rounded-md bg-slate-50 border border-slate-200 space-y-3 group"
+                                    >
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-md bg-white border border-slate-200 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform">
+                                                    <Users className="w-4 h-4" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-xs text-slate-900 tracking-tight">
+                                                        {user.fullName || user.name || "Unknown"}
+                                                    </h4>
+                                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                                                        {user.email || "No email"}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-7 w-7 rounded-md text-blue-600 hover:bg-white border border-transparent hover:border-slate-200"
+                                                onClick={() => {
+                                                    handleUserRowClick(user.id);
+                                                }}
+                                            >
+                                                <ChevronRight className="w-3.5 h-3.5" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
                                 {pendingClusters.slice(0, 2).map((cluster) => (
                                     <div
                                         key={cluster.id}
@@ -1138,59 +1177,10 @@ export const AdminDashboard: React.FC = () => {
                                 <Button
                                     variant="ghost"
                                     className="w-full h-10 rounded-md font-bold text-[10px] uppercase tracking-wider text-primary hover:bg-slate-50 border border-transparent hover:border-slate-200"
+                                    onClick={() => setVerificationQueueOpen(true)}
                                 >
                                     View Full Queue
                                     <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-
-                    {/* System Security */}
-                    <motion.div variants={item}>
-                        <Card className="border border-slate-200 shadow-sm bg-slate-50 rounded-lg overflow-hidden">
-                            <CardContent className="p-6">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-primary">
-                                        <Lock className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-sm tracking-tight text-slate-900">
-                                            Security Status
-                                        </h3>
-                                        <p className="text-[10px] font-bold text-primary uppercase tracking-wider">
-                                            All Systems Secure
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="font-bold text-[10px] text-slate-500 uppercase tracking-wider">
-                                            Firewall
-                                        </span>
-                                        <Badge className="bg-emerald-500 text-white border-none font-bold text-[8px] uppercase tracking-wider px-1.5 py-0 rounded-md">
-                                            Active
-                                        </Badge>
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="font-bold text-[10px] text-slate-500 uppercase tracking-wider">
-                                            Encryption
-                                        </span>
-                                        <Badge className="bg-emerald-500 text-white border-none font-bold text-[8px] uppercase tracking-wider px-1.5 py-0 rounded-md">
-                                            AES-256
-                                        </Badge>
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="font-bold text-[10px] text-slate-500 uppercase tracking-wider">
-                                            Audit Logging
-                                        </span>
-                                        <Badge className="bg-emerald-500 text-white border-none font-bold text-[8px] uppercase tracking-wider px-1.5 py-0 rounded-md">
-                                            Enabled
-                                        </Badge>
-                                    </div>
-                                </div>
-                                <Button className="w-full mt-6 h-10 rounded-md bg-primary hover:bg-primary/90 font-bold text-[10px] uppercase tracking-wider shadow-sm">
-                                    Security Audit
                                 </Button>
                             </CardContent>
                         </Card>
@@ -1378,6 +1368,209 @@ export const AdminDashboard: React.FC = () => {
                             )}
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Verification Queue Dialog */}
+            <Dialog open={verificationQueueOpen} onOpenChange={setVerificationQueueOpen}>
+                <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-hidden flex flex-col rounded-lg border-slate-200">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Activity className="w-5 h-5 text-primary" />
+                            Verification Queue
+                        </DialogTitle>
+                        <DialogDescription className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                            Review and approve pending verifications
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-auto">
+                        <div className="space-y-4">
+                            {/* Users Section */}
+                            {pendingUsers.length > 0 && (
+                                <div>
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+                                        Pending Users ({pendingUsers.length})
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {pendingUsers
+                                            .slice((queuePage - 1) * queuePageSize, queuePage * queuePageSize)
+                                            .map((user) => (
+                                                <div
+                                                    key={user.id}
+                                                    className="flex items-center justify-between p-4 rounded-md bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all cursor-pointer"
+                                                    onClick={() => {
+                                                        handleUserRowClick(user.id);
+                                                        setVerificationQueueOpen(false);
+                                                    }}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-blue-600">
+                                                            <Users className="w-5 h-5" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-sm text-slate-900 tracking-tight">
+                                                                {user.fullName || user.name || "Unknown"}
+                                                            </h4>
+                                                            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">
+                                                                {user.email || "No email"}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge
+                                                            variant="outline"
+                                                            className={cn(
+                                                                "font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider",
+                                                                getRoleBadgeColor(user.role),
+                                                            )}
+                                                        >
+                                                            {user.role}
+                                                        </Badge>
+                                                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Clusters Section */}
+                            {pendingClusters.length > 0 && (
+                                <div>
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+                                        Pending Clusters ({pendingClusters.length})
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {pendingClusters
+                                            .slice((queuePage - 1) * queuePageSize, queuePage * queuePageSize)
+                                            .map((cluster) => (
+                                                <div
+                                                    key={cluster.id}
+                                                    className="flex items-center justify-between p-4 rounded-md bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all cursor-pointer"
+                                                    onClick={() => {
+                                                        setSelectedCluster(cluster);
+                                                        navigate(`/clusters/${cluster.id}`);
+                                                        setVerificationQueueOpen(false);
+                                                    }}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-emerald-600">
+                                                            <MapPin className="w-5 h-5" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-sm text-slate-900 tracking-tight">
+                                                                {cluster.name}
+                                                            </h4>
+                                                            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">
+                                                                {cluster.location}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge
+                                                            variant="outline"
+                                                            className={cn(
+                                                                "font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider",
+                                                                getClusterStatusBadgeColor(cluster.status),
+                                                            )}
+                                                        >
+                                                            {cluster.status}
+                                                        </Badge>
+                                                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Payments Section */}
+                            {submittedPayments.length > 0 && (
+                                <div>
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+                                        Pending Payments ({submittedPayments.length})
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {submittedPayments
+                                            .slice((queuePage - 1) * queuePageSize, queuePage * queuePageSize)
+                                            .map((payment) => (
+                                                <div
+                                                    key={payment.id}
+                                                    className="flex items-center justify-between p-4 rounded-md bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all cursor-pointer"
+                                                    onClick={() => {
+                                                        navigate(`/payments/${payment.id}`);
+                                                        setVerificationQueueOpen(false);
+                                                    }}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-amber-600">
+                                                            <Wallet className="w-5 h-5" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-sm text-slate-900 tracking-tight">
+                                                                ${payment.amount.toLocaleString()}
+                                                            </h4>
+                                                            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">
+                                                                {payment.agreementTitle}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge
+                                                            variant="outline"
+                                                            className={cn(
+                                                                "font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider",
+                                                                getPaymentTypeTone(payment.type),
+                                                            )}
+                                                        >
+                                                            {getPaymentTypeLabel(payment.type)}
+                                                        </Badge>
+                                                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {pendingClusters.length === 0 && pendingUsers.length === 0 && submittedPayments.length === 0 && (
+                                <div className="text-center py-12">
+                                    <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
+                                    <h3 className="text-lg font-bold text-slate-900">All caught up!</h3>
+                                    <p className="text-slate-500 text-sm mt-1">No pending verifications at this time.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    {/* Pagination */}
+                    {(pendingClusters.length > queuePageSize || pendingUsers.length > queuePageSize || submittedPayments.length > queuePageSize) && (
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+                            <p className="text-xs text-slate-500">
+                                Showing {Math.min((queuePage - 1) * queuePageSize + 1, pendingClusters.length + pendingUsers.length + submittedPayments.length)}-
+                                {Math.min(queuePage * queuePageSize, pendingClusters.length + pendingUsers.length + submittedPayments.length)} of {pendingClusters.length + pendingUsers.length + submittedPayments.length}
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 rounded-md border-slate-200 bg-white hover:bg-slate-50"
+                                    onClick={() => setQueuePage((p) => Math.max(1, p - 1))}
+                                    disabled={queuePage === 1}
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 rounded-md border-slate-200 bg-white hover:bg-slate-50"
+                                    onClick={() => setQueuePage((p) => p + 1)}
+                                    disabled={queuePage * queuePageSize >= pendingClusters.length + pendingUsers.length + submittedPayments.length}
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </DialogContent>
             </Dialog>
 

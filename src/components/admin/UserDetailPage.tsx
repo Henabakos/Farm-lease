@@ -276,7 +276,7 @@ export const UserDetailPage: React.FC = () => {
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <button
-                        onClick={() => navigate("/admin")}
+                        onClick={() => navigate("/dashboard")}
                         className="flex items-center gap-2 text-slate-600 hover:text-primary transition-colors"
                     >
                         <ArrowLeft className="w-4 h-4" />
