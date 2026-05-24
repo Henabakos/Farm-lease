@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { agreementsAPI } from '../services/api';
 import { toast } from 'sonner';
+import { initializeSocket } from '@/src/services/realtime';
 
 export interface Agreement {
   id: string;
@@ -48,6 +49,26 @@ export const useAgreements = () => {
     };
     window.addEventListener('agreements:updated', handler);
     return () => window.removeEventListener('agreements:updated', handler);
+  }, [fetchAgreements]);
+
+  // Subscribe to server-sent realtime events for agreements so lists update
+  // when changes originate from other clients or server-side workflows.
+  useEffect(() => {
+    const socket = initializeSocket();
+    if (!socket) return;
+    const handler = () => fetchAgreements();
+    socket.on('agreement.drafted', handler);
+    socket.on('agreement.updated', handler);
+    socket.on('agreement.fully_signed', handler);
+    socket.on('agreement.signed_by', handler);
+    socket.on('agreement.terminated', handler);
+    return () => {
+      socket.off('agreement.drafted', handler);
+      socket.off('agreement.updated', handler);
+      socket.off('agreement.fully_signed', handler);
+      socket.off('agreement.signed_by', handler);
+      socket.off('agreement.terminated', handler);
+    };
   }, [fetchAgreements]);
 
   const getAgreement = useCallback(async (id: string) => {
