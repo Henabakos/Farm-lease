@@ -89,6 +89,7 @@ model User {
   notificationsActed  Notification[]     @relation("NotificationActor")
   meetingsHosted      Meeting[]          @relation("MeetingHost")
   meetingParticipants MeetingParticipant[]
+  availabilities      Availability[]
   auditLogs           AuditLog[]
   knowledgeBases      KnowledgeBase[]
   aiChats             AiChat[]
@@ -881,6 +882,23 @@ model MeetingParticipant {
   leftAt     DateTime? @db.Timestamptz()
 
   @@unique([meetingId, userId])
+}
+
+// Weekly recurring availability slots defined by a CLUSTER_REP.
+// dayOfWeek: 0 = Sunday … 6 = Saturday (JavaScript Date convention).
+model Availability {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dayOfWeek  Int                                              // 0–6
+  startTime  String                                           // "HH:mm" 24h local
+  endTime    String                                           // "HH:mm" 24h local
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now()) @db.Timestamptz()
+  updatedAt  DateTime @updatedAt @db.Timestamptz()
+
+  @@index([userId, dayOfWeek])
+  @@index([userId, isActive])
 }
 
 // ============================================================================

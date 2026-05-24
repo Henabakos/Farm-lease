@@ -125,6 +125,35 @@ export const useMeetings = () => {
     }
   }, []);
 
+  const bookSlot = useCallback(async (data: {
+    hostId: string;
+    slotDate: string;
+    availabilityId: string;
+    durationMinutes?: number;
+    notes?: string;
+  }) => {
+    try {
+      setIsLoading(true);
+      const res = await meetingsAPI.bookSlot(data);
+      const booked = res.data as MeetingDto;
+      setMeetings(prev => [booked, ...prev]);
+      toast.success('Meeting booked successfully!');
+      return booked;
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to book slot';
+      toast.error(msg);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const adminCancelMeeting = useCallback(async (id: string, reason?: string) => {
+    await meetingsAPI.adminCancelMeeting(id, reason);
+    setMeetings(prev => prev.map(m => m.id === id ? { ...m, status: 'CANCELLED' as const } : m));
+    toast.success('Meeting cancelled');
+  }, []);
+
   useEffect(() => {
     fetchMeetings();
   }, [fetchMeetings]);
@@ -139,5 +168,7 @@ export const useMeetings = () => {
     updateMeeting,
     updateStatus,
     deleteMeeting,
+    bookSlot,
+    adminCancelMeeting,
   };
 };
