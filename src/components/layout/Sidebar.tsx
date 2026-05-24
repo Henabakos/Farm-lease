@@ -1,13 +1,13 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { 
-  LayoutDashboard, 
-  Sprout, 
-  Users, 
-  TrendingUp, 
-  Settings, 
-  LogOut, 
-  ChevronLeft, 
+import {
+  LayoutDashboard,
+  Sprout,
+  Users,
+  TrendingUp,
+  Settings,
+  LogOut,
+  ChevronLeft,
   ChevronRight,
   ShieldCheck,
   Map,
@@ -15,8 +15,6 @@ import {
   Wallet,
   MessageSquare,
   Calendar,
-  BarChart3,
-  ShieldAlert,
   History,
   Briefcase
 } from 'lucide-react';
@@ -41,8 +39,6 @@ const NAV_ITEMS: NavItem[] = [
   { title: 'Payments', icon: Wallet, path: '/payments', roles: ['INVESTOR', 'CLUSTER_REP', 'ADMIN'] },
   { title: 'Messages', icon: MessageSquare, path: '/messages', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
   { title: 'Meetings', icon: Calendar, path: '/meetings', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
-  { title: 'Analytics', icon: BarChart3, path: '/analytics', roles: ['INVESTOR', 'ADMIN'] },
-  { title: 'Admin Panel', icon: ShieldAlert, path: '/admin', roles: ['ADMIN'] },
   { title: 'Audit Logs', icon: History, path: '/audit-logs', roles: ['ADMIN'] },
   { title: 'Resources', icon: Briefcase, path: '/resources', roles: ['FARMER', 'CLUSTER_REP', 'ADMIN', 'INVESTOR'] },
 ];

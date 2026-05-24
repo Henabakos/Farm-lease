@@ -72,6 +72,7 @@ import { Payment } from "../../types";
 import { CreateClusterDialog } from "../clusters/CreateClusterDialog";
 import { ContractTemplatesPanel } from "./contracts/ContractTemplatesPanel";
 import { AdminAIPanel } from "./AdminAIPanel";
+import { AnalyticsDashboard } from "@/src/components/analytics/AnalyticsDashboard";
 import {
     ClusterActionType,
     ClusterActionsDialog,

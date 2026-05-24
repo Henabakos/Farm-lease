@@ -168,7 +168,7 @@ export async function getActivityFeed(limit = 20) {
     orderBy: { createdAt: 'desc' },
     include: {
       proposal: {
-        select: { id: true, title, investorId: true },
+        select: { id: true, title: true, investorId: true },
       },
     },
   });

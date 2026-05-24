@@ -24,15 +24,13 @@ import { PaymentReview } from '@/src/components/payments/PaymentReview';
 import { PaymentDetail } from '@/src/components/payments/PaymentDetail';
 import { MessagingPage } from '@/src/components/messaging/MessagingPage';
 import { MeetingScheduler } from '@/src/components/meetings/MeetingScheduler';
-import { AnalyticsDashboard } from '@/src/components/analytics/AnalyticsDashboard';
 import { AIChatbot } from '@/src/components/ai/AIChatbot';
-import { AdminDashboard } from '@/src/components/admin/AdminDashboard';
 import { AuditLogs } from '@/src/components/admin/AuditLogs';
 import { SettingsPage } from '@/src/components/profile/SettingsPage';
 import { ResourceRecommendations } from '@/src/components/resources/ResourceRecommendations';
 import { DashboardOverview } from '@/src/components/dashboard/DashboardOverview';
 import { LandingPage } from '@/src/components/landing/LandingPage';
-import { Payment, UserRole } from '@/src/types';
+import { Payment, Proposal, UserRole } from '@/src/types';
 import { useStore } from '@/src/store/useStore';
 
 function AppContent() {
@@ -95,23 +93,6 @@ function AppContent() {
 //   const PAYMENT_REVIEW_ROLES: UserRole[] = ['CLUSTER_REP', 'ADMIN'];
 //   const INVESTOR_OR_ADMIN: UserRole[] = ['INVESTOR', 'ADMIN'];
 
-  const guardRoute = (element: React.ReactElement, allowedRoles?: UserRole[]) => {
-    if (!allowedRoles) return element;
-    if (!role) return <Navigate to="/dashboard" replace />;
-    if (allowedRoles.includes(role)) return element;
-    return <Navigate to="/dashboard" replace />;
-  };
-
-  const ALL_ROLES: UserRole[] = ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'];
-  const CLUSTER_BROWSE_ROLES: UserRole[] = ALL_ROLES;
-  const PROPOSAL_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
-  const PROPOSAL_CREATE_ROLES: UserRole[] = ['INVESTOR'];
-  const AGREEMENT_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
-  const PAYMENT_ACCESS_ROLES: UserRole[] = ['INVESTOR', 'CLUSTER_REP', 'ADMIN'];
-  const PAYMENT_SUBMIT_ROLES: UserRole[] = ['INVESTOR'];
-  const PAYMENT_REVIEW_ROLES: UserRole[] = ['CLUSTER_REP', 'ADMIN'];
-  const INVESTOR_OR_ADMIN: UserRole[] = ['INVESTOR', 'ADMIN'];
-
   // Sync URL with currentView
   React.useEffect(() => {
     const path = location.pathname;
@@ -124,8 +105,6 @@ function AppContent() {
       '/payments': 'PAYMENTS',
       '/messages': 'MESSAGES',
       '/meetings': 'MEETINGS',
-      '/analytics': 'ANALYTICS',
-      '/admin': 'ADMIN_DASHBOARD',
       '/audit-logs': 'AUDIT_LOGS',
       '/resources': 'RESOURCES',
       '/settings': 'SETTINGS',
@@ -263,13 +242,12 @@ function AppContent() {
                                 onBack={() => {
                                     setSelectedProposal(null);
                                     navigate("/proposals");
-                                }}
-                                onNegotiate={() =>
-                                    navigate(
-                                        `/proposals/${selectedProposal.id}/negotiate`,
-                                    )
-                                }
-                            />
+                                } }
+                                onNegotiate={() => navigate(
+                                    `/proposals/${selectedProposal.id}/negotiate`
+                                )} onUpdateProposal={function (updated: Partial<Proposal>): void {
+                                    throw new Error('Function not implemented.');
+                                } }                            />
                         ) : (
                             <Navigate to="/proposals" />
                         )
@@ -426,13 +404,6 @@ function AppContent() {
                 />
                 <Route path="/messages" element={<MessagingPage />} />
                 <Route path="/meetings" element={<MeetingScheduler />} />
-                <Route path="/analytics" element={<AnalyticsDashboard />} />
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/admin/users/:id" element={<UserDetailPage />} />
-                <Route
-                    path="/admin/clusters/:id"
-                    element={<ClusterDetailPage />}
-                />
                 <Route path="/audit-logs" element={<AuditLogs />} />
                 <Route
                     path="/resources"
