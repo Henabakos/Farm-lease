@@ -6,6 +6,9 @@ import { NotificationProvider } from '@/src/contexts/NotificationContext';
 import { DashboardLayout } from '@/src/components/layout/DashboardLayout';
 import { LoginPage } from '@/src/components/auth/LoginPage';
 import { RegisterPage } from '@/src/components/auth/RegisterPage';
+import { ForgotPasswordPage } from '@/src/components/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/src/components/auth/ResetPasswordPage';
+import { VerifyEmailPage } from '@/src/components/auth/VerifyEmailPage';
 import { ProfilePage } from '@/src/components/profile/ProfilePage';
 import { ClusterList } from '@/src/components/clusters/ClusterList';
 import { ClusterDetail } from '@/src/components/clusters/ClusterDetail';
@@ -131,6 +134,31 @@ function AppContent() {
       </div>
     );
   }
+
+    // Public auth routes that work regardless of whether the user is signed in.
+    // Reached directly via links in transactional emails.
+    const pathname = location.pathname;
+    if (pathname.startsWith('/forgot-password')) {
+        return (
+            <Routes>
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            </Routes>
+        );
+    }
+    if (pathname.startsWith('/reset-password')) {
+        return (
+            <Routes>
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+            </Routes>
+        );
+    }
+    if (pathname.startsWith('/verify-email')) {
+        return (
+            <Routes>
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+            </Routes>
+        );
+    }
 
     if (!isAuthenticated) {
         return (

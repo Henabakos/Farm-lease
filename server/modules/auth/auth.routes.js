@@ -18,7 +18,8 @@ router.post('/refresh',          authLimiter, validate({ body: v.refreshSchema }
 router.post('/logout',                                                                            c.logout);
 router.get( '/me',               requireAuth,                                                     c.me);
 
-router.post('/verify-email',     authLimiter, validate({ body: v.verifyEmailSchema }),            c.verifyEmail);
+router.post('/verify-email',         authLimiter, validate({ body: v.verifyEmailSchema }),            c.verifyEmail);
+router.post('/resend-verification',  authLimiter, validate({ body: v.requestPasswordResetSchema }), c.resendVerification);
 router.post('/forgot-password',  authLimiter, validate({ body: v.requestPasswordResetSchema }),   c.requestPasswordReset);
 router.post('/reset-password',   authLimiter, validate({ body: v.resetPasswordSchema }),          c.resetPassword);
 router.post('/change-password',  requireAuth, validate({ body: v.changePasswordSchema }),        c.changePassword);

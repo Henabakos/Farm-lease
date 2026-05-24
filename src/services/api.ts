@@ -127,7 +127,13 @@ export const authAPI = {
     api.post('/auth/refresh', { refresh_token: refreshToken }),
   getCurrentUser: () => api.get('/auth/me'),
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
-    api.post('/auth/change-password', data)
+    api.post('/auth/change-password', data),
+  forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token: string, password: string) =>
+    api.post('/auth/reset-password', { token, password }),
+  verifyEmail: (token: string) => api.post('/auth/verify-email', { token }),
+  resendVerification: (email: string) =>
+    api.post('/auth/resend-verification', { email }),
 };
 
 // Users API

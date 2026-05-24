@@ -49,6 +49,11 @@ export const verifyEmail = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
+export const resendVerification = asyncHandler(async (req, res) => {
+  const result = await service.resendVerification({ email: req.body.email });
+  res.json(result);
+});
+
 export const requestPasswordReset = asyncHandler(async (req, res) => {
   const result = await service.requestPasswordReset({ email: req.body.email });
   res.json(result);
