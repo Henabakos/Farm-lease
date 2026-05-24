@@ -264,41 +264,12 @@ function AppContent() {
                 <Route
                     path="/agreements"
                     element={
-                        AGREEMENT_ACCESS_ROLES.includes(role) ? (
-                            role === "ADMIN" ? (
-                                <AdminAgreementView
-                                    onSelectAgreement={(a) => {
-                                        setSelectedAgreement(a);
-                                        navigate(`/agreements/${a.id}`);
-                                    }}
-                                />
-                            ) : role === "INVESTOR" ? (
-                                <InvestorAgreementView
-                                    onSelectAgreement={(a) => {
-                                        setSelectedAgreement(a);
-                                        navigate(`/agreements/${a.id}`);
-                                    }}
-                                />
-                            ) : role === "CLUSTER_REP" ? (
-                                <RepresentativeAgreementView
-                                    onSelectAgreement={(a) => {
-                                        setSelectedAgreement(a);
-                                        navigate(`/agreements/${a.id}`);
-                                    }}
-                                />
-                            ) : role === "FARMER" ? (
-                                <FarmerAgreementView
-                                    onSelectAgreement={(a) => {
-                                        setSelectedAgreement(a);
-                                        navigate(`/agreements/${a.id}`);
-                                    }}
-                                />
-                            ) : (
-                                <Navigate to="/dashboard" replace />
-                            )
-                        ) : (
-                            <Navigate to="/dashboard" replace />
-                        )
+                        <AgreementList
+                            onSelectAgreement={(a) => {
+                                setSelectedAgreement(a);
+                                navigate(`/agreements/${a.id}`);
+                            }}
+                        />
                     }
                 />
                 <Route
@@ -424,10 +395,7 @@ function AppContent() {
                     element={<ResourceRecommendations />}
                 />
                 <Route path="/settings" element={<SettingsPage />} />
-                <Route
-                    path="/admin/users/:id"
-                    element={<UserDetailPage />}
-                />
+                <Route path="/admin/users/:id" element={<UserDetailPage />} />
             </Routes>
             <AIChatbot />
             <ReceiptModal
