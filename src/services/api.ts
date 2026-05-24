@@ -125,7 +125,9 @@ export const authAPI = {
     api.post('/auth/logout', refreshToken ? { refresh_token: refreshToken } : {}),
   refresh: (refreshToken: string) =>
     api.post('/auth/refresh', { refresh_token: refreshToken }),
-  getCurrentUser: () => api.get('/auth/me')
+  getCurrentUser: () => api.get('/auth/me'),
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    api.post('/auth/change-password', data)
 };
 
 // Users API
@@ -134,7 +136,8 @@ export const usersAPI = {
   updateProfile: (id: string, data: any) => api.put(`/users/${id}`, data),
   searchUsers: (query?: string, role?: string) =>
     api.get('/users', { params: { q: query, role } }),
-  verifyUser: (id: string) => api.post(`/users/${id}/verify`)
+  verifyUser: (id: string) => api.post(`/users/${id}/verify`),
+  deleteAccount: () => api.delete('/users/me')
 };
 
 // Clusters API
@@ -153,7 +156,10 @@ export const clustersAPI = {
     api.post(`/clusters/${id}/members/invite`, data),
   updateMemberRole: (id: string, userId: string, role: string) =>
     api.patch(`/clusters/${id}/members/${userId}/role`, { role }),
-  verify: (id: string) => api.post(`/clusters/${id}/verify`)
+  assignRepresentative: (id: string, userId: string) =>
+    api.patch(`/clusters/${id}/representative`, { userId }),
+  verify: (id: string) => api.post(`/clusters/${id}/verify`),
+  unverify: (id: string) => api.post(`/clusters/${id}/unverify`)
 };
 
 // Plots API
@@ -288,6 +294,18 @@ export const adminAPI = {
   updateUserStatus: (id: string, status: string, reason?: string) =>
     api.patch(`/admin/users/${id}/status`, { status, reason }),
   approveUser: (id: string) => api.post(`/admin/users/${id}/approve`),
+  updateUserVerification: (id: string, verificationStatus: string, reason?: string) =>
+    api.patch(`/admin/users/${id}/verification`, { verificationStatus, reason }),
+  updateUserRole: (id: string, role: string) =>
+    api.patch(`/admin/users/${id}/role`, { role }),
+  unsuspendUser: (id: string, reason?: string) =>
+    api.patch(`/admin/users/${id}/unsuspend`, { reason }),
+  resetUserPassword: (id: string, password: string) =>
+    api.patch(`/admin/users/${id}/password`, { password }),
   getAuditLogs: (filters?: any) => api.get('/admin/audit-logs', { params: filters }),
+  exportAuditLogs: (filters?: any) => api.get('/admin/audit-logs/export', { params: filters, responseType: 'blob' }),
+  clearAuditLogs: (beforeDate: string) => api.delete('/admin/audit-logs', { data: { beforeDate } }),
+  exportReport: (reportType: string, startDate?: string, endDate?: string) => 
+    api.get('/admin/report/export', { params: { reportType, startDate, endDate }, responseType: 'blob' }),
   getStats: () => api.get('/admin/stats')
 };

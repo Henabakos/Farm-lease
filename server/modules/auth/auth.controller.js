@@ -58,3 +58,12 @@ export const resetPassword = asyncHandler(async (req, res) => {
   const result = await service.resetPassword(req.body);
   res.json(result);
 });
+
+export const changePassword = asyncHandler(async (req, res) => {
+  const result = await service.changePassword({
+    userId: req.user.id,
+    currentPassword: req.body.currentPassword,
+    newPassword: req.body.newPassword,
+  });
+  res.json(result);
+});

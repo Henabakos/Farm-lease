@@ -98,7 +98,7 @@ const MOCK_USERS: Record<UserRole, User> = {
     location: 'Kaduna, Nigeria',
     joinedDate: '2024-03-10',
     clusters: [
-      { id: 'c1', name: 'Kaduna North Maize Cluster', location: 'Kaduna', region: 'North West', memberCount: 120, isVerified: true, size: 450, establishedDate: '2023-05-10' },
+      { id: 'c1', name: 'Kaduna North Maize Cluster', location: 'Kaduna', region: 'North West', memberCount: 120, isVerified: true, verificationStatus: 'VERIFIED', size: 450, establishedDate: '2023-05-10' },
     ]
   },
   CLUSTER_REP: {
@@ -198,8 +198,8 @@ export const useStore = create<AppState>((set) => ({
     }
   ],
   clusters: [
-    { id: 'c1', name: 'Kaduna North Maize Cluster', location: 'Kaduna', region: 'North West', memberCount: 120, isVerified: true, size: 450, establishedDate: '2023-05-10' },
-    { id: 'c2', name: 'Organic Growers Association', location: 'Zaria', region: 'North West', memberCount: 45, isVerified: false, size: 120, establishedDate: '2023-08-22' },
+    { id: 'c1', name: 'Kaduna North Maize Cluster', location: 'Kaduna', region: 'North West', memberCount: 120, isVerified: true, verificationStatus: 'VERIFIED', size: 450, establishedDate: '2023-05-10' },
+    { id: 'c2', name: 'Organic Growers Association', location: 'Zaria', region: 'North West', memberCount: 45, isVerified: false, verificationStatus: 'UNVERIFIED', size: 120, establishedDate: '2023-08-22' },
   ],
   agreements: [],
   payments: [],

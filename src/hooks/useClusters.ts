@@ -131,6 +131,19 @@ export const useClusters = () => {
     }
   }, []);
 
+  const assignRepresentative = useCallback(async (id: string, userId: string) => {
+    try {
+      const response = await clustersAPI.assignRepresentative(id, userId);
+      const updated = response.data as ClusterDto;
+      setClusters(prev => prev.map(c => c.id === id ? updated : c));
+      toast.success('Cluster representative assigned');
+      return updated;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to assign representative');
+      throw err;
+    }
+  }, []);
+
   const removeMember = useCallback(async (id: string, userId: string) => {
     try {
       await clustersAPI.removeMember(id, userId);
@@ -165,6 +178,19 @@ export const useClusters = () => {
     }
   }, []);
 
+  const unverifyCluster = useCallback(async (id: string) => {
+    try {
+      const response = await clustersAPI.unverify(id);
+      const updated = response.data as ClusterDto;
+      setClusters(prev => prev.map(c => c.id === id ? updated : c));
+      toast.success('Cluster verification removed');
+      return updated;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to unverify cluster');
+      throw err;
+    }
+  }, []);
+
   useEffect(() => {
     fetchClusters();
   }, [fetchClusters]);
@@ -179,8 +205,10 @@ export const useClusters = () => {
     updateCluster,
     deleteCluster,
     listMembers,
+    assignRepresentative,
     removeMember,
     joinCluster,
     verifyCluster,
+    unverifyCluster,
   };
 };

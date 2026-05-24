@@ -104,6 +104,36 @@ class AdminAPI {
     return res.json();
   }
 
+  async updateUserVerification(userId: string, verificationStatus: string, reason?: string): Promise<User> {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}/verification`, {
+      method: 'PATCH',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ verificationStatus, reason }),
+    });
+    if (!res.ok) throw new Error('Failed to update user verification');
+    return res.json();
+  }
+
+  async updateUserRole(userId: string, role: string): Promise<User> {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ role }),
+    });
+    if (!res.ok) throw new Error('Failed to update user role');
+    return res.json();
+  }
+
+  async updateUserActivation(userId: string, activate: boolean): Promise<User> {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}/activation`, {
+      method: 'PATCH',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ activate }),
+    });
+    if (!res.ok) throw new Error('Failed to update user activation');
+    return res.json();
+  }
+
   async listAuditLogs(filters: { userId?: string; action?: string; entityType?: string; page?: number; limit?: number } = {}): Promise<PaginatedResponse<AuditLog>> {
     const params = new URLSearchParams();
     if (filters.userId) params.append('userId', filters.userId);
