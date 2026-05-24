@@ -38,8 +38,18 @@ export const usePayments = () => {
       setIsLoading(true);
       setError(null);
       const response = await paymentsAPI.getAll(filters);
-      const payload = response.data as { data?: Payment[] } | Payment[];
-      setPayments(Array.isArray(payload) ? payload : payload.data ?? []);
+      const body = response.data as
+        | Payment[]
+        | { data?: Payment[]; items?: Payment[] }
+        | undefined;
+      const rows: Payment[] = Array.isArray(body)
+        ? body
+        : Array.isArray(body?.data)
+          ? body!.data!
+          : Array.isArray(body?.items)
+            ? body!.items!
+            : [];
+      setPayments(rows);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Failed to fetch payments';
       setError(errorMessage);
