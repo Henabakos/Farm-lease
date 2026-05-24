@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { VerificationBanner } from './VerificationBanner';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRole } from '@/src/contexts/RoleContext';
 
@@ -21,6 +22,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <Topbar />
         
         <main className="flex-1 overflow-y-auto p-5 scrollbar-hide">
+          <VerificationBanner />
           <AnimatePresence mode="wait">
             <motion.div
               key={user.role}
