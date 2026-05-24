@@ -138,11 +138,15 @@ export function AgreementDetail({
     }
   };
 
-  const canEdit = workflowStatus === 'DRAFT' || workflowStatus === 'PENDING_SIGNATURES';
-  const canSign = workflowStatus === 'DRAFT' && 
-                  ((user.role === 'INVESTOR') || 
-                   (user.role === 'FARMER' && agreement.farmerId === user.id) || 
-                   (user.role === 'CLUSTER_REP' && agreement.clusterId === user.id));
+  const canEdit = (workflowStatus === 'DRAFT' || workflowStatus === 'PENDING_SIGNATURES') && (
+    user.role === 'INVESTOR' ||
+    user.role === 'CLUSTER_REP' ||
+    user.role === 'ADMIN'
+  );
+  const canSign = (workflowStatus === 'DRAFT' || workflowStatus === 'PENDING_SIGNATURES') && (
+    (capturedSignatures.length === 0 && user.role === 'CLUSTER_REP') ||
+    (capturedSignatures.length === 1 && user.role === 'INVESTOR')
+  );
 
   return (
     <motion.div 

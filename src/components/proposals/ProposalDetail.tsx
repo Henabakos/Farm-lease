@@ -221,10 +221,10 @@ export function ProposalDetail({
   const isDraft = apiStatus === 'draft';
   const isTerminal = apiStatus === 'accepted' || apiStatus === 'rejected' || apiStatus === 'withdrawn' || apiStatus === 'expired';
 
-  const canPublish = isDraft && (isInvestor || user?.role === 'ADMIN');
-  const canWithdraw = !isDraft && !isTerminal && (isInvestor || user?.role === 'ADMIN');
-  const canActOnProposal = !isDraft && !isTerminal && (isCounterparty || user?.role === 'ADMIN');
-  const canNegotiate = !isDraft && !isTerminal;
+  const canPublish = isDraft && isInvestor;
+  const canWithdraw = !isDraft && !isTerminal && isInvestor;
+  const canActOnProposal = !isDraft && !isTerminal && isCounterparty;
+  const canNegotiate = !isDraft && !isTerminal && (isInvestor || isCounterparty);
 
   const handleAccept = async () => {
     setIsActing(true);
@@ -344,7 +344,7 @@ export function ProposalDetail({
                 onClick={handleReview}
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>Review</span>
+                <span>Counter-offer</span>
               </Button>
               <Button
                 variant="outline"

@@ -87,7 +87,7 @@ export function PaymentList({
   onReviewPayment: (payment: Payment) => void,
   onViewReceipt?: (payment: Payment) => void
 }) {
-  const { isAdmin } = useRole();
+  const { isAdmin, isClusterRep } = useRole();
   const { payments: apiPayments, isLoading } = usePayments();
   const payments = apiPayments.length > 0
     ? apiPayments.map((p) => mapPaymentFromApi(p as unknown as Record<string, unknown>))
@@ -123,7 +123,7 @@ export function PaymentList({
     return matchesSearch && matchesStatus;
   });
 
-  const isAdminOrRep = isAdmin;
+  const isAdminOrRep = isAdmin || isClusterRep;
 
   const container = {
     hidden: { opacity: 0 },
@@ -257,7 +257,7 @@ export function PaymentList({
                             <ShieldCheck className="w-3.5 h-3.5" />
                             <span>Review Receipt</span>
                           </Button>
-                        ) : payment.status === 'PENDING' ? (
+                        ) : uiRole === 'INVESTOR' && payment.status === 'PENDING' ? (
                           <Button 
                             className="w-full h-9 rounded-md gap-2 text-xs font-bold uppercase tracking-wider" 
                             onClick={() => onSubmitPayment(payment)}
