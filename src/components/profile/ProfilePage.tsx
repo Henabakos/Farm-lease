@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useRole } from '@/src/contexts/RoleContext';
+import { useAuth } from '@/src/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import {
   Users
 } from 'lucide-react';
 import { EditProfileModal } from './EditProfileModal';
+import { IdentityVerificationCard } from './IdentityVerificationCard';
 import { Separator } from '@/components/ui/separator';
 import { motion } from 'motion/react';
 
@@ -41,7 +43,9 @@ const item = {
 
 export function ProfilePage() {
   const { user, isLoading } = useRole();
+  const { user: authUser } = useAuth();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const isIdentityVerified = authUser?.verification_status === 'verified';
 
   const roleIcons = {
     INVESTOR: TrendingUp,
@@ -201,6 +205,10 @@ export function ProfilePage() {
           )}
 
           <motion.div variants={item}>
+            <IdentityVerificationCard />
+          </motion.div>
+
+          <motion.div variants={item}>
             <Card className="border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
               <CardHeader className="p-5 pb-2">
                 <CardTitle className="text-base font-bold tracking-tight text-slate-900">Account Permissions</CardTitle>
@@ -209,7 +217,7 @@ export function ProfilePage() {
               <CardContent className="p-5 pt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
-                    { title: 'Identity Verified', desc: 'Your identity has been confirmed via KYC.', status: true },
+                    { title: 'Identity Verified', desc: 'Your identity has been confirmed via KYC.', status: isIdentityVerified },
                     { title: 'Investment Access', desc: 'Authorized to participate in funding rounds.', status: user.role !== 'FARMER' },
                     { title: 'Farm Management', desc: 'Can manage and update farm production data.', status: user.role === 'FARMER' || user.role === 'CLUSTER_REP' || user.role === 'ADMIN' },
                     { title: 'Admin Console', desc: 'Access to system-wide settings and logs.', status: user.role === 'ADMIN' },
