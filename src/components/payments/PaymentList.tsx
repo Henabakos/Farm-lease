@@ -130,9 +130,20 @@ export function PaymentList({
           <FileText className="h-5 w-5" />
         </div>
         <h2 className="text-base font-bold tracking-tight text-slate-900">No payments yet</h2>
-        <p className="mt-2 text-sm text-slate-500">
-          Payments from the API will appear here once they are created for your account.
+        <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
+          {isInvestor
+            ? 'Payments appear here once you have a fully-signed agreement. Open the agreement and click "Upload Payment Receipt" to schedule the initial disbursement.'
+            : 'Payments will appear here once they are created for your account.'}
         </p>
+        {isInvestor && (
+          <Button
+            className="mt-5 h-9 gap-2 px-4 rounded-md text-xs font-bold uppercase tracking-wider"
+            onClick={() => (window.location.href = '/agreements')}
+          >
+            <ArrowUpRight className="w-3.5 h-3.5" />
+            <span>Go to Agreements</span>
+          </Button>
+        )}
       </motion.div>
     );
   }
