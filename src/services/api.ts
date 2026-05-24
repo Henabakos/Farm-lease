@@ -152,8 +152,8 @@ export const clustersAPI = {
   listMembers: (id: string) => api.get(`/clusters/${id}/members`),
   removeMember: (id: string, memberId: string) =>
     api.delete(`/clusters/${id}/members/${memberId}`),
-  inviteMember: (id: string, email: string, role?: string) =>
-    api.post(`/clusters/${id}/members/invite`, { email, role }),
+  inviteMember: (id: string, data: { email?: string; userId?: string; role?: string }) =>
+    api.post(`/clusters/${id}/members/invite`, data),
   updateMemberRole: (id: string, userId: string, role: string) =>
     api.patch(`/clusters/${id}/members/${userId}/role`, { role }),
   assignRepresentative: (id: string, userId: string) =>
