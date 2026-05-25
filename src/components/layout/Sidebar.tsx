@@ -42,7 +42,6 @@ const NAV_ITEMS: NavItem[] = [
   { title: 'Messages', icon: MessageSquare, path: '/messages', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
   { title: 'Meetings', icon: Calendar, path: '/meetings', roles: ['INVESTOR', 'FARMER', 'CLUSTER_REP', 'ADMIN'] },
   { title: 'Analytics', icon: BarChart3, path: '/analytics', roles: ['INVESTOR', 'ADMIN'] },
-  { title: 'Admin Panel', icon: ShieldAlert, path: '/admin', roles: ['ADMIN'] },
   { title: 'Audit Logs', icon: History, path: '/audit-logs', roles: ['ADMIN'] },
   { title: 'Resources', icon: Briefcase, path: '/resources', roles: ['FARMER', 'CLUSTER_REP', 'ADMIN', 'INVESTOR'] },
 ];
