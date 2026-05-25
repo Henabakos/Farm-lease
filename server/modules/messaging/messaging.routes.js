@@ -6,6 +6,12 @@ import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/asyncHandler.js';
 import { PERMISSIONS } from '../rbac/permissions.js';
 import * as s from './messaging.service.js';
+import {
+  sendInvitation,
+  listPendingInvitations,
+  acceptInvitation,
+  declineInvitation,
+} from './messaging.service.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -37,6 +43,11 @@ const sendMessageSchema = z.object({
     mime_type: z.string(),
     file_size: z.coerce.number().int().nonnegative().optional(),
   })).optional(),
+});
+
+const sendInvitationSchema = z.object({
+  receiverId: z.string().uuid(),
+  message: z.string().max(500).optional(),
 });
 
 router.get('/conversations',
@@ -85,6 +96,43 @@ router.put('/:id/read',
 router.put('/conversation/:id/read-all',
   validate({ params: convParam }),
   asyncHandler(async (req, res) => res.json(await s.markAllRead(req.params.id, req.user))),
+);
+
+// ── Invitation routes ──────────────────────────────────────────────────────
+
+// POST /messages/invitations — send an invitation
+router.post('/invitations',
+  validate({ body: sendInvitationSchema }),
+  asyncHandler(async (req, res) => {
+    const inv = await sendInvitation(req.user.id, req.body);
+    res.status(201).json(inv);
+  }),
+);
+
+// GET /messages/invitations/pending — list pending invitations addressed to me
+router.get('/invitations/pending',
+  asyncHandler(async (req, res) => {
+    const invitations = await listPendingInvitations(req.user.id);
+    res.json(invitations);
+  }),
+);
+
+// POST /messages/invitations/:id/accept
+router.post('/invitations/:id/accept',
+  validate({ params: uuidParam }),
+  asyncHandler(async (req, res) => {
+    const conversation = await acceptInvitation(req.user.id, req.params.id);
+    res.json(conversation);
+  }),
+);
+
+// POST /messages/invitations/:id/decline
+router.post('/invitations/:id/decline',
+  validate({ params: uuidParam }),
+  asyncHandler(async (req, res) => {
+    const result = await declineInvitation(req.user.id, req.params.id);
+    res.json(result);
+  }),
 );
 
 export default router;

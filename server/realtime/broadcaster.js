@@ -121,6 +121,42 @@ function registerSubscribers() {
     }
   });
 
+  // Invitation sent — notify the receiver in real-time
+  onLocal('invitation.sent', async ({ invitationId, receiverId, senderId, senderName }) => {
+    try {
+      emit(`notifications:${receiverId}`, 'invitation_received', {
+        invitationId,
+        senderId,
+        senderName,
+      });
+      // Also persist a notification row so they see it after reload
+      await pushNotification(receiverId, {
+        type: 'MESSAGE',
+        title: 'New message request',
+        body: `${senderName} wants to start a conversation`,
+        link: `/messages`,
+        actorId: senderId,
+        relatedId: invitationId,
+        relatedType: 'invitation',
+      });
+    } catch (err) {
+      logger.error({ err }, 'invitation.sent broadcaster failed');
+    }
+  });
+
+  // Invitation accepted — notify the original sender in real-time
+  onLocal('invitation.accepted', async ({ invitationId, senderId, receiverId, conversationId }) => {
+    try {
+      emit(`notifications:${senderId}`, 'invitation_accepted', {
+        invitationId,
+        conversationId,
+        acceptedByUserId: receiverId,
+      });
+    } catch (err) {
+      logger.error({ err }, 'invitation.accepted broadcaster failed');
+    }
+  });
+
   // -- Proposals --------------------------------------------------------
   onLocal('proposal.submitted', async ({ proposalId, targetType, clusterId, targetUserId }) => {
     const recipientIds = await resolveProposalAudience({ targetType, clusterId, targetUserId });

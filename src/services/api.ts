@@ -262,7 +262,16 @@ export const messagesAPI = {
   sendMessage: (data: any) => api.post('/messages', data),
   markAsRead: (id: string) => api.put(`/messages/${id}/read`),
   markAllAsRead: (conversationId: string) =>
-    api.put(`/messages/conversation/${conversationId}/read-all`)
+    api.put(`/messages/conversation/${conversationId}/read-all`),
+  // Invitation flow
+  sendInvitation: (data: { receiverId: string; message?: string }) =>
+    api.post('/messages/invitations', data),
+  getPendingInvitations: () =>
+    api.get('/messages/invitations/pending'),
+  acceptInvitation: (id: string) =>
+    api.post(`/messages/invitations/${id}/accept`),
+  declineInvitation: (id: string) =>
+    api.post(`/messages/invitations/${id}/decline`),
 };
 
 // Notifications API
@@ -284,7 +293,30 @@ export const meetingsAPI = {
   update: (id: string, data: any) => api.patch(`/meetings/${id}`, data),
   updateStatus: (id: string, status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled') =>
     api.patch(`/meetings/${id}/status`, { status }),
-  delete: (id: string) => api.delete(`/meetings/${id}`)
+  delete: (id: string) => api.delete(`/meetings/${id}`),
+  // Availability
+  getMyAvailability: () =>
+    api.get('/meetings/availability/me'),
+  getAvailabilityForUser: (userId: string) =>
+    api.get(`/meetings/availability/${userId}`),
+  createAvailability: (data: { dayOfWeek: number; startTime: string; endTime: string }) =>
+    api.post('/meetings/availability', data),
+  updateAvailability: (id: string, data: Partial<{ dayOfWeek: number; startTime: string; endTime: string; isActive: boolean }>) =>
+    api.patch(`/meetings/availability/${id}`, data),
+  deleteAvailability: (id: string) =>
+    api.delete(`/meetings/availability/${id}`),
+  // Slot booking
+  bookSlot: (data: { hostId: string; slotDate: string; availabilityId: string; durationMinutes?: number; notes?: string }) =>
+    api.post('/meetings/book', data),
+  // Admin
+  adminGetAllMeetings: (filters?: { status?: string; page?: number; limit?: number }) =>
+    api.get('/meetings/admin/all', { params: filters }),
+  adminCancelMeeting: (id: string, reason?: string) =>
+    api.delete(`/meetings/admin/${id}`, { data: { reason } }),
+  updateMeeting: (id: string, data: any) =>
+    api.patch(`/meetings/${id}`, data),
+  sendInvitation: (meetingId: string, data: { email: string }) =>
+    api.post(`/meetings/${meetingId}/invite`, data),
 };
 
 // Analytics API
