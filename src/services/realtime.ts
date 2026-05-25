@@ -166,3 +166,30 @@ export function emitEvent(eventName: string, data: any): void {
   const s = initializeSocket();
   s?.emit(eventName, data);
 }
+
+export function subscribeToInvitationEvents(
+  handler: (event: {
+    type: 'invitation_received' | 'invitation_accepted';
+    invitationId: string;
+    senderId?: string;
+    senderName?: string;
+    conversationId?: string;
+    acceptedByUserId?: string;
+  }) => void,
+): () => void {
+  const s = initializeSocket();
+  if (!s) return () => {};
+
+  const onReceived = (payload: any) =>
+    handler({ type: 'invitation_received', ...payload });
+  const onAccepted = (payload: any) =>
+    handler({ type: 'invitation_accepted', ...payload });
+
+  s.on('invitation_received', onReceived);
+  s.on('invitation_accepted', onAccepted);
+
+  return () => {
+    s.off('invitation_received', onReceived);
+    s.off('invitation_accepted', onAccepted);
+  };
+}
