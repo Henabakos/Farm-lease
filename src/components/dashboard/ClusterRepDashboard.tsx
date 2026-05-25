@@ -15,6 +15,9 @@ import {
   Sprout
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useProposals } from '@/src/hooks/useProposals';
+import { usePayments } from '@/src/hooks/usePayments';
+import { useClusters } from '@/src/hooks/useClusters';
 
 const container = {
   hidden: { opacity: 0 },
@@ -33,13 +36,33 @@ const item = {
 
 export function ClusterRepDashboard() {
   const { user } = useRole();
+  const { proposals } = useProposals();
+  const { payments, stats: paymentStats } = usePayments();
+  const { clusters } = useClusters();
+
+  // Calculate stats from real data
+  const totalFarmers = clusters?.reduce((sum: number, c: any) => sum + (c.members_count || 0), 0) || 0;
+  const activeProposals = proposals?.filter((p: any) => p.status === 'published' || p.status === 'negotiating').length || 0;
+  const totalInvestment = paymentStats?.total_volume || 0;
+  const completedProposals = proposals?.filter((p: any) => p.status === 'accepted').length || 0;
+  const totalProposals = proposals?.length || 0;
+  const completionRate = totalProposals > 0 ? ((completedProposals / totalProposals) * 100).toFixed(0) : '0';
 
   const stats = [
-    { title: 'Total Farmers', value: '156', change: '+12', icon: Users, color: 'text-primary', trend: 'up' },
-    { title: 'Active Proposals', value: '23', change: '+5', icon: Sprout, color: 'text-primary', trend: 'up' },
-    { title: 'Total Investment', value: '$450K', change: '+$50K', icon: Building2, color: 'text-primary', trend: 'up' },
-    { title: 'Completion Rate', value: '87%', change: '+2%', icon: CheckCircle2, color: 'text-primary', trend: 'up' },
+    { title: 'Total Farmers', value: totalFarmers.toString(), change: '+12', icon: Users, color: 'text-primary', trend: 'up' },
+    { title: 'Active Proposals', value: activeProposals.toString(), change: '+5', icon: Sprout, color: 'text-primary', trend: 'up' },
+    { title: 'Total Investment', value: `$${(totalInvestment / 1000).toFixed(0)}K`, change: '+$50K', icon: Building2, color: 'text-primary', trend: 'up' },
+    { title: 'Completion Rate', value: `${completionRate}%`, change: '+2%', icon: CheckCircle2, color: 'text-primary', trend: 'up' },
   ];
+
+  // Get recent proposals
+  const recentProposals = proposals?.slice(0, 3) || [];
+
+  // Calculate proposal status counts
+  const proposalsApproved = proposals?.filter((p: any) => p.status === 'accepted').length || 0;
+  const proposalsPending = proposals?.filter((p: any) => p.status === 'published' || p.status === 'negotiating').length || 0;
+  const proposalsRejected = proposals?.filter((p: any) => p.status === 'rejected').length || 0;
+  const proposalsInProgress = proposals?.filter((p: any) => p.status === 'negotiating').length || 0;
 
   return (
     <motion.div 
@@ -108,21 +131,17 @@ export function ClusterRepDashboard() {
             </CardHeader>
             <CardContent className="p-5 pt-4">
               <div className="space-y-4">
-                {[
-                  { farmer: 'John Doe', crop: 'Maize', amount: '$15,000', status: 'Pending', location: 'Kaduna' },
-                  { farmer: 'Mary Smith', crop: 'Soybeans', amount: '$22,000', status: 'Approved', location: 'Kano' },
-                  { farmer: 'Ahmed Ibrahim', crop: 'Cassava', amount: '$18,500', status: 'In Review', location: 'Sokoto' },
-                ].map((proposal, i) => (
-                  <div key={i} className="flex items-center gap-4 p-4 rounded-md bg-slate-50 hover:bg-slate-100 transition-all duration-200 cursor-pointer group border border-slate-200/50 hover:border-slate-300">
+                {recentProposals.length > 0 ? recentProposals.map((proposal: any) => (
+                  <div key={proposal.id} className="flex items-center gap-4 p-4 rounded-md bg-slate-50 hover:bg-slate-100 transition-all duration-200 cursor-pointer group border border-slate-200/50 hover:border-slate-300">
                     <div className="w-12 h-12 rounded-md bg-primary/10 flex items-center justify-center text-primary shrink-0">
                       <Sprout className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <h4 className="text-sm font-bold text-slate-900 truncate group-hover:text-primary transition-colors leading-tight">{proposal.farmer}</h4>
+                        <h4 className="text-sm font-bold text-slate-900 truncate group-hover:text-primary transition-colors leading-tight">{proposal.target_user_name || proposal.cluster_name || 'Unknown'}</h4>
                         <Badge variant={
-                          proposal.status === 'Approved' ? 'default' : 
-                          proposal.status === 'Pending' ? 'secondary' : 'outline'
+                          proposal.status === 'accepted' ? 'default' : 
+                          proposal.status === 'published' ? 'secondary' : 'outline'
                         } className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0">
                           {proposal.status}
                         </Badge>
@@ -130,20 +149,22 @@ export function ClusterRepDashboard() {
                       <div className="flex flex-wrap items-center gap-4 mt-1 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                         <div className="flex items-center gap-1.5">
                           <MapPin className="w-3 h-3 text-slate-400" />
-                          <span>{proposal.location}</span>
+                          <span>{proposal.location || 'N/A'}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Sprout className="w-3 h-3 text-primary" />
-                          <span>{proposal.crop}</span>
+                          <span>{proposal.terms?.crop_type || 'N/A'}</span>
                         </div>
                       </div>
                     </div>
                     <div className="text-right hidden sm:block pl-4 border-l border-slate-200">
-                      <p className="text-lg font-bold text-primary tracking-tight">{proposal.amount}</p>
+                      <p className="text-lg font-bold text-primary tracking-tight">${proposal.proposed_price?.toLocaleString() || '0'}</p>
                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Requested</p>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-8 text-slate-400 text-sm">No recent proposals</div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -158,10 +179,10 @@ export function ClusterRepDashboard() {
             <CardContent className="p-5 pt-4">
               <div className="space-y-6 pt-2">
                 {[
-                  { label: 'Proposals Approved', value: 45, color: 'bg-primary' },
-                  { label: 'Proposals Pending', value: 23, color: 'bg-amber-500' },
-                  { label: 'Proposals Rejected', value: 8, color: 'bg-red-500' },
-                  { label: 'In Progress', value: 15, color: 'bg-blue-500' },
+                  { label: 'Proposals Approved', value: proposalsApproved, color: 'bg-primary' },
+                  { label: 'Proposals Pending', value: proposalsPending, color: 'bg-amber-500' },
+                  { label: 'Proposals Rejected', value: proposalsRejected, color: 'bg-red-500' },
+                  { label: 'In Progress', value: proposalsInProgress, color: 'bg-blue-500' },
                 ].map((item) => (
                   <div key={item.label} className="space-y-2">
                     <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
@@ -171,7 +192,7 @@ export function ClusterRepDashboard() {
                     <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
                       <motion.div 
                         initial={{ width: 0 }}
-                        animate={{ width: `${(item.value / 91) * 100}%` }}
+                        animate={{ width: `${totalProposals > 0 ? (item.value / totalProposals) * 100 : 0}%` }}
                         transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
                         className={`h-full ${item.color} rounded-full`} 
                       />

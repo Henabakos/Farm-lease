@@ -17,6 +17,9 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { usePayments } from '@/src/hooks/usePayments';
+import { useProposals } from '@/src/hooks/useProposals';
+import { useAgreements } from '@/src/hooks/useAgreements';
 
 const container = {
   hidden: { opacity: 0 },
@@ -35,13 +38,27 @@ const item = {
 
 export function InvestorDashboard() {
   const { user } = useRole();
+  const { payments, stats: paymentStats } = usePayments();
+  const { proposals } = useProposals();
+  const { agreements } = useAgreements();
+
+  // Calculate stats from real data
+  const totalPortfolio = paymentStats?.total_volume || 0;
+  const activeInvestments = agreements?.filter((a: any) => a.status === 'ACTIVE').length || 0;
+  const farmsSupported = proposals?.filter((p: any) => p.target_type === 'FARMER').length || 0;
+  const yieldRate = paymentStats?.total_repaid && paymentStats?.total_disbursed 
+    ? ((paymentStats.total_repaid / paymentStats.total_disbursed) * 100).toFixed(1) 
+    : '0.0';
 
   const stats = [
-    { title: 'Total Portfolio', value: '$124,500.00', change: '+12.5%', icon: Wallet, color: 'text-primary', trend: 'up' },
-    { title: 'Active Investments', value: '12', change: '+2', icon: TrendingUp, color: 'text-primary', trend: 'up' },
-    { title: 'Farms Supported', value: '45', change: '+5', icon: Sprout, color: 'text-primary', trend: 'up' },
-    { title: 'Yield Rate', value: '18.4%', change: '+1.2%', icon: ArrowUpRight, color: 'text-primary', trend: 'up' },
+    { title: 'Total Portfolio', value: `$${totalPortfolio.toLocaleString()}`, change: '+12.5%', icon: Wallet, color: 'text-primary', trend: 'up' },
+    { title: 'Active Investments', value: activeInvestments.toString(), change: '+2', icon: TrendingUp, color: 'text-primary', trend: 'up' },
+    { title: 'Farms Supported', value: farmsSupported.toString(), change: '+5', icon: Sprout, color: 'text-primary', trend: 'up' },
+    { title: 'Yield Rate', value: `${yieldRate}%`, change: '+1.2%', icon: ArrowUpRight, color: 'text-primary', trend: 'up' },
   ];
+
+  // Get recent projects from proposals
+  const recentProjects = proposals?.slice(0, 3) || [];
 
   return (
     <motion.div 
@@ -109,11 +126,11 @@ export function InvestorDashboard() {
             </CardHeader>
             <CardContent className="p-5 pt-4">
               <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-4 p-4 rounded-md bg-slate-50 hover:bg-slate-100 transition-all duration-200 cursor-pointer group border border-slate-200/50 hover:border-slate-300">
+                {recentProjects.length > 0 ? recentProjects.map((project: any) => (
+                  <div key={project.id} className="flex items-center gap-4 p-4 rounded-md bg-slate-50 hover:bg-slate-100 transition-all duration-200 cursor-pointer group border border-slate-200/50 hover:border-slate-300">
                     <div className="w-14 h-14 rounded-md overflow-hidden shrink-0 shadow-sm border border-slate-200">
                       <img 
-                        src={`https://picsum.photos/seed/farm${i}/200/200`} 
+                        src={project.image_url || `https://picsum.photos/seed/${project.id}/200/200`} 
                         alt="Farm" 
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         referrerPolicy="no-referrer"
@@ -121,26 +138,28 @@ export function InvestorDashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <h4 className="text-sm font-bold text-slate-900 truncate group-hover:text-primary transition-colors leading-tight">Green Valley Organic Maize</h4>
-                        <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider bg-white text-slate-600 border-slate-200 px-2 py-0.5 rounded-md shrink-0">Active</Badge>
+                        <h4 className="text-sm font-bold text-slate-900 truncate group-hover:text-primary transition-colors leading-tight">{project.title}</h4>
+                        <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider bg-white text-slate-600 border-slate-200 px-2 py-0.5 rounded-md shrink-0">{project.status}</Badge>
                       </div>
                       <div className="flex flex-wrap items-center gap-4 mt-1 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                         <div className="flex items-center gap-1.5">
                           <MapPin className="w-3 h-3 text-slate-400" />
-                          <span>Kaduna, Nigeria</span>
+                          <span>{project.location || 'N/A'}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <TrendingUp className="w-3 h-3 text-emerald-500" />
-                          <span className="text-emerald-600">22% ROI</span>
+                          <span className="text-emerald-600">{project.roi ? `${project.roi}% ROI` : 'N/A'}</span>
                         </div>
                       </div>
                     </div>
                     <div className="text-right hidden sm:block pl-4 border-l border-slate-200">
-                      <p className="text-lg font-bold text-primary tracking-tight">$12,000</p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Invested</p>
+                      <p className="text-lg font-bold text-primary tracking-tight">${project.proposed_price?.toLocaleString() || '0'}</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Proposed</p>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-8 text-slate-400 text-sm">No recent projects</div>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -17,6 +17,9 @@ import {
   Activity
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useProposals } from '@/src/hooks/useProposals';
+import { useAgreements } from '@/src/hooks/useAgreements';
+import { usePayments } from '@/src/hooks/usePayments';
 
 const container = {
   hidden: { opacity: 0 },
@@ -35,13 +38,27 @@ const item = {
 
 export function FarmerDashboard() {
   const { user } = useRole();
+  const { proposals } = useProposals();
+  const { agreements } = useAgreements();
+  const { payments, stats: paymentStats } = usePayments();
+
+  // Calculate stats from real data
+  const totalLand = proposals?.reduce((sum: number, p: any) => sum + (p.terms?.land_area_hectares || 0), 0) || 0;
+  const activeCrops = agreements?.filter((a: any) => a.status === 'ACTIVE').length || 0;
+  const yieldRate = paymentStats?.total_repaid && paymentStats?.total_disbursed 
+    ? ((paymentStats.total_repaid / paymentStats.total_disbursed) * 100).toFixed(1) 
+    : '0.0';
+  const equipment = 'All OK';
 
   const stats = [
-    { title: 'Total Land', value: '45 ha', change: '+5 ha', icon: Sprout, color: 'text-primary', trend: 'up' },
-    { title: 'Active Crops', value: '8', change: '+2', icon: Wheat, color: 'text-primary', trend: 'up' },
-    { title: 'Yield Rate', value: '92%', change: '+3%', icon: TrendingUp, color: 'text-primary', trend: 'up' },
-    { title: 'Equipment', value: '12', change: 'All OK', icon: Tractor, color: 'text-primary', trend: 'stable' },
+    { title: 'Total Land', value: `${totalLand} ha`, change: '+5 ha', icon: Sprout, color: 'text-primary', trend: 'up' },
+    { title: 'Active Crops', value: activeCrops.toString(), change: '+2', icon: Wheat, color: 'text-primary', trend: 'up' },
+    { title: 'Yield Rate', value: `${yieldRate}%`, change: '+3%', icon: TrendingUp, color: 'text-primary', trend: 'up' },
+    { title: 'Equipment', value: equipment, change: 'All OK', icon: Tractor, color: 'text-primary', trend: 'stable' },
   ];
+
+  // Get active crops from agreements
+  const activeCropsList = agreements?.filter((a: any) => a.status === 'ACTIVE').slice(0, 3) || [];
 
   return (
     <motion.div 
@@ -153,37 +170,35 @@ export function FarmerDashboard() {
             </CardHeader>
             <CardContent className="p-5 pt-4">
               <div className="space-y-4">
-                {[
-                  { name: 'Maize', status: 'Growing', progress: 65, area: '15 ha' },
-                  { name: 'Soybeans', status: 'Growing', progress: 45, area: '12 ha' },
-                  { name: 'Cassava', status: 'Harvest Ready', progress: 100, area: '8 ha' },
-                ].map((crop, i) => (
+                {activeCropsList.length > 0 ? activeCropsList.map((crop: any, i) => (
                   <div key={i} className="flex items-center gap-4 p-4 rounded-md bg-slate-50 hover:bg-slate-100 transition-all duration-200 border border-slate-200/50">
                     <div className="w-12 h-12 rounded-md bg-primary/10 flex items-center justify-center text-primary shrink-0">
                       <Wheat className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <h4 className="text-sm font-bold text-slate-900">{crop.name}</h4>
-                        <Badge variant={crop.status === 'Harvest Ready' ? 'default' : 'secondary'} className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0">
+                        <h4 className="text-sm font-bold text-slate-900">{crop.crop_type || 'Crop'}</h4>
+                        <Badge variant={crop.status === 'ACTIVE' ? 'default' : 'secondary'} className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0">
                           {crop.status}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-4 mt-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                        <span>{crop.area}</span>
-                        <span className="text-primary">{crop.progress}% complete</span>
+                        <span>{crop.land_area_hectares ? `${crop.land_area_hectares} ha` : 'N/A'}</span>
+                        <span className="text-primary">{crop.progress || 0}% complete</span>
                       </div>
                       <div className="mt-2 h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
                         <motion.div 
                           initial={{ width: 0 }}
-                          animate={{ width: `${crop.progress}%` }}
+                          animate={{ width: `${crop.progress || 0}%` }}
                           transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
                           className="h-full bg-primary rounded-full" 
                         />
                       </div>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-8 text-slate-400 text-sm">No active crops</div>
+                )}
               </div>
             </CardContent>
           </Card>
