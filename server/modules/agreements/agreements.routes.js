@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import { requireVerified } from '../../middleware/verification.js';
 import { validate } from '../../middleware/validate.js';
@@ -10,6 +10,7 @@ import * as v from './agreements.validators.js';
 
 const router = Router();
 router.use(requireAuth);
+router.use(requireEmailVerified);
 
 router.get('/',
   validate({ query: v.listAgreementsQuery }),

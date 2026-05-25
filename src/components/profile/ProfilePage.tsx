@@ -47,6 +47,7 @@ export function ProfilePage() {
   const { user, isLoading } = useRole();
   const { user: authUser } = useAuth();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
   const isIdentityVerified = authUser?.verification_status === 'verified';
 
   const roleIcons = {
@@ -336,10 +337,10 @@ export function ProfilePage() {
         onOpenChange={setIsEditModalOpen}
       />
 
-      {/* <ChangePasswordDialog
+      <ChangePasswordDialog
         open={isChangePasswordDialogOpen}
         onOpenChange={setIsChangePasswordDialogOpen}
-      /> */}
+      />
     </motion.div>
   );
 }

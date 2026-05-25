@@ -15,7 +15,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/asyncHandler.js';
 import { ValidationError } from '../../shared/errors.js';
@@ -23,6 +23,7 @@ import { put, signGet, buildKey } from '../../integrations/storage/storage.js';
 
 const router = Router();
 router.use(requireAuth);
+router.use(requireEmailVerified);
 
 // 25 MB max per file. The frontend enforces a stricter limit per feature
 // (e.g. 10 MB for chat attachments) but this is the absolute server cap.

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
 import { aiLimiter } from '../../middleware/rateLimit.js';
@@ -11,6 +11,7 @@ import * as s from './ai.service.js';
 
 const router = Router();
 router.use(requireAuth);
+router.use(requireEmailVerified);
 
 // In-memory multipart parser (10MB cap). Files flow API → service.upload →
 // MinIO; we don't write to local disk so the API node stays stateless.

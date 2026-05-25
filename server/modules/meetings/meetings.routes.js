@@ -2,7 +2,7 @@
 // Meetings module — routes
 // ============================================================================
 import express from 'express';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
 import {
@@ -21,6 +21,8 @@ import {
 } from './meetings.service.js';
 
 const router = express.Router();
+router.use(requireAuth);
+router.use(requireEmailVerified);
 
 // POST /meetings - Create a new meeting
 router.post(

@@ -2,7 +2,7 @@
 // Contract templates module — routes
 // ============================================================================
 import express from 'express';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/asyncHandler.js';
@@ -26,6 +26,8 @@ import {
 import * as s from './contract-templates.service.js';
 
 const router = express.Router();
+router.use(requireAuth);
+router.use(requireEmailVerified);
 
 // ============================================================================
 // Clauses (catalog) — defined BEFORE /:id to avoid route collisions.

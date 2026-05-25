@@ -274,6 +274,12 @@ function AppContent() {
                                         `/proposals/${selectedProposal.id}/negotiate`,
                                     )
                                 }
+                                onUpdateProposal={(updated) =>
+                                    setSelectedProposal({
+                                        ...selectedProposal,
+                                        ...updated,
+                                    })
+                                }
                             />
                         ) : (
                             <Navigate to="/proposals" />
