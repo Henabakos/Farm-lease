@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSearchParams } from 'react-router-dom';
 import { usersAPI, authAPI } from '@/src/services/api';
 
 const container = {
@@ -44,6 +45,8 @@ const item = {
 };
 
 export function SettingsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'profile';
   const { user, refreshProfile } = useRole();
   const [showPassword, setShowPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -217,7 +220,7 @@ export function SettingsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-9 space-y-8">
-          <Tabs defaultValue="profile" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={(val) => setSearchParams({ tab: val })} className="space-y-6">
             <motion.div variants={item}>
               <TabsList className="bg-slate-100 p-1 rounded-lg h-10 border border-slate-200">
                 <TabsTrigger value="profile" className="gap-2 px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary font-bold text-[10px] uppercase tracking-wider transition-all">
@@ -555,7 +558,7 @@ export function SettingsPage() {
                 <p className="text-[11px] text-slate-600 font-medium leading-relaxed mb-4">
                   Have questions about your account or platform features? Our support team is here to help you.
                 </p>
-                <Button variant="outline" className="w-full h-9 rounded-md border-primary/20 text-primary hover:bg-primary/10 font-bold text-[10px] uppercase tracking-wider transition-all">
+                <Button variant="outline" className="w-full h-9 rounded-md border-primary/20 text-primary hover:bg-primary/10 font-bold text-[10px] uppercase tracking-wider transition-all" onClick={() => window.location.href = 'mailto:support@farmlease.local'}>
                   Contact Support
                 </Button>
               </CardContent>
