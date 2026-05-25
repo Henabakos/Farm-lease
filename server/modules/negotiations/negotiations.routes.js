@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
+import { requireVerified } from '../../middleware/verification.js';
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/asyncHandler.js';
 import { PERMISSIONS } from '../rbac/permissions.js';
@@ -21,6 +22,7 @@ router.get('/:proposalId/messages',
 
 router.post('/:proposalId/messages',
   requirePermission(PERMISSIONS.PROPOSAL_NEGOTIATE),
+  requireVerified,
   validate({ params: proposalParam, body: negotiateSchema }),
   asyncHandler(async (req, res) => res.status(201).json(await proposals.negotiate(req.params.proposalId, req.body, req.user))),
 );

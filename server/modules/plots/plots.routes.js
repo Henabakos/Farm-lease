@@ -3,6 +3,7 @@
 // ============================================================================
 import express from 'express';
 import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
+import { requireVerified } from '../../middleware/verification.js';
 import {
   createPlot,
   getClusterPlots,
@@ -18,6 +19,7 @@ router.use(requireEmailVerified);
 router.post(
   '/',
   requireAuth,
+  requireVerified,
   async (req, res, next) => {
     try {
       const plot = await createPlot(req.user.id, req.body);
@@ -46,6 +48,7 @@ router.get(
 router.patch(
   '/:id',
   requireAuth,
+  requireVerified,
   async (req, res, next) => {
     try {
       const plot = await updatePlot(req.user.id, req.params.id, req.body);
@@ -60,6 +63,7 @@ router.patch(
 router.delete(
   '/:id',
   requireAuth,
+  requireVerified,
   async (req, res, next) => {
     try {
       await deletePlot(req.user.id, req.params.id);

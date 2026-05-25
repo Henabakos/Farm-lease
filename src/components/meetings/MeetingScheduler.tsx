@@ -218,8 +218,8 @@ function UnifiedMeetingView({
         userList = res;
       } else if (res.data && Array.isArray(res.data.users)) {
         userList = res.data.users;
-      } else if (res.users) {
-        userList = res.users;
+      } else if ((res as any).users) {
+        userList = (res as any).users;
       }
       
       console.log('Final user list:', userList);

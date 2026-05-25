@@ -35,11 +35,13 @@ router.get('/:id/download',
 
 router.post('/',
   requirePermission(PERMISSIONS.AGREEMENT_DRAFT),
+  requireVerified,
   validate({ body: v.createAgreementSchema }),
   asyncHandler(async (req, res) => res.status(201).json(await s.create(req.body, req.user))),
 );
 
 router.put('/:id',
+  requireVerified,
   validate({ params: v.uuidParam, body: v.updateAgreementSchema }),
   asyncHandler(async (req, res) => res.json(await s.update(req.params.id, req.body, req.user))),
 );
@@ -53,6 +55,7 @@ router.post('/:id/sign',
 
 router.post('/:id/terminate',
   requirePermission(PERMISSIONS.AGREEMENT_TERMINATE),
+  requireVerified,
   validate({ params: v.uuidParam, body: v.terminateSchema }),
   asyncHandler(async (req, res) => res.json(await s.terminate(req.params.id, req.body, req.user))),
 );

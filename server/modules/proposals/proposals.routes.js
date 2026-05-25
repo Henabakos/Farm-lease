@@ -40,46 +40,54 @@ router.post('/',
 );
 
 router.put('/:id',
+  requireVerified,
   validate({ params: v.uuidParam, body: v.updateProposalSchema }),
   asyncHandler(async (req, res) => res.json(await s.update(req.params.id, req.body, req.user))),
 );
 
 router.post('/:id/publish',
+  requireVerified,
   validate({ params: v.uuidParam, body: v.versionOnlySchema }),
   asyncHandler(async (req, res) => res.json(await s.publish(req.params.id, req.user, req.body))),
 );
 
 router.post('/:id/review',
+  requireVerified,
   validate({ params: v.uuidParam, body: v.versionOnlySchema }),
   asyncHandler(async (req, res) => res.json(await s.review(req.params.id, req.user, req.body))),
 );
 
 router.post('/:id/accept',
   requirePermission(PERMISSIONS.PROPOSAL_ACCEPT),
+  requireVerified,
   validate({ params: v.uuidParam, body: v.versionOnlySchema }),
   asyncHandler(async (req, res) => res.json(await s.accept(req.params.id, req.user, req.body))),
 );
 
 router.post('/:id/reject',
   requirePermission(PERMISSIONS.PROPOSAL_REJECT),
+  requireVerified,
   validate({ params: v.uuidParam, body: v.rejectSchema }),
   asyncHandler(async (req, res) => res.json(await s.reject(req.params.id, req.body, req.user))),
 );
 
 router.post('/:id/negotiate',
   requirePermission(PERMISSIONS.PROPOSAL_NEGOTIATE),
+  requireVerified,
   validate({ params: v.uuidParam, body: v.negotiateSchema }),
   asyncHandler(async (req, res) => res.status(201).json(await s.negotiate(req.params.id, req.body, req.user))),
 );
 
 router.post('/:id/negotiations/messages',
   requirePermission(PERMISSIONS.PROPOSAL_NEGOTIATE),
+  requireVerified,
   validate({ params: v.uuidParam, body: v.negotiateSchema }),
   asyncHandler(async (req, res) => res.status(201).json(await s.negotiate(req.params.id, req.body, req.user))),
 );
 
 router.post('/:id/withdraw',
   requirePermission(PERMISSIONS.PROPOSAL_WITHDRAW),
+  requireVerified,
   validate({ params: v.uuidParam, body: v.withdrawSchema }),
   asyncHandler(async (req, res) => res.json(await s.withdraw(req.params.id, req.body, req.user))),
 );
