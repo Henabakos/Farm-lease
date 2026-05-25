@@ -2,8 +2,7 @@
 // Meetings module — routes
 // ============================================================================
 import express from 'express';
-import { z } from 'zod';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
 import {
@@ -35,6 +34,8 @@ import {
 } from './meetings.service.js';
 
 const router = express.Router();
+router.use(requireAuth);
+router.use(requireEmailVerified);
 
 // ─────────────────────────────────────────────────────────────────────────
 // AVAILABILITY — CLUSTER_REP manages their own weekly slots

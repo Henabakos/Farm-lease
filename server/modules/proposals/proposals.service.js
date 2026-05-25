@@ -194,23 +194,236 @@ async function autoDraftAgreement(tx, proposal) {
     },
   });
 
+  // const terms     = proposal.terms && typeof proposal.terms === 'object' ? proposal.terms : {};
+  const lessor = terms.lessorName || 'Lessor';
+  const lessee = terms.lesseeName || proposal.investor?.fullName || 'Lessee';
+  const startFmt = startDate.toLocaleDateString('en-GB');
+  const endFmt = endDate.toLocaleDateString('en-GB');
+  const currency = proposal.currency || 'USD';
+  const totalFmt = Number(totalAmount).toLocaleString();
+  const instFmt = Number(installmentAmount).toLocaleString();
+  const freq = (terms.paymentFrequency ?? 'monthly');
+
   const clauses = [
     {
-      title: 'Lease Scope',
-      body: proposal.description || 'The parties agree to the agricultural lease terms captured in this agreement.',
+      title: 'Preamble and Parties',
+      body:
+        `This land lease contractual agreement is made between ${lessor} (the "Lessor") and ${lessee} (the "Lessee"). ` +
+        `The term Lessee may also include successors/beneficiaries and/or representatives assigned accordingly.\n\n` +
+        `Whereas the Lessee is a business entity established to engage in agricultural development and requires sufficient land for production purposes;\n` +
+        `Whereas the Lessor is willing to provide the needed land in accordance with the terms and conditions stated within this agreement;\n\n` +
+        `Now therefore, the parties have executed this land lease contractual agreement on ${startFmt} according to the terms and conditions indicated below.`,
       ordering: 0,
+      isEditable: false,
+    },
+    {
+      title: 'Article 1 – Scope of Agreement',
+      body:
+        `1.1 The scope of this lease agreement is to establish a long-term land lease for agricultural farming. ` +
+        `The land is leased with all rights of easements, amenities, fittings, fixtures, structures, installations, property, or establishments standing thereon to the Lessee for the purposes mentioned herein.\n\n` +
+        `1.2 This agreement applies to the "lease land" and grants full and exclusive use of the rural land, subject to rental payments stated in Article 2.\n\n` +
+        (proposal.description ? `Description: ${proposal.description}` : ''),
+      ordering: 1,
       isEditable: true,
     },
     {
+      title: 'Article 2 – Period of the Land Lease and the Rate',
+      body:
+        `2.1 This land lease shall be in effect from ${startFmt} to ${endFmt}. Upon mutual agreement, it may be renewed for additional year(s).\n\n` +
+        `2.2 Payment Procedure:\n` +
+        `   2.2.1 A grace period applies as agreed. Unpaid rent during the grace period shall be prorated over the remaining term.\n` +
+        `   2.2.2 The ${freq} payment shall be ${currency} ${instFmt} and the total payment for the lease period shall be ${currency} ${totalFmt}.\n` +
+        `   2.2.3 Upon payment of rent, a receipt shall be issued immediately to the Lessee.\n` +
+        `   2.2.4 There shall be a prepayment (down payment) of one period's rent.\n` +
+        `   2.2.5 The Lessor reserves the right to revise the lease rate and inform the Lessee accordingly.`,
+      ordering: 2,
+      isEditable: false,
+    },
+    {
+      title: 'Article 3 – Rights of the Lessee',
+      body:
+        `The Lessee shall have the right to:\n` +
+        `3.1 Develop and administer the land in accordance with the terms of this agreement.\n` +
+        `3.2 Build infrastructure such as irrigation systems, roads, offices, and residential buildings, subject to relevant permits.\n` +
+        `3.3 Develop or administer the leased land by itself or through a legally represented individual or entity.\n` +
+        `3.4 Develop, cultivate, and harvest the leased land using modern machinery and appropriate methods.\n` +
+        `3.5 Obtain additional land based on performance, achievement, and need.\n` +
+        `3.6 Terminate the agreement with at least six (6) months prior written notice, with convincing reason and good cause.`,
+      ordering: 3,
+      isEditable: false,
+    },
+    {
+      title: 'Article 4 – Obligations of the Lessee',
+      body:
+        `4.1 The Lessee shall provide good care and conservation of the leased land and natural resources, including:\n` +
+        `   a) Conserving trees not cleared during land preparation.\n` +
+        `   b) Utilizing methods to prevent soil erosion, especially in sloped areas.\n` +
+        `   c) Respecting and implementing legislation relating to natural resource conservation.\n` +
+        `   d) Conducting an environmental impact assessment within four (4) months of execution.\n` +
+        `4.2 The Lessee shall start developing the land within six (6) months from signing.\n` +
+        `4.3 The Lessee shall develop one-third (1/3) of the leased land within one year and the entire land within three (3) years from signing.\n` +
+        `4.4 Upon termination or expiry, the Lessee shall remove installed assets and hand over the land within six (6) months.\n` +
+        `4.5 The Lessee shall provide accurate data and report investment activities upon request.\n` +
+        `4.6 When the grace period ends, the Lessee shall settle annual rent per the predetermined lease rate.\n` +
+        `4.7 The Lessee shall submit an action plan regarding utilization of the leased land upon entering this agreement.\n` +
+        `4.8 Without written consent of the Lessor, the Lessee shall not use the land for any purpose other than stated in Article 3.\n` +
+        `4.9 The Lessee may not transfer the land unless 75% is developed.\n` +
+        `4.10 Upon developing 75% and obtaining the Lessor's permission, the Lessee may transfer the land; the Lessor shall respond promptly.`,
+      ordering: 4,
+      isEditable: false,
+    },
+    {
+      title: 'Article 5 – Rights of the Lessor',
+      body:
+        `The Lessor has exclusive rights to:\n` +
+        `5.1 Control and follow up that the Lessee executes all obligations diligently.\n` +
+        `5.2 Take over undeveloped areas per sub-article 4.3 if the Lessee fails to correct within one year after a six-month warning notice.\n` +
+        `5.3 Exercise rights under 5.1 without hindering the Lessee's activities.\n` +
+        `5.4 Terminate the lease with convincing and justifiable good reason, subject to six (6) months prior notice.\n` +
+        `5.5 Amend the land rent pursuant to this agreement.`,
+      ordering: 5,
+      isEditable: false,
+    },
+    {
+      title: 'Article 6 – Obligations of the Lessor',
+      body:
+        `6.1 The Lessor shall hand over the leased land within one (1) month from signing, free from any obstructions.\n` +
+        `6.2 The Lessor shall provide applicable tax exemptions and incentives in accordance with governing laws.\n` +
+        `6.3 The Lessor shall ensure there are no legal limitations that may restrict the Lessee's duties under this agreement.\n` +
+        `6.4 The Lessor shall arrange access to applicable research centers for soil testing and surveying.\n` +
+        `6.5 If the Lessee fails to develop the land within stated time limits or becomes unable to pay rent, the Lessor may terminate with six (6) months prior warning, or extend the time limit for another six (6) months.\n` +
+        `6.6 The Lessor shall cooperate in providing adequate security free of charge, except in cases of force majeure.`,
+      ordering: 6,
+      isEditable: false,
+    },
+    {
+      title: 'Article 7 – Delivery of the Leased Land',
+      body:
+        `7.1 The Lessor shall deliver the land plan, title certificate, and other certificates within thirty (30) days from signing.\n` +
+        `7.2 If delivery cannot be actualized due to reasons caused by the Lessor, the Lessor shall bear responsibility for such failure.\n` +
+        `7.3 Delivery shall be effected once the initial prepayment is completed per Article 2.2.4.\n` +
+        `7.4 The land shall be handed over within fifteen (15) days of signing.`,
+      ordering: 7,
+      isEditable: false,
+    },
+    {
+      title: 'Article 8 – Amendment and Renewal of the Contract',
+      body:
+        `8.1 This agreement may be renewed on similar contractual terms and conditions.\n` +
+        `8.2 If the Lessee wishes to renew, it shall notify the Lessor at least six (6) months before expiration.`,
+      ordering: 8,
+      isEditable: false,
+    },
+    {
+      title: 'Article 9 – Grounds for Termination',
+      body:
+        `This agreement may be terminated for the following reasons:\n` +
+        `9.1 When the lease period expires.\n` +
+        `9.2 When the Lessor is unable to deliver the land due to force majeure.\n` +
+        `9.3 When the Lessor fails to fulfill obligations after a six-month prior written notice from the Lessee.\n` +
+        `9.4 When the Lessee fails to make payments for two (2) consecutive years.\n` +
+        `9.5 When the Lessee fails to perform obligations after six months prior notice from the Lessor.\n` +
+        `9.6 When the Lessor terminates with good reason after six months prior notice per sub-article 5.4.\n` +
+        `9.7 When the Lessee terminates with good reason after six months prior notice per sub-article 3.6.`,
+      ordering: 9,
+      isEditable: false,
+    },
+    {
+      title: 'Article 10 – Results of Contract Termination',
+      body:
+        `10.1 Upon termination, the Lessee shall return the leased land within six (6) months.\n` +
+        `10.2 If terminated by the Lessee per 9.3 or by the Lessor per 9.6, the Lessor shall pay the Lessee the value of improvements at market rate after deducting outstanding dues.\n` +
+        `10.3 If terminated for reasons in 9.4, 9.5, or 9.7, the Lessor is not obliged to make payments to the Lessee.\n` +
+        `10.4 Upon termination, the Lessor has priority to negotiate and purchase properties on the land; if not interested, the Lessee may detach and take its property.`,
+      ordering: 10,
+      isEditable: false,
+    },
+    {
+      title: 'Article 11 – Registration',
+      body:
+        `This agreement shall be subject to registration with the appropriate designated authority. Copies shall be sent to all relevant parties with a covering letter provided by the Lessor.`,
+      ordering: 11,
+      isEditable: false,
+    },
+    {
+      title: 'Article 12 – Governing Law',
+      body: `The applicable law of the jurisdiction in which the land is situated shall govern operations under this agreement.`,
+      ordering: 12,
+      isEditable: false,
+    },
+    {
+      title: 'Article 13 – Force Majeure',
+      body:
+        `Neither party shall be held liable for failure to perform obligations caused by force majeure (acts of God, war, natural disasters, or government action beyond their control). ` +
+        `The affected party shall notify the other within fifteen (15) days of the occurrence.`,
+      ordering: 13,
+      isEditable: false,
+    },
+    {
+      title: 'Article 14 – Covenant for Peaceful Possession',
+      body:
+        `The Lessor guarantees that the Lessee has full right to use the land leased under this agreement. ` +
+        `The Lessor confirms that the leased land shall remain under peaceful possession and the Lessee may use it without any problem.`,
+      ordering: 14,
+      isEditable: false,
+    },
+    {
+      title: 'Article 15 – Calendar',
+      body: `The Gregorian calendar shall be the primary calendar for the purposes of this agreement, unless otherwise stated.`,
+      ordering: 15,
+      isEditable: false,
+    },
+    {
+      title: 'Article 16 – Annexes to the Agreement',
+      body:
+        `The following items are annexed and shall be considered part of this agreement:\n` +
+        `16.1 The site plan of the leased land.\n` +
+        `16.2 Photocopy of valid identification document or passport of the Lessee.\n` +
+        `16.3 Photocopy of the Memorandum and Articles of Association (or equivalent constituting document) of the Lessee.`,
+      ordering: 16,
+      isEditable: false,
+    },
+    {
+      title: 'Article 17 – Settlement of Disputes',
+      body:
+        `When a dispute arises, both parties shall endeavor to resolve it peacefully and to the mutual benefit of both parties. ` +
+        `If the dispute cannot be resolved, it shall be referred to arbitration or the competent court of jurisdiction.`,
+      ordering: 17,
+      isEditable: false,
+    },
+    {
+      title: 'Article 18 – Language',
+      body: `This agreement has been executed between the contracting parties in English. In the event of any discrepancy between translations, the English version shall prevail.`,
+      ordering: 18,
+      isEditable: false,
+    },
+    {
+      title: 'Article 19 – Notices and Offices',
+      body:
+        `19.1 The Lessee shall maintain a registered address for service of notices and shall notify the Lessor accordingly.\n` +
+        `19.2 All communications and notices shall be in writing, delivered in person, by registered mail, or by electronic means to the addresses registered by each party.`,
+      ordering: 19,
+      isEditable: false,
+    },
+    {
+      title: 'Article 20 – Effective Date',
+      body:
+        `This land lease agreement shall remain in effect from ${startFmt} to ${endFmt}, unless earlier terminated pursuant to the provisions of this agreement.`,
+      ordering: 20,
+      isEditable: false,
+    },
+    {
       title: 'Payment Verification',
-      body: 'The agreement becomes active only after required signatures and payment receipt verification.',
-      ordering: 1,
+      body: 'The agreement becomes active only after required signatures from both parties and successful verification of the initial payment receipt by the authorized representative.',
+      ordering: 21,
       isEditable: false,
     },
   ];
+
   await tx.agreementClause.createMany({
     data: clauses.map((c) => ({ ...c, agreementId: agreement.id })),
   });
+
 
   await recordOutbox(tx, {
     eventType: 'agreement.drafted',
@@ -231,13 +444,13 @@ export async function list(query, viewer) {
       isAdmin(viewer)
         ? {}
         : {
-            OR: [
-              { investorId: viewer.id },
-              { targetUserId: viewer.id },
-              { cluster: { ownerId: viewer.id } },
-              { cluster: { memberships: { some: { userId: viewer.id, isActive: true } } } },
-            ],
-          },
+          OR: [
+            { investorId: viewer.id },
+            { targetUserId: viewer.id },
+            { cluster: { ownerId: viewer.id } },
+            { cluster: { memberships: { some: { userId: viewer.id, isActive: true } } } },
+          ],
+        },
       status ? { status } : {},
       cid ? { clusterId: cid } : {},
     ],

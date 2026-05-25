@@ -2,7 +2,7 @@
 // Provider Requests module — routes
 // ============================================================================
 import express from 'express';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
 import {
   createProviderRequest,
   getProviderRequests,
@@ -13,6 +13,8 @@ import {
 } from './provider-requests.service.js';
 
 const router = express.Router();
+router.use(requireAuth);
+router.use(requireEmailVerified);
 
 // POST /provider-requests - Create a new provider request
 router.post(

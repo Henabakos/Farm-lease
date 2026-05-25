@@ -80,10 +80,12 @@ export function VerifyEmailPage() {
               </AlertDescription>
             </Alert>
             <Button
-              onClick={() => navigate('/login')}
+              onClick={() => {
+                window.location.href = '/';
+              }}
               className="w-full h-10 text-[10px] font-bold uppercase tracking-wider rounded-md"
             >
-              Continue to sign in
+              Continue to application
             </Button>
           </div>
         )}

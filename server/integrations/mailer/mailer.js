@@ -12,10 +12,11 @@ import { ExternalServiceError } from '../../shared/errors.js';
 let transport = null;
 function smtpTransport() {
   if (!transport) {
+    const port = env.SMTP_PORT ?? 1025;
     transport = nodemailer.createTransport({
       host: env.SMTP_HOST ?? 'localhost',
-      port: env.SMTP_PORT ?? 1025,
-      secure: false,
+      port,
+      secure: port === 465,
       auth: env.SMTP_USER ? { user: env.SMTP_USER, pass: env.SMTP_PASS } : undefined,
     });
   }

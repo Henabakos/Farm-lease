@@ -27,7 +27,7 @@ export const ForgotPasswordDialog: React.FC<ForgotPasswordDialogProps> = ({ open
 
     setLoading(true);
     try {
-      const response = await authAPI.forgotPassword({ email });
+      const response = await authAPI.forgotPassword(email);
       console.log('Forgot password response:', response.data);
       toast.success('If an account exists for that email, a reset link has been sent.');
       setSuccess(true);

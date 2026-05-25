@@ -102,6 +102,8 @@ export type AgreementWorkflowStatus = 'DRAFT' | 'PENDING_SIGNATURES' | 'ACTIVE' 
 export interface AgreementSignature {
   id: string;
   signerId: string;
+  signerName?: string;
+  signatureData?: string;
   method: 'DRAWN' | 'TYPED' | 'UPLOADED';
   signedAt: string;
 }
@@ -118,6 +120,8 @@ export interface Agreement {
   proposalId: string;
   farmerId?: string; // Added to match component usage
   clusterId?: string; // Added to match component usage
+  lessorId?: string;
+  lesseeId?: string;
   title: string;
   investorName: string;
   targetName: string;

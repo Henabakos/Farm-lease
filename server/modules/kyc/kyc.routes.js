@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/asyncHandler.js';
 import * as s from './kyc.service.js';
@@ -7,6 +7,7 @@ import * as v from './kyc.validators.js';
 
 const router = Router();
 router.use(requireAuth);
+router.use(requireEmailVerified);
 
 // ----- User-facing -----
 router.get('/me',

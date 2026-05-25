@@ -2,7 +2,7 @@
 // Plots module — routes
 // ============================================================================
 import express from 'express';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
 import {
   createPlot,
   getClusterPlots,
@@ -11,6 +11,8 @@ import {
 } from './plots.service.js';
 
 const router = express.Router();
+router.use(requireAuth);
+router.use(requireEmailVerified);
 
 // POST /plots - Create a new plot
 router.post(

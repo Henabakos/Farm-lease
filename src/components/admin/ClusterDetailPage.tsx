@@ -64,6 +64,7 @@ function ClusterCoverImage({
     url?: string;
     name: string;
     className?: string;
+    key?: React.Key;
 }) {
     const [failed, setFailed] = useState(false);
 

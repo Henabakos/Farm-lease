@@ -112,8 +112,7 @@ export const AddClusterMemberDialog: React.FC<AddClusterMemberDialogProps> = ({
         try {
             await clustersAPI.inviteMember(
                 clusterId,
-                user.email,
-                clusterRole,
+                { email: user.email, role: clusterRole },
             );
             toast.success(`${user.fullName} added to cluster`);
             onAdded();

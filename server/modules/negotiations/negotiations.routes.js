@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/asyncHandler.js';
@@ -10,6 +10,7 @@ import { negotiateSchema } from '../proposals/proposals.validators.js';
 
 const router = Router();
 router.use(requireAuth);
+router.use(requireEmailVerified);
 
 const proposalParam = z.object({ proposalId: z.string().uuid() });
 

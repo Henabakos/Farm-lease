@@ -2,7 +2,7 @@
 // Feature flags module — routes
 // ============================================================================
 import express from 'express';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
 import {
@@ -21,6 +21,8 @@ import {
 } from './feature-flags.service.js';
 
 const router = express.Router();
+router.use(requireAuth);
+router.use(requireEmailVerified);
 
 // GET /feature-flags/check/:key - Check if a flag is enabled for current user
 router.get(
