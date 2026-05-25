@@ -33,217 +33,138 @@ import { mapAgreementFromApi } from '@/src/lib/apiMappers';
 import { paymentsAPI } from '@/src/services/api';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
+const getDefaultClauses = (agreement: Agreement): Clause[] => {
+  const startFmt = agreement.startDate ? new Date(agreement.startDate).toLocaleDateString('en-GB') : 'N/A';
+  const endFmt   = agreement.endDate   ? new Date(agreement.endDate).toLocaleDateString('en-GB')   : 'N/A';
+  const total    = Number(agreement.totalAmount || agreement.amount * 12 || 0).toLocaleString();
+  const monthly  = Number(agreement.amount || 0).toLocaleString();
+  const currency = agreement.currency || 'USD';
+  const freq     = (agreement.terms?.repaymentPeriod || 'monthly').charAt(0).toUpperCase()
+                 + (agreement.terms?.repaymentPeriod || 'monthly').slice(1);
 
-const DEFAULT_CLAUSES: Clause[] = [
-  {
-    id: 'c1',
-    title: 'Preamble and Parties',
-    content: `Unofficial translation. This land lease agreement is made between:
-- The Ministry of Agriculture and Rural Development, Kirkos Sub-city, Addis Ababa, Ethiopia (the "Lessor"), and
-- Rahwa Agri-Development PLC, Bole Sub-city, Kebele 02, House No. Addis, Tel: _______ (the "Lessee"), including successors/beneficiaries and authorized representatives.
-
-Whereas the Lessee is a business entity established to engage in cotton development under the laws of Ethiopia and requires sufficient land for production in the Southern Nations, Nationalities and Peoples Regional State; and
-Whereas the Lessor is willing to provide the needed land in accordance with the terms and conditions stated herein;
-
-Now therefore, the parties execute this agreement on 07/09/2002 EC (May 15, 2010).`,
-    isEditable: false,
-  },
-  {
-    id: 'c2',
-    title: 'Article 1 - Scope of Agreement',
-    content: `1.1 The scope of this agreement is to establish a long-term land lease for cotton, cereals, oil seeds, and field crops farming on 3,000 hectares located in the Southern Nations, Nationalities and Peoples Regional State, South Omo Zone, Dassanech District, Karawo and Qelemagnato Kebele. The land is leased with all rights of easements, amenities, fittings, fixtures, structures, installations, property, or establishments standing thereon to the Lessee for the purposes mentioned below.
-1.2 This agreement applies to the "lease land" and grants full and exclusive use of rural land, subject to rental payments stated in Article 2.`,
-    isEditable: false,
-  },
-  {
-    id: 'c3',
-    title: 'Article 2 - Period of the Land Lease and the Rate',
-    content: `2.1 The lease term is 25 years. Upon mutual agreement, the term may be renewed for additional year(s).
-2.2 Payment procedure of the land lease:
-  2.2.1 From the signing date, there is a three (3) year grace period. Unpaid rent during the grace period shall be prorated over the remaining lease term and paid with the regular annual payment.
-  2.2.2 The lease rate is Birr 158 per hectare for agricultural investment stated in Article 1. The annual payment is Birr 474,000 and the total payment for the lease period is Birr 11,850,000.
-  2.2.3 Upon payment of rent, a receipt shall be issued immediately to the Lessee and a copy submitted to the district (wereda) administration office.
-  2.2.4 In addition to 2.2.1, there shall be a prepayment (down payment) of one year rent of the land stated above.
-  2.2.5 The Lessor reserves the right to revise the lease rate and inform the Lessee accordingly.`,
-    isEditable: false,
-  },
-  {
-    id: 'c4',
-    title: 'Article 3 - Rights of the Lessee',
-    content: `The Lessee shall have the right to:
-3.1 Develop and administer the land in accordance with this agreement.
-3.2 Build infrastructure such as dams, water boreholes, power houses, irrigation systems, roads, bridges, offices, residential buildings, fuel stations, and health and educational institutions, subject to permits and consultation with concerned authorities.
-3.3 Develop or administer the leased land by itself or through a legally represented individual or entity.
-3.4 Develop, cultivate, and harvest the leased land using modern machinery and appropriate methods.
-3.5 Obtain additional land based on performance, achievement, and need of the company.
-3.6 Terminate the agreement with at least six months prior written notice, with convincing reason and good cause.`,
-    isEditable: false,
-  },
-  {
-    id: 'c5',
-    title: 'Article 4 - Obligations of the Lessee',
-    content: `4.1 The Lessee shall provide good care and conservation of the leased land and natural resources and shall:
-  a) Conserve trees not cleared during land preparation.
-  b) Use methods appropriate to prevent soil erosion, especially in sloped areas.
-  c) Respect and implement legislation relating to natural resource conservation.
-  d) Conduct an environmental impact assessment and provide a report within four months of execution of this agreement.
-4.2 The Lessee shall start developing the land within six months of signing, provided required licenses are issued.
-4.3 The Lessee shall develop one-third (1/3) of the leased land within one year and the entire land within three years from the signing date.
-4.4 Upon termination or expiry, or cancellation of the investment license, the Lessee shall remove installed assets within six months and hand over the land to the Lessor.
-4.5 Upon request of the Ministry of Agriculture and Rural Development, the Lessee shall provide accurate data and report investment activities.
-4.6 When the grace period ends, the Lessee shall settle annual rent and prorated amounts at the regional office every year between December and June.
-4.7 Upon entering into this agreement, the Lessee shall submit an action plan for use of the leased land.
-4.8 Without written consent of the Lessor, the Lessee shall not use the land for any purpose other than stated in Article 3.
-4.9 The Lessee may not transfer the land to another company or individual unless 75% of the land is developed.
-4.10 Upon developing 75% and obtaining the Lessor's permission, the Lessee may transfer the land, and the Lessor shall respond promptly.`,
-    isEditable: false,
-  },
-  {
-    id: 'c6',
-    title: 'Article 5 - Rights of the Lessor',
-    content: `The Lessor has exclusive rights to:
-5.1 Control and follow up that the Lessee executes all obligations diligently.
-5.2 Take over undeveloped areas in accordance with sub-article 4.3 after the one-year limit, if the Lessee fails to correct within one year after six months notice of warning.
-5.3 Exercise rights under 5.1 without hindering the Lessee's work and activities.
-5.4 Terminate the lease agreement with convincing and justifiable good reason, subject to six months prior notice.
-5.5 Amend the land rent pursuant to this agreement.`,
-    isEditable: false,
-  },
-  {
-    id: 'c7',
-    title: 'Article 6 - Obligations of the Lessor',
-    content: `6.1 The Lessor shall hand over the leased land within one month of signing, free from obstructions.
-6.2 The Lessor shall provide special privileges such as exemptions from taxation and import duties on capital goods, and repatriation of capital and profits, in accordance with Ethiopian laws for foreign companies.
-6.3 The Lessor shall ensure there are no legal or other limitations that may restrict the Lessee's duties in clearing the land or implementing the objectives.
-6.4 The Lessor shall arrange access to federal and regional research centers for soil testing and surveying for a fee.
-6.5 If the Lessee fails to develop the land within time limits, causes damage to natural resources, or becomes unable to pay rent, the Lessor may terminate the lease with six months prior notice of warning; if no notice is given, the Lessor may extend the time limit by six months.
-6.6 The Lessor shall cooperate (including adequate security) free of charge so the Lessee may develop the land peacefully, free from trouble, riot, or disturbance except force majeure.`,
-    isEditable: false,
-  },
-  {
-    id: 'c8',
-    title: 'Article 7 - Delivery of the Leased Land',
-    content: `7.1 The Lessor shall deliver the land plan, title certificate, and other certificates within 30 days of signing.
-7.2 If delivery cannot be actualized due to reasons caused by the Lessor after written notice, the Lessor assumes responsibility for such failure.
-7.3 Delivery shall be effected once the one-year prepayment is completed in accordance with Article 2.2.2.
-7.4 The land shall be handed over within 15 days of signing.`,
-    isEditable: false,
-  },
-  {
-    id: 'c9',
-    title: 'Article 8 - Amendment and Renewal of the Contract',
-    content: `8.1 This agreement may be renewed on similar terms and conditions.
-8.2 If the Lessee wishes to renew, it shall notify the Lessor six months before expiration.`,
-    isEditable: false,
-  },
-  {
-    id: 'c10',
-    title: 'Article 9 - Grounds for Termination of the Contract',
-    content: `This agreement may be terminated for the following reasons:
-9.1 Expiry of the lease period.
-9.2 The Lessor is unable to deliver the land due to causes beyond reasonable control (force majeure).
-9.3 The Lessor fails to fulfill obligations after a six-month prior written notice from the Lessee.
-9.4 The Lessee fails to make annual rental and other tax payments for two consecutive years.
-9.5 The Lessee fails to perform obligations after a six-month prior notice from the Lessor.
-9.6 The Lessor terminates with good reason after six months prior notice as indicated in 5.4.
-9.7 The Lessor terminates with good reason after six months prior notice as indicated in 3.6.`,
-    isEditable: false,
-  },
-  {
-    id: 'c11',
-    title: 'Article 10 - Results of Contract Termination',
-    content: `10.1 Upon termination, the Lessee shall return the leased land within six months of termination.
-10.2 If terminated by the Lessee per 9.3 or by the Lessor per 9.6, the Lessor shall pay the Lessee for improvements and expenses at market rate after deducting outstanding dues.
-10.3 If terminated for reasons in 9.4, 9.5, or 9.7, the Lessor is not obliged to make payments to the Lessee.
-10.4 Upon termination, the Lessor has priority to negotiate and purchase properties on the land; if not interested, the Lessee may detach and take its property.`,
-    isEditable: false,
-  },
-  {
-    id: 'c12',
-    title: 'Article 11 - Registration',
-    content: `This agreement is not subject to registration and approval by a designated entity. Copies of the agreement and carbon copies shall be sent to the Lessor, the Lessee, the district (wereda) administration, finance office, investment commission, and other concerned entities with a covering letter of cooperation provided by the Lessor.`,
-    isEditable: false,
-  },
-  {
-    id: 'c13',
-    title: 'Article 12 - Governing Law',
-    content: `The Ethiopian law shall govern operations under this agreement.`,
-    isEditable: false,
-  },
-  {
-    id: 'c14',
-    title: 'Article 13 - Force Majeure',
-    content: `Regarding matters of force majeure, the Ethiopian Civil Code shall apply.`,
-    isEditable: false,
-  },
-  {
-    id: 'c15',
-    title: 'Article 14 - Covenant for Peaceful Possession/Usage',
-    content: `The Lessor guarantees the Lessee has full ownership and property rights in the leased land. The Lessor confirms the land remains under its peaceful possession and the Lessee may use it without problem.`,
-    isEditable: false,
-  },
-  {
-    id: 'c16',
-    title: 'Article 15 - Calendar',
-    content: `The Ethiopian calendar shall be used for the purpose of this agreement.`,
-    isEditable: false,
-  },
-  {
-    id: 'c17',
-    title: 'Article 16 - Annexes to the Agreement',
-    content: `The following items are annexed and considered part of this agreement:
-16.1 The site plan of the leased land.
-16.2 Photocopy of ID card or passport of the Lessee.
-16.3 Photocopy of the memorandum and Articles of Association of the Lessee.`,
-    isEditable: false,
-  },
-  {
-    id: 'c18',
-    title: 'Article 17 - Settlement of Disputes',
-    content: `If a dispute arises between the parties, they shall endeavor to resolve it peacefully. If the dispute cannot be resolved, it shall be referred to the Ethiopian Federal Court.`,
-    isEditable: false,
-  },
-  {
-    id: 'c19',
-    title: 'Article 18 - Language',
-    content: `This agreement has been signed between the contracting parties in Amharic.`,
-    isEditable: false,
-  },
-  {
-    id: 'c20',
-    title: 'Article 19 - Notices and Establishing Offices',
-    content: `19.1 The Lessee shall establish an office in Ethiopia to perform its duties and notify the Lessor accordingly.
-19.2 All communications and notices of warning shall be in writing either in English or Amharic and delivered in person or sent by mail to the addresses in the preamble.`,
-    isEditable: false,
-  },
-  {
-    id: 'c21',
-    title: 'Article 20 - Effective Date of this Contract',
-    content: `This agreement remains in effect for 25 years starting from 07/09/2002 EC (May 15, 2010) and expires on 06/09/2027 EC (May 14, 2035).`,
-    isEditable: false,
-  },
-  {
-    id: 'c22',
-    title: 'Signatures and Witnesses',
-    content: `Lessor: Ministry of Agriculture and Rural Development
-Name: Tefera Deribew, Minister
-Signature: illegible
-Date: not stated
-
-Lessee: Rahwa Agri-Development PLC
-Name: not stated
-Signature: illegible
-Date: not stated
-
-Witnesses:
-1) Rahwa M/Ab - Signature: illegible - Date: 07/09/2002 EC (05/15/2010)
-2) Berhanu Tesfaye - Signature: illegible - Date: 07/09/2002 EC (05/15/2010)
-3) Wondimagegnehu - Signature: illegible - Date: 07/09/2002 EC (05/15/2010)
-
-Note: Each page bears two seals (Ministry of Agriculture and Rural Development and Adama Development PLC) and initials by both parties. The last page includes additional signatures: Dr. Abera Deressa, State Minister of Agriculture, and Esayas Kebede Amare, Director, Agricultural Investment Directorate.`,
-    isEditable: false,
-  },
-];
+  return [
+    {
+      id: 'c1',
+      title: 'Article 1 - Scope of Agreement',
+      content: `1.1 The scope of this lease agreement is to establish a long-term land lease for agricultural farming. The land is leased with all rights of easements of amenities, fittings, fixtures, structures, installations, property, or establishments standing thereon to the Lessee for the purposes mentioned herein.\n\n1.2 This lease agreement shall be applicable to the "lease land" which allows full and exclusive use of the rural land and to make rental payments as stated in Article 2.`,
+      isEditable: true,
+    },
+    {
+      id: 'c2',
+      title: 'Article 2 - Period of the Land Lease and the Rate',
+      content: `2.1 This land lease shall be in effect for the period stated (from ${startFmt} to ${endFmt}). Upon mutual agreement of both parties, it may be renewed for additional year(s).\n\n2.2 Payment Procedure:\n   2.2.1 From the date this lease is signed, there shall be a grace period as agreed. Unpaid rent during the grace period shall be prorated over the remaining years and paid with the regular annual payment.\n   2.2.2 The annual payment shall be ${currency} ${monthly} (${freq}) and the total amount of payment for the lease period shall be ${currency} ${total}.\n   2.2.3 Upon payment of rent, a receipt shall be issued immediately to the Lessee.\n   2.2.4 There shall be a prepayment (down payment) of one period's rent as stated above.\n   2.2.5 The Lessor reserves the right to revise and change the lease rate and inform the Lessee accordingly.`,
+      isEditable: true,
+    },
+    {
+      id: 'c3',
+      title: 'Article 3 - Rights of the Lessee',
+      content: `The Lessee shall have the right to:\n\n3.1 Develop and administer the land in accordance with the terms of this agreement.\n3.2 Build, when deemed appropriate, infrastructure such as irrigation systems, roads, offices, and residential buildings, by submitting permit requests to concerned authorities.\n3.3 Develop or administer the leased land by itself or through a legally represented individual or entity (a person or institution with power of attorney).\n3.4 Develop and cultivate the leased land and collect the harvest by employing modern machinery and other appropriate methods.\n3.5 Obtain additional land based on the performance, achievement, and need of the company.\n3.6 Terminate the land lease contractual agreement subject to at least six (6) months prior written notice with convincing reason and good cause.`,
+      isEditable: true,
+    },
+    {
+      id: 'c4',
+      title: 'Article 4 - Obligations of the Lessee',
+      content: `4.1 The Lessee shall provide good care and conservation of the leased land and natural resources thereon, including:\n   a) Conserving trees not cleared during land preparation.\n   b) Utilizing methods appropriate to prevent soil erosion, especially in sloped areas.\n   c) Respecting and implementing legislation relating to natural resource conservation.\n   d) Conducting an environmental impact assessment within four (4) months of execution.\n\n4.2 The Lessee shall start developing the land within six (6) months from signing, provided all licenses are issued.\n4.3 The Lessee shall develop one-third (1/3) of the leased land within one year and the entire leased land within three (3) years from signing.\n4.4 Upon termination or expiry, the Lessee shall remove installed assets and hand over the land within six (6) months.\n4.5 The Lessee shall provide accurate data and report investment activities upon request.\n4.6 When the grace period ends, the Lessee shall settle the annual rent per the predetermined lease rate.\n4.7 The Lessee shall submit an action plan regarding utilization of the leased land upon entering into this agreement.\n4.8 Without written consent of the Lessor, the Lessee shall not use the land for any purpose other than stated in Article 3.\n4.9 The Lessee has no right to transfer the land unless 75% of the land is developed.\n4.10 Upon developing 75% and obtaining the Lessor's permission, the Lessee may transfer the land. The Lessor shall respond promptly.`,
+      isEditable: true,
+    },
+    {
+      id: 'c5',
+      title: 'Article 5 - Rights of the Lessor',
+      content: `The Lessor has exclusive rights to:\n\n5.1 Control and follow up that the Lessee is executing all obligations diligently.\n5.2 Take over undeveloped areas of the leased land in accordance with sub-article 4.3, upon expiry of the one-year limit, if the Lessee fails to correct such failure within one year after a six-month warning notice.\n5.3 Exercise the right mentioned under Article 5.1 without causing hindrances to the Lessee's work and activities.\n5.4 Terminate the lease agreement, with convincing and justifiable good reason, subject to six (6) months prior notice.\n5.5 Amend the land rent pursuant to this lease agreement.`,
+      isEditable: true,
+    },
+    {
+      id: 'c6',
+      title: 'Article 6 - Obligations of the Lessor',
+      content: `6.1 The Lessor shall hand over the leased land within one (1) month from the date of signing, free from any obstructions.\n6.2 The Lessor shall provide special privileges, such as applicable tax exemptions and incentives, in accordance with the governing laws.\n6.3 The Lessor shall ensure there are no legal or other limitations that may restrict the Lessee from executing its duties under this agreement.\n6.4 The Lessor shall arrange access to applicable government research centers for soil testing and surveying.\n6.5 If the Lessee fails to develop the land within stated time limits, causes damage to natural resources, or becomes unable to pay rent, the Lessor may terminate the lease with six (6) months prior warning; absent such notice, the Lessor may extend the time limit for another six (6) months.\n6.6 The Lessor shall cooperate in providing adequate security, free of charge, so the Lessee may develop the land peacefully, except in cases of force majeure.`,
+      isEditable: true,
+    },
+    {
+      id: 'c7',
+      title: 'Article 7 - Delivery of the Leased Land',
+      content: `7.1 The Lessor shall deliver to the Lessee the land plan, title certificate, and other certificates within thirty (30) days from the signing of this agreement.\n7.2 If the delivery cannot be actualized due to reasons caused by the Lessor, the Lessor shall bear responsibility for such failure.\n7.3 Delivery of the leased land shall be effected once the initial prepayment is completed in accordance with Article 2.2.4.\n7.4 The land shall be handed over within fifteen (15) days of the signing of this agreement.`,
+      isEditable: true,
+    },
+    {
+      id: 'c8',
+      title: 'Article 8 - Amendment and Renewal of the Contract',
+      content: `8.1 This land lease agreement shall be renewable on similar contractual terms and conditions.\n8.2 If the Lessee wishes to renew the agreement, it shall notify the Lessor at least six (6) months before the expiration of the contract period.`,
+      isEditable: true,
+    },
+    {
+      id: 'c9',
+      title: 'Article 9 - Grounds for Termination of the Contract',
+      content: `This land lease agreement may be terminated for the following reasons:\n\n9.1 When the land lease contract period expires.\n9.2 When the Lessor is unable to deliver the land due to causes beyond reasonable control (force majeure).\n9.3 When the Lessor fails to fulfill any obligations even after the Lessee has submitted a six-month prior written notice.\n9.4 When the Lessee fails to make annual rental and other payments for two (2) consecutive years.\n9.5 When the Lessee fails to perform contractual obligations after the Lessor has given six months prior notice.\n9.6 When the Lessor, by giving a six-month prior notice, has good reasons to terminate as indicated in sub-article 5.4.\n9.7 When the Lessee, by giving a six-month prior notice, has good reasons to terminate as indicated in sub-article 3.6.`,
+      isEditable: true,
+    },
+    {
+      id: 'c10',
+      title: 'Article 10 - Results of Contract Termination',
+      content: `10.1 Upon termination, the Lessee shall return the leased land to the Lessor within six (6) months from the date of termination.\n10.2 When this agreement is terminated by the Lessee per Article 9.3 or by the Lessor per Article 9.6, the Lessor shall pay the Lessee the value of improvements and expenditures at market rate after deducting outstanding dues.\n10.3 If this agreement is terminated for reasons stated in Articles 9.4, 9.5, or 9.7, the Lessor shall not be obliged to make any payments to the Lessee.\n10.4 Upon termination, the Lessor has priority to negotiate and purchase properties on the land; if not interested, the Lessee has the right to detach and take its property.`,
+      isEditable: true,
+    },
+    {
+      id: 'c11',
+      title: 'Article 11 - Registration',
+      content: `This land lease agreement shall be subject to registration with the appropriate designated authority. Copies of this agreement shall be sent to the Lessor, the Lessee, and all relevant offices with a covering letter provided by the Lessor.`,
+      isEditable: true,
+    },
+    {
+      id: 'c12',
+      title: 'Article 12 - Governing Law',
+      content: `The applicable law of the jurisdiction in which the land is situated shall govern operations under this agreement.`,
+      isEditable: true,
+    },
+    {
+      id: 'c13',
+      title: 'Article 13 - Force Majeure',
+      content: `Regarding matters of conditions that pertain to forces of majeure (acts of God, war, natural disasters, or government action beyond the control of the parties), neither party shall be held liable for failure to perform obligations caused thereby. The affected party shall notify the other within fifteen (15) days of the occurrence.`,
+      isEditable: true,
+    },
+    {
+      id: 'c14',
+      title: 'Article 14 - Covenant for Peaceful Possession/Usage',
+      content: `The Lessor guarantees that the Lessee has full right to use the land leased under this agreement. The Lessor confirms that the leased land shall remain under peaceful possession and the Lessee shall make use of it without any problem.`,
+      isEditable: true,
+    },
+    {
+      id: 'c15',
+      title: 'Article 15 - Calendar',
+      content: `The Gregorian calendar shall be used as the primary calendar for the purposes of this agreement, unless otherwise stated.`,
+      isEditable: true,
+    },
+    {
+      id: 'c16',
+      title: 'Article 16 - Annexes to the Agreement',
+      content: `The following items are annexed and shall be considered as part of this agreement:\n\n16.1 The site plan of the leased land.\n16.2 Photocopy of valid identification document or passport of the Lessee.\n16.3 Photocopy of the Memorandum and Articles of Association (or equivalent constituting document) of the Lessee.`,
+      isEditable: true,
+    },
+    {
+      id: 'c17',
+      title: 'Article 17 - Settlement of Disputes',
+      content: `When a dispute arises between the Lessor and the Lessee in connection with or arising out of this land lease agreement, both parties shall endeavor to resolve the dispute peacefully and to the mutual benefit of both parties. If the dispute cannot be resolved accordingly, it shall be referred to arbitration or the competent court of jurisdiction.`,
+      isEditable: true,
+    },
+    {
+      id: 'c18',
+      title: 'Article 18 - Language',
+      content: `This agreement has been signed between the contracting parties in English. In the event of any discrepancy between translations, the English version shall prevail.`,
+      isEditable: true,
+    },
+    {
+      id: 'c19',
+      title: 'Article 19 - Notices and Establishing Offices',
+      content: `19.1 The Lessee shall establish and maintain a registered address for service of notices and shall notify the Lessor accordingly.\n19.2 All communications and notices between the parties shall be in writing. Such notices shall be delivered in person, by registered mail, or electronic means to the addresses registered by each party.`,
+      isEditable: true,
+    },
+    {
+      id: 'c20',
+      title: 'Article 20 - Effective Date of this Contract',
+      content: `This land lease agreement shall remain in effect for the agreed term starting ${startFmt} and coming to expiry on ${endFmt}, unless earlier terminated pursuant to the provisions of this agreement.`,
+      isEditable: true,
+    }
+  ];
+};
 
 const container = {
   hidden: { opacity: 0 },
@@ -274,7 +195,7 @@ export function AgreementDetail({
   const { user } = useAuth();
   const navigate = useNavigate();
   const { signAgreement: apiSignAgreement, updateAgreement: apiUpdateAgreement, downloadAgreement: apiDownloadAgreement } = useAgreements();
-  const [clauses, setClauses] = useState<Clause[]>(agreement.clauses.length > 0 ? agreement.clauses : DEFAULT_CLAUSES);
+  const [clauses, setClauses] = useState<Clause[]>(agreement.clauses.length > 0 ? agreement.clauses : getDefaultClauses(agreement));
   const [isSigning, setIsSigning] = useState(false);
   const [signedName, setSignedName] = useState('');
   const [isEditingTerms, setIsEditingTerms] = useState(false);
@@ -505,6 +426,67 @@ export function AgreementDetail({
                 ))}
               </div>
 
+              {/* Signatures & Execution Section */}
+              <div className="mt-12 pt-8 border-t border-slate-200 space-y-6">
+                <h3 className="text-center font-bold text-sm uppercase tracking-wider text-slate-700">Execution & Signatures</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Lessor Signature column */}
+                  <div className="p-4 rounded-md border border-slate-100 bg-slate-50/50 space-y-3">
+                    <h4 className="font-bold text-xs uppercase text-slate-500 tracking-wider">Lessor</h4>
+                    <p className="text-xs font-semibold text-slate-800">{agreement.investorName}</p>
+                    {(() => {
+                      const lessorSig = capturedSignatures.find(s => s.signerId === agreement.lessorId);
+                      if (lessorSig) {
+                        return (
+                          <div className="space-y-1">
+                            <p className="text-[10px] text-slate-400">Signed digitally by:</p>
+                            <div className="p-3 bg-white rounded border border-slate-200 text-center shadow-sm">
+                              <span className="font-recursive text-xl text-primary italic">
+                                {lessorSig.signatureData || lessorSig.signerName || 'Signed'}
+                              </span>
+                            </div>
+                            <p className="text-[9px] text-slate-400">Date: {new Date(lessorSig.signedAt).toLocaleString()}</p>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="h-16 flex items-center justify-center border border-dashed border-slate-200 rounded text-[11px] text-slate-400 italic bg-white">
+                          Awaiting signature...
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Lessee Signature column */}
+                  <div className="p-4 rounded-md border border-slate-100 bg-slate-50/50 space-y-3">
+                    <h4 className="font-bold text-xs uppercase text-slate-500 tracking-wider">Lessee</h4>
+                    <p className="text-xs font-semibold text-slate-800">{agreement.targetName}</p>
+                    {(() => {
+                      const lesseeSig = capturedSignatures.find(s => s.signerId === agreement.lesseeId);
+                      if (lesseeSig) {
+                        return (
+                          <div className="space-y-1">
+                            <p className="text-[10px] text-slate-400">Signed digitally by:</p>
+                            <div className="p-3 bg-white rounded border border-slate-200 text-center shadow-sm">
+                              <span className="font-recursive text-xl text-primary italic">
+                                {lesseeSig.signatureData || lesseeSig.signerName || 'Signed'}
+                              </span>
+                            </div>
+                            <p className="text-[9px] text-slate-400">Date: {new Date(lesseeSig.signedAt).toLocaleString()}</p>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="h-16 flex items-center justify-center border border-dashed border-slate-200 rounded text-[11px] text-slate-400 italic bg-white">
+                          Awaiting signature...
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+
               <Separator className="my-10 bg-slate-100" />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -672,6 +654,13 @@ export function AgreementDetail({
                       onChange={(e) => setSignedName(e.target.value)}
                       disabled={hasSigned}
                     />
+                    {signedName.trim() && (
+                      <div className="mt-2 p-3 bg-white border border-slate-200 rounded-md text-center shadow-sm">
+                        <span className="font-recursive text-2xl text-primary italic font-medium">
+                          {signedName}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-3.5 rounded-md bg-white border border-primary/10 space-y-2">

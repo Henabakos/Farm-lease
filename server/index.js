@@ -33,6 +33,7 @@ import { requestId } from "./middleware/requestId.js";
 import { globalLimiter } from "./middleware/rateLimit.js";
 import { auditLogger } from "./middleware/auditLogger.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { requireEmailVerified } from "./middleware/auth.js";
 
 import { registerHealthRoutes } from "./shared/health.js";
 import { initSocket } from "./realtime/socket.js";

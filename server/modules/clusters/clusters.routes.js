@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/asyncHandler.js';
@@ -9,6 +9,7 @@ import * as v from './clusters.validators.js';
 
 const router = Router();
 router.use(requireAuth);
+router.use(requireEmailVerified);
 
 router.get('/',
   validate({ query: v.listClustersQuery }),

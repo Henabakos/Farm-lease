@@ -9,6 +9,7 @@ import { RegisterPage } from '@/src/components/auth/RegisterPage';
 import { ForgotPasswordPage } from '@/src/components/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/src/components/auth/ResetPasswordPage';
 import { VerifyEmailPage } from '@/src/components/auth/VerifyEmailPage';
+import { VerifyEmailPendingPage } from '@/src/components/auth/VerifyEmailPendingPage';
 import { ProfilePage } from '@/src/components/profile/ProfilePage';
 import { ClusterList } from '@/src/components/clusters/ClusterList';
 import { ClusterDetail } from '@/src/components/clusters/ClusterDetail';
@@ -193,6 +194,10 @@ function AppContent() {
                 )}
             </>
         );
+    }
+
+    if (authUser?.email_verified === false && authUser?.role !== 'ADMIN') {
+        return <VerifyEmailPendingPage />;
     }
 
     return (

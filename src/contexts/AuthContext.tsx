@@ -16,6 +16,7 @@ interface User {
   phone?: string;
   bio?: string;
   verification_status: 'unverified' | 'pending' | 'verified';
+  email_verified?: boolean;
 }
 
 interface AuthContextType {

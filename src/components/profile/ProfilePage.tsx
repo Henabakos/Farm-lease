@@ -26,6 +26,7 @@ import { EditProfileModal } from './EditProfileModal';
 import { IdentityVerificationCard } from './IdentityVerificationCard';
 import { Separator } from '@/components/ui/separator';
 import { motion } from 'motion/react';
+import { ChangePasswordDialog } from '../auth/ChangePasswordDialog';
 
 const container = {
   hidden: { opacity: 0 },
@@ -66,7 +67,7 @@ export function ProfilePage() {
   }
 
   return (
-    <motion.div 
+    <motion.div
       variants={container}
       initial="hidden"
       animate="show"
@@ -80,7 +81,7 @@ export function ProfilePage() {
               <AvatarImage src={user.avatar} className="object-cover" />
               <AvatarFallback className="text-4xl font-bold bg-slate-50 text-primary">{user.name.charAt(0)}</AvatarFallback>
             </Avatar>
-            <motion.div 
+            <motion.div
               initial={{ scale: 0, rotate: -20 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ delay: 0.5, type: "spring" }}
@@ -118,8 +119,8 @@ export function ProfilePage() {
             </div>
           </div>
         </div>
-        <Button 
-          onClick={() => setIsEditModalOpen(true)} 
+        <Button
+          onClick={() => setIsEditModalOpen(true)}
           className="gap-2 h-9 px-4 rounded-md bg-primary hover:bg-primary/90 text-white font-bold text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95 w-full md:w-auto"
         >
           <Edit className="w-3.5 h-3.5" />
@@ -139,7 +140,7 @@ export function ProfilePage() {
                 <p className="text-slate-600 leading-relaxed text-xs font-medium">
                   {user.bio || "No bio provided yet. Tell us about yourself!"}
                 </p>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8">
                   <div className="space-y-3">
                     <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-wider ml-1">Contact Information</h4>
@@ -261,20 +262,20 @@ export function ProfilePage() {
                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{user.role.replace('_', ' ')}</p>
                     </div>
                   </div>
-                  
+
                   <Separator className="bg-slate-100" />
-                  
+
                   <div className="space-y-4">
                     <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
                       <span className="text-slate-400">Profile Strength</span>
                       <span className="text-primary">85%</span>
                     </div>
                     <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                      <motion.div 
+                      <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: '85%' }}
                         transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
-                        className="h-full bg-primary rounded-full" 
+                        className="h-full bg-primary rounded-full"
                       />
                     </div>
                     <p className="text-[10px] text-slate-500 text-center font-bold uppercase tracking-wider leading-relaxed">
@@ -282,9 +283,9 @@ export function ProfilePage() {
                     </p>
                   </div>
 
-                  <Button 
-                    variant="outline" 
-                    className="w-full h-9 rounded-md border-slate-200 bg-white hover:bg-slate-50 font-bold text-[10px] uppercase tracking-wider transition-all shadow-sm active:scale-95" 
+                  <Button
+                    variant="outline"
+                    className="w-full h-9 rounded-md border-slate-200 bg-white hover:bg-slate-50 font-bold text-[10px] uppercase tracking-wider transition-all shadow-sm active:scale-95"
                     onClick={() => setIsEditModalOpen(true)}
                   >
                     Complete Profile
@@ -335,10 +336,10 @@ export function ProfilePage() {
         onOpenChange={setIsEditModalOpen}
       />
 
-      <ChangePasswordDialog
+      {/* <ChangePasswordDialog
         open={isChangePasswordDialogOpen}
         onOpenChange={setIsChangePasswordDialogOpen}
-      />
+      /> */}
     </motion.div>
   );
 }

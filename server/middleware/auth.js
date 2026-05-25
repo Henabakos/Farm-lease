@@ -5,6 +5,7 @@
 // explicitly.
 import { verifyAccessToken } from '../utils/jwt.js';
 import { UnauthorizedError, ForbiddenError } from '../shared/errors.js';
+import { prisma } from '../db/prisma.js';
 
 function extractBearer(req) {
   const header = req.headers.authorization;
@@ -49,3 +50,30 @@ export function optionalAuth(req, _res, next) {
   }
   next();
 }
+
+/** Require user's email to be verified. Admins bypass this gate.
+ *  If `req.user` is not set (i.e. requireAuth hasn't run yet for this route),
+ *  we skip silently — the route's own `requireAuth` will reject the request. */
+export function requireEmailVerified(req, _res, next) {
+  if (!req.user) return next();
+  if (req.user.role === 'ADMIN') return next();
+
+  prisma.user
+    .findUnique({
+      where: { id: req.user.id },
+      select: { emailVerifiedAt: true },
+    })
+    .then((user) => {
+      if (!user?.emailVerifiedAt) {
+        return next(
+          new ForbiddenError(
+            'Email address must be verified to perform this action',
+            'EMAIL_NOT_VERIFIED',
+          ),
+        );
+      }
+      next();
+    })
+    .catch(next);
+}
+

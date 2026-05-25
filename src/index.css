@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Recursive:wght@300..1000&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -160,3 +161,8 @@
 .recharts-default-tooltip {
   @apply !bg-background !border-border !rounded-xl !shadow-xl !p-3 !border;
 }
+
+.font-recursive {
+  font-family: 'Recursive', cursive;
+}
+

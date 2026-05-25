@@ -195,6 +195,8 @@ export function mapAgreementFromApi(row: Record<string, unknown>): Agreement {
         id: String(row.id),
         proposalId: String(row.proposal_id),
         clusterId: row.cluster_id ? String(row.cluster_id) : undefined,
+        lessorId: row.lessor_id ? String(row.lessor_id) : undefined,
+        lesseeId: row.lessee_id ? String(row.lessee_id) : undefined,
         title: String(row.title || `Agreement ${String(row.id).slice(0, 8)}`),
         investorName: String(row.owner_name || "Owner"),
         targetName: String(row.tenant_name || "Tenant"),
@@ -212,6 +214,8 @@ export function mapAgreementFromApi(row: Record<string, unknown>): Agreement {
         signatures: signatures.map((signature, index) => ({
             id: String(signature.id ?? `${row.id}-signature-${index}`),
             signerId: String(signature.signer_id ?? signature.signerId ?? ""),
+            signerName: signature.signer_name ? String(signature.signer_name) : undefined,
+            signatureData: signature.signature_data ? String(signature.signature_data) : undefined,
             method: String(signature.method ?? "TYPED") as AgreementSignature["method"],
             signedAt: String(signature.signed_at ?? signature.signedAt ?? new Date().toISOString()),
         })),
