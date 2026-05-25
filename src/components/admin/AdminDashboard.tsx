@@ -170,6 +170,7 @@ export const AdminDashboard: React.FC = () => {
     const [reportStartDate, setReportStartDate] = useState("");
     const [reportEndDate, setReportEndDate] = useState("");
     const [isExporting, setIsExporting] = useState(false);
+    const [verificationQueueOpen, setVerificationQueueOpen] = useState(false);
 
     const filteredUsers = Array.isArray(users)
         ? users.filter(
@@ -201,6 +202,9 @@ export const AdminDashboard: React.FC = () => {
         (c) => c.verificationStatus !== "VERIFIED",
     );
     const submittedPayments = payments.filter((p) => p.status === "SUBMITTED");
+    const pendingUsers = Array.isArray(users)
+        ? users.filter((u) => u.verificationStatus === "UNVERIFIED" || u.verificationStatus === "PENDING")
+        : [];
     const verifiedPayments = payments.filter((p) => p.status === "VERIFIED");
     const rejectedPayments = payments.filter((p) => p.status === "REJECTED");
     const refundedPayments = payments.filter((p) => p.status === "REFUNDED");
@@ -1708,7 +1712,8 @@ export const AdminDashboard: React.FC = () => {
                                     </CardTitle>
                                     <Badge className="bg-primary text-white border-none font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider">
                                         {pendingClusters.length +
-                                            submittedPayments.length}
+                                            submittedPayments.length +
+                                            pendingUsers.length}
                                     </Badge>
                                 </div>
                                 <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">
@@ -1716,10 +1721,37 @@ export const AdminDashboard: React.FC = () => {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="p-6 pt-0 space-y-3">
-                                {pendingClusters.slice(0, 2).map((cluster) => (
+                                {pendingUsers.slice(0, 1).map((user) => (
+                                    <div
+                                        key={user.id}
+                                        className="p-4 rounded-md bg-slate-50 border border-slate-200 space-y-3 group cursor-pointer hover:bg-slate-100 transition-colors"
+                                        onClick={() => navigate(`/admin/users/${user.id}`)}
+                                    >
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-md bg-white border border-slate-200 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform">
+                                                    <Users className="w-4 h-4" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-xs text-slate-900 tracking-tight">
+                                                        {user.fullName}
+                                                    </h4>
+                                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                                                        {user.email}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Badge className="bg-blue-100 text-blue-700 border-none font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider">
+                                                {user.verificationStatus}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                ))}
+                                {pendingClusters.slice(0, 1).map((cluster) => (
                                     <div
                                         key={cluster.id}
-                                        className="p-4 rounded-md bg-slate-50 border border-slate-200 space-y-3 group"
+                                        className="p-4 rounded-md bg-slate-50 border border-slate-200 space-y-3 group cursor-pointer hover:bg-slate-100 transition-colors"
+                                        onClick={() => navigate(`/admin/clusters/${cluster.id}`)}
                                     >
                                         <div className="flex items-start justify-between">
                                             <div className="flex items-center gap-3">
@@ -1735,27 +1767,19 @@ export const AdminDashboard: React.FC = () => {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-7 w-7 rounded-md text-emerald-600 hover:bg-white border border-transparent hover:border-slate-200"
-                                                onClick={() =>
-                                                    handleVerifyCluster(
-                                                        cluster.id,
-                                                    )
-                                                }
-                                            >
-                                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                            </Button>
+                                            <Badge className="bg-emerald-100 text-emerald-700 border-none font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider">
+                                                {cluster.verificationStatus}
+                                            </Badge>
                                         </div>
                                     </div>
                                 ))}
                                 {submittedPayments
-                                    .slice(0, 2)
+                                    .slice(0, 1)
                                     .map((payment) => (
                                         <div
                                             key={payment.id}
-                                            className="p-4 rounded-md bg-slate-50 border border-slate-200 space-y-3 group"
+                                            className="p-4 rounded-md bg-slate-50 border border-slate-200 space-y-3 group cursor-pointer hover:bg-slate-100 transition-colors"
+                                            onClick={() => navigate(`/payments/${payment.id}`)}
                                         >
                                             <div className="flex items-start justify-between">
                                                 <div className="flex items-center gap-3">
@@ -1774,77 +1798,19 @@ export const AdminDashboard: React.FC = () => {
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-7 w-7 rounded-md text-amber-600 hover:bg-white border border-transparent hover:border-slate-200"
-                                                    onClick={() =>
-                                                        handleVerifyPayment(
-                                                            payment.id,
-                                                        )
-                                                    }
-                                                >
-                                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                                </Button>
+                                                <Badge className="bg-amber-100 text-amber-700 border-none font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider">
+                                                    {payment.status}
+                                                </Badge>
                                             </div>
                                         </div>
                                     ))}
                                 <Button
                                     variant="ghost"
                                     className="w-full h-10 rounded-md font-bold text-[10px] uppercase tracking-wider text-primary hover:bg-slate-50 border border-transparent hover:border-slate-200"
+                                    onClick={() => setVerificationQueueOpen(true)}
                                 >
                                     View Full Queue
                                     <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-
-                    {/* System Security */}
-                    <motion.div variants={item}>
-                        <Card className="border border-slate-200 shadow-sm bg-slate-50 rounded-lg overflow-hidden">
-                            <CardContent className="p-6">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-primary">
-                                        <Lock className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-sm tracking-tight text-slate-900">
-                                            Security Status
-                                        </h3>
-                                        <p className="text-[10px] font-bold text-primary uppercase tracking-wider">
-                                            All Systems Secure
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="font-bold text-[10px] text-slate-500 uppercase tracking-wider">
-                                            Firewall
-                                        </span>
-                                        <Badge className="bg-emerald-500 text-white border-none font-bold text-[8px] uppercase tracking-wider px-1.5 py-0 rounded-md">
-                                            Active
-                                        </Badge>
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="font-bold text-[10px] text-slate-500 uppercase tracking-wider">
-                                            Encryption
-                                        </span>
-                                        <Badge className="bg-emerald-500 text-white border-none font-bold text-[8px] uppercase tracking-wider px-1.5 py-0 rounded-md">
-                                            AES-256
-                                        </Badge>
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="font-bold text-[10px] text-slate-500 uppercase tracking-wider">
-                                            Audit Logging
-                                        </span>
-                                        <Badge className="bg-emerald-500 text-white border-none font-bold text-[8px] uppercase tracking-wider px-1.5 py-0 rounded-md">
-                                            Enabled
-                                        </Badge>
-                                    </div>
-                                </div>
-                                <Button className="w-full mt-6 h-10 rounded-md bg-primary hover:bg-primary/90 font-bold text-[10px] uppercase tracking-wider shadow-sm">
-                                    Security Audit
                                 </Button>
                             </CardContent>
                         </Card>
@@ -2287,6 +2253,170 @@ export const AdminDashboard: React.FC = () => {
                                     Export Report
                                 </>
                             )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Verification Queue Modal */}
+            <Dialog open={verificationQueueOpen} onOpenChange={setVerificationQueueOpen}>
+                <DialogContent className="sm:max-w-4xl max-h-[80vh] rounded-lg border-slate-200 overflow-hidden">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Activity className="w-4 h-4 text-primary" />
+                            Pending Verification Queue
+                        </DialogTitle>
+                        <DialogDescription className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                            All items requiring admin approval
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-4 overflow-y-auto max-h-[60vh]">
+                        <div className="space-y-6">
+                            {/* Pending Users */}
+                            {pendingUsers.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                        <Users className="w-4 h-4 text-blue-600" />
+                                        Pending Users ({pendingUsers.length})
+                                    </h3>
+                                    <div className="border border-slate-200 rounded-md overflow-hidden">
+                                        <table className="w-full">
+                                            <thead className="bg-slate-50">
+                                                <tr>
+                                                    <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 px-4 py-2">Name</th>
+                                                    <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 px-4 py-2">Email</th>
+                                                    <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 px-4 py-2">Role</th>
+                                                    <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 px-4 py-2">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {pendingUsers.map((user) => (
+                                                    <tr 
+                                                        key={user.id}
+                                                        className="border-t border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors"
+                                                        onClick={() => {
+                                                            navigate(`/admin/users/${user.id}`);
+                                                            setVerificationQueueOpen(false);
+                                                        }}
+                                                    >
+                                                        <td className="px-4 py-3 text-xs font-medium text-slate-900">{user.fullName}</td>
+                                                        <td className="px-4 py-3 text-xs text-slate-500">{user.email}</td>
+                                                        <td className="px-4 py-3 text-xs text-slate-500">{user.role}</td>
+                                                        <td className="px-4 py-3">
+                                                            <Badge className="bg-blue-100 text-blue-700 border-none font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider">
+                                                                {user.verificationStatus}
+                                                            </Badge>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Pending Clusters */}
+                            {pendingClusters.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                        <MapPin className="w-4 h-4 text-emerald-600" />
+                                        Pending Clusters ({pendingClusters.length})
+                                    </h3>
+                                    <div className="border border-slate-200 rounded-md overflow-hidden">
+                                        <table className="w-full">
+                                            <thead className="bg-slate-50">
+                                                <tr>
+                                                    <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 px-4 py-2">Name</th>
+                                                    <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 px-4 py-2">Location</th>
+                                                    <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 px-4 py-2">Region</th>
+                                                    <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 px-4 py-2">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {pendingClusters.map((cluster) => (
+                                                    <tr 
+                                                        key={cluster.id}
+                                                        className="border-t border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors"
+                                                        onClick={() => {
+                                                            navigate(`/admin/clusters/${cluster.id}`);
+                                                            setVerificationQueueOpen(false);
+                                                        }}
+                                                    >
+                                                        <td className="px-4 py-3 text-xs font-medium text-slate-900">{cluster.name}</td>
+                                                        <td className="px-4 py-3 text-xs text-slate-500">{cluster.location}</td>
+                                                        <td className="px-4 py-3 text-xs text-slate-500">{cluster.region}</td>
+                                                        <td className="px-4 py-3">
+                                                            <Badge className="bg-emerald-100 text-emerald-700 border-none font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider">
+                                                                {cluster.verificationStatus}
+                                                            </Badge>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Pending Payments */}
+                            {submittedPayments.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                        <Wallet className="w-4 h-4 text-amber-600" />
+                                        Pending Payments ({submittedPayments.length})
+                                    </h3>
+                                    <div className="border border-slate-200 rounded-md overflow-hidden">
+                                        <table className="w-full">
+                                            <thead className="bg-slate-50">
+                                                <tr>
+                                                    <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 px-4 py-2">Amount</th>
+                                                    <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 px-4 py-2">Agreement</th>
+                                                    <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 px-4 py-2">Type</th>
+                                                    <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 px-4 py-2">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {submittedPayments.map((payment) => (
+                                                    <tr 
+                                                        key={payment.id}
+                                                        className="border-t border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors"
+                                                        onClick={() => {
+                                                            navigate(`/payments/${payment.id}`);
+                                                            setVerificationQueueOpen(false);
+                                                        }}
+                                                    >
+                                                        <td className="px-4 py-3 text-xs font-medium text-slate-900">${payment.amount.toLocaleString()}</td>
+                                                        <td className="px-4 py-3 text-xs text-slate-500">{payment.agreementTitle}</td>
+                                                        <td className="px-4 py-3 text-xs text-slate-500">{payment.type}</td>
+                                                        <td className="px-4 py-3">
+                                                            <Badge className="bg-amber-100 text-amber-700 border-none font-bold px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider">
+                                                                {payment.status}
+                                                            </Badge>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
+                            {pendingUsers.length === 0 && pendingClusters.length === 0 && submittedPayments.length === 0 && (
+                                <div className="text-center py-8 text-slate-400 text-sm">
+                                    No pending verifications
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setVerificationQueueOpen(false)}
+                            className="rounded-md border-slate-200"
+                        >
+                            Close
                         </Button>
                     </DialogFooter>
                 </DialogContent>

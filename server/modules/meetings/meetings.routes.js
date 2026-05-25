@@ -2,6 +2,7 @@
 // Meetings module — routes
 // ============================================================================
 import express from 'express';
+import { z } from 'zod';
 import { requireAuth, requireEmailVerified } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';

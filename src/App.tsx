@@ -207,7 +207,10 @@ function AppContent() {
                     path="/"
                     element={<Navigate to="/dashboard" replace />}
                 />
-                <Route path="/dashboard" element={<DashboardOverview />} />
+                <Route 
+                    path="/dashboard" 
+                    element={role === 'ADMIN' ? <AdminDashboard /> : <DashboardOverview />} 
+                />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route
                     path="/clusters"

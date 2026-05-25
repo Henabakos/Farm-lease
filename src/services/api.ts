@@ -325,9 +325,14 @@ export const analyticsAPI = {
   getDashboard: () => api.get('/analytics/dashboard'),
   getPaymentStatsByMonth: (months?: number) =>
     api.get('/analytics/payments/by-month', { params: { months } }),
-  getTopClusters: () => api.get('/analytics/clusters/top'),
+  getRevenue: (months?: number) =>
+    api.get('/analytics/payments/by-month', { params: { months } }),
+  getUsersByRole: () => api.get('/analytics/users/by-role'),
+  getProposalsByStatus: () => api.get('/analytics/proposals/by-status'),
+  getTopClusters: (limit?: number) => api.get('/analytics/clusters/top', { params: { limit } }),
   getClusterStats: (clusterId: string) =>
-    api.get(`/analytics/clusters/${clusterId}`)
+    api.get(`/analytics/clusters/${clusterId}`),
+  getActivity: (limit?: number) => api.get('/analytics/activity', { params: { limit } }),
 };
 
 // Admin API

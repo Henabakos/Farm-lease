@@ -6,6 +6,9 @@ export const useAnalytics = () => {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [revenueData, setRevenueData] = useState<any>(null);
   const [paymentStats, setPaymentStats] = useState<any>(null);
+  const [usersByRole, setUsersByRole] = useState<any>([]);
+  const [proposalsByStatus, setProposalsByStatus] = useState<any>([]);
+  const [topClusters, setTopClusters] = useState<any>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,20 +81,56 @@ export const useAnalytics = () => {
     }
   }, []);
 
+  const fetchUsersByRole = useCallback(async () => {
+    try {
+      const response = await analyticsAPI.getUsersByRole();
+      setUsersByRole(response.data || []);
+    } catch (err: any) {
+      console.error('Failed to fetch users by role:', err);
+    }
+  }, []);
+
+  const fetchProposalsByStatus = useCallback(async () => {
+    try {
+      const response = await analyticsAPI.getProposalsByStatus();
+      setProposalsByStatus(response.data || []);
+    } catch (err: any) {
+      console.error('Failed to fetch proposals by status:', err);
+    }
+  }, []);
+
+  const fetchTopClusters = useCallback(async (limit?: number) => {
+    try {
+      const response = await analyticsAPI.getTopClusters(limit);
+      setTopClusters(response.data || []);
+    } catch (err: any) {
+      console.error('Failed to fetch top clusters:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchDashboard();
-  }, [fetchDashboard]);
+    fetchUsersByRole();
+    fetchProposalsByStatus();
+    fetchTopClusters(10);
+  }, [fetchDashboard, fetchUsersByRole, fetchProposalsByStatus, fetchTopClusters]);
 
   return {
     dashboardData,
     revenueData,
     paymentStats,
+    usersByRole,
+    proposalsByStatus,
+    topClusters,
     isLoading,
     error,
     fetchDashboard,
     fetchRevenue,
     fetchPaymentStats,
     fetchClusterStats,
-    logEvent
+    logEvent,
+    fetchUsersByRole,
+    fetchProposalsByStatus,
+    fetchTopClusters
   };
 };
