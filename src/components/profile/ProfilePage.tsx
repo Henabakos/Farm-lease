@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useRole } from '@/src/contexts/RoleContext';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -44,6 +45,7 @@ const item = {
 };
 
 export function ProfilePage() {
+  const navigate = useNavigate();
   const { user, isLoading } = useRole();
   const { user: authUser } = useAuth();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -308,19 +310,19 @@ export function ProfilePage() {
                   </div>
                   <span className="font-bold text-[11px] uppercase tracking-wider text-slate-700">Change Password</span>
                 </Button>
-                <Button variant="ghost" className="w-full justify-start gap-3 h-10 rounded-md px-3 hover:bg-slate-50 hover:text-primary transition-all group border border-transparent hover:border-slate-200">
+                <Button variant="ghost" className="w-full justify-start gap-3 h-10 rounded-md px-3 hover:bg-slate-50 hover:text-primary transition-all group border border-transparent hover:border-slate-200" onClick={() => navigate('/settings?tab=security')}>
                   <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
                     <Shield className="w-3.5 h-3.5 text-primary/70" />
                   </div>
                   <span className="font-bold text-[11px] uppercase tracking-wider text-slate-700">Security Settings</span>
                 </Button>
-                <Button variant="ghost" className="w-full justify-start gap-3 h-10 rounded-md px-3 hover:bg-slate-50 hover:text-primary transition-all group border border-transparent hover:border-slate-200">
+                <Button variant="ghost" className="w-full justify-start gap-3 h-10 rounded-md px-3 hover:bg-slate-50 hover:text-primary transition-all group border border-transparent hover:border-slate-200" onClick={() => navigate('/settings?tab=notifications')}>
                   <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
                     <Mail className="w-3.5 h-3.5 text-primary/70" />
                   </div>
                   <span className="font-bold text-[11px] uppercase tracking-wider text-slate-700">Notification Prefs</span>
                 </Button>
-                <Button variant="ghost" className="w-full justify-start gap-3 h-10 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/5 transition-all group border border-transparent hover:border-destructive/10">
+                <Button variant="ghost" className="w-full justify-start gap-3 h-10 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/5 transition-all group border border-transparent hover:border-destructive/10" onClick={() => navigate('/settings')}>
                   <div className="w-7 h-7 rounded-md bg-destructive/5 border border-destructive/10 flex items-center justify-center group-hover:bg-destructive/10 transition-colors">
                     <ExternalLink className="w-3.5 h-3.5 text-destructive" />
                   </div>

@@ -5,6 +5,8 @@ import { authAPI } from '@/src/services/api';
 import { Mail, Loader2, LogOut, CheckCircle2, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { AuthLayout } from './AuthLayout';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export function VerifyEmailPendingPage() {
   const { user, logout } = useAuth();
@@ -69,97 +71,68 @@ export function VerifyEmailPendingPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-900 via-slate-950 to-slate-900 text-white p-4">
-      {/* Background ambient glows */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[20%] left-[20%] w-[350px] h-[350px] rounded-full bg-indigo-500/10 blur-[100px]" />
-        <div className="absolute bottom-[20%] right-[20%] w-[350px] h-[350px] rounded-full bg-emerald-500/10 blur-[100px]" />
-      </div>
-
+    <AuthLayout
+      title="Verify your email"
+      subtitle="Activate your account to access your investment dashboard."
+      onBack={logout}
+    >
       <motion.div
-        initial={{ opacity: 0, y: 25, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 p-8 shadow-2xl backdrop-blur-xl"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="space-y-6"
       >
-        <div className="flex flex-col items-center text-center">
-          {/* Logo / Icon container */}
-          <div className="relative mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-            <Mail className="h-8 w-8" />
-            <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-indigo-500 text-[9px] font-bold text-white animate-pulse">
-              !
-            </span>
-          </div>
-
-          <h1 className="text-2xl font-bold tracking-tight text-white mb-2">
-            Verify your email
-          </h1>
-          
-          <p className="text-slate-400 text-sm leading-relaxed mb-6">
-            We sent a verification link to <span className="font-semibold text-slate-200">{user?.email}</span>. 
-            Please click the link in that email to activate your account and access the dashboard.
+        <div className="flex items-start gap-3 p-3 rounded-md border border-slate-200 bg-slate-50">
+          <Mail className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+          <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+            We sent a verification link to <span className="font-bold text-slate-800">{user?.email}</span>. Click the link in that email to activate your account.
           </p>
+        </div>
 
-          <AnimatePresence mode="wait">
-            {statusMsg && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className={`w-full mb-6 p-4 rounded-xl border text-left text-xs ${
-                  statusMsg.type === 'success'
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                    : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-                }`}
-              >
-                <div className="flex items-start gap-2.5">
-                  {statusMsg.type === 'success' ? (
-                    <CheckCircle2 className="h-4.5 w-4.5 shrink-0" />
-                  ) : (
-                    <AlertCircle className="h-4.5 w-4.5 shrink-0" />
-                  )}
-                  <p>{statusMsg.text}</p>
-                </div>
-              </motion.div>
+        {statusMsg && (
+          <Alert className={`rounded-md border ${
+            statusMsg.type === 'success'
+              ? 'border-emerald-250 bg-emerald-50 text-emerald-800'
+              : 'border-destructive/20 bg-destructive/5 text-destructive'
+          }`}>
+            {statusMsg.type === 'success' ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            ) : (
+              <AlertCircle className="h-4 w-4" />
             )}
-          </AnimatePresence>
+            <AlertDescription className="text-xs">
+              {statusMsg.text}
+            </AlertDescription>
+          </Alert>
+        )}
 
-          <div className="w-full space-y-3">
-            <Button
-              onClick={handleResend}
-              disabled={resendLoading || cooldown > 0}
-              className="w-full h-11 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold rounded-xl transition duration-200 border-none shadow-md shadow-indigo-600/20"
-            >
-              {resendLoading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4.5 w-4.5 animate-spin" />
-                  Resending...
-                </span>
-              ) : cooldown > 0 ? (
-                `Resend link in ${cooldown}s`
-              ) : (
-                'Resend verification email'
-              )}
-            </Button>
+        <div className="space-y-3">
+          <Button
+            onClick={handleResend}
+            disabled={resendLoading || cooldown > 0}
+            className="w-full h-10 rounded-md bg-primary hover:bg-primary/90 text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all gap-2"
+          >
+            {resendLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {cooldown > 0 ? `Resend link in ${cooldown}s` : 'Resend verification email'}
+          </Button>
 
-            <Button
-              onClick={logout}
-              variant="outline"
-              className="w-full h-11 border-slate-800 bg-slate-900/40 hover:bg-slate-800 hover:text-white active:bg-slate-900 text-slate-300 font-semibold rounded-xl transition duration-200 flex items-center justify-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </Button>
-          </div>
+          <Button
+            onClick={logout}
+            variant="outline"
+            className="w-full h-10 border-slate-200 bg-white hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-md shadow-sm transition-all flex items-center justify-center gap-2"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sign out
+          </Button>
+        </div>
 
-          <div className="mt-8 pt-6 border-t border-slate-850 w-full flex items-center justify-between text-xs text-slate-500">
-            <span>Logged in as: {user?.full_name}</span>
-            <span className="capitalize px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700 text-[10px] font-medium">
-              {user?.role?.toLowerCase()?.replace('_', ' ')}
-            </span>
-          </div>
+        <div className="pt-6 border-t border-slate-100 w-full flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+          <span>Logged in as: {user?.full_name}</span>
+          <span className="capitalize px-2 py-0.5 rounded-md bg-slate-50 text-slate-500 border border-slate-200 text-[9px] font-medium">
+            {user?.role?.toLowerCase()?.replace('_', ' ')}
+          </span>
         </div>
       </motion.div>
-    </div>
+    </AuthLayout>
   );
 }
