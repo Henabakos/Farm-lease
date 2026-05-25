@@ -21,6 +21,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 const container = {
   hidden: { opacity: 0 },
@@ -99,7 +100,7 @@ export function LandingPage({ onLogin, onRegister }: { onLogin: () => void, onRe
                 Start Investing Now
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <Button variant="outline" className="w-full sm:w-auto h-14 px-10 rounded-xl border-slate-200 bg-white text-slate-600 font-bold uppercase tracking-wider text-xs hover:bg-slate-50 transition-all active:scale-95">
+              <Button variant="outline" className="w-full sm:w-auto h-14 px-10 rounded-xl border-slate-200 bg-white text-slate-600 font-bold uppercase tracking-wider text-xs hover:bg-slate-50 transition-all active:scale-95" onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
                 Watch Demo
               </Button>
             </div>
@@ -589,7 +590,7 @@ export function LandingPage({ onLogin, onRegister }: { onLogin: () => void, onRe
                 We prioritize the safety of your capital. Our multi-layered security framework ensures that every transaction is secure, transparent, and legally binding.
               </p>
               <div className="pt-4">
-                <Button className="h-12 px-8 rounded-xl bg-white text-slate-900 font-bold uppercase tracking-wider text-[10px] hover:bg-slate-100 transition-all active:scale-95">
+                <Button className="h-12 px-8 rounded-xl bg-white text-slate-900 font-bold uppercase tracking-wider text-[10px] hover:bg-slate-100 transition-all active:scale-95" onClick={() => toast.success("Security whitepaper PDF download started (agriinvest-security-v2.pdf)")}>
                   Read Security Whitepaper
                 </Button>
               </div>
@@ -706,7 +707,7 @@ export function LandingPage({ onLogin, onRegister }: { onLogin: () => void, onRe
                 <Button onClick={onRegister} className="w-full sm:w-auto h-16 px-12 rounded-2xl bg-white text-primary hover:bg-slate-50 font-bold uppercase tracking-wider text-xs shadow-xl transition-all active:scale-95">
                   Create Free Account
                 </Button>
-                <Button variant="ghost" className="w-full sm:w-auto h-16 px-12 rounded-2xl text-white hover:bg-white/10 font-bold uppercase tracking-wider text-xs transition-all">
+                <Button variant="ghost" className="w-full sm:w-auto h-16 px-12 rounded-2xl text-white hover:bg-white/10 font-bold uppercase tracking-wider text-xs transition-all" onClick={() => window.location.href = 'mailto:sales@farmlease.local'}>
                   Contact Sales
                 </Button>
               </div>
